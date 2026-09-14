@@ -1,0 +1,95 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum Role {
+  ADMIN
+  MERCHANT
+  USER
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(USER)
+  createdAt    DateTime @default(now())
+  stores       Store[]
+}
+
+model Store {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  ownerId   String
+  owner     User     @relation(fields: [ownerId], references: [id])
+  cityId    String?
+  marketId  String?
+  city      City?    @relation(fields: [cityId], references: [id])
+  market    Market?  @relation(fields: [marketId], references: [id])
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  products  Product[]
+}
+
+
+
+enum ProductStatus {
+  ACTIVE
+  UNDER_REVIEW
+  HIDDEN
+}
+
+model Product {
+  id            String        @id @default(cuid())
+  storeId       String
+  store         Store         @relation(fields: [storeId], references: [id])
+  name          String
+  price         Int
+  discountPrice Int? // ✅ جديد: سعر مخفّض (للعروض)
+  isFeatured    Boolean       @default(false) // ✅ جديد: منتج مميز/عرض
+  category      String
+  imageUrl      String?
+  status        ProductStatus @default(ACTIVE)
+  riskScore     Int           @default(0)
+  createdAt     DateTime      @default(now())
+
+  @@index([status, category])
+  @@index([storeId, createdAt])
+}
+
+model Region {
+  id        String   @id @default(cuid())
+  country   String
+  name      String   @unique        // مثل: "Syria", "United Arab Emirates"
+  code      String?  @unique              // مثل: "SY", "AE"
+  cities    City[]
+  createdAt DateTime @default(now())
+}
+
+model City {
+  id        String   @id @default(cuid())
+  name      String
+  regionId  String
+  region    Region   @relation(fields: [regionId], references: [id])
+  markets   Market[]
+  latitude  Float?
+  longitude Float?
+  stores    Store[]
+  createdAt DateTime @default(now())
+}
+
+model Market {
+  id        String   @id @default(cuid())
+  name      String
+  cityId    String
+  city      City     @relation(fields: [cityId], references: [id])
+  stores    Store[]
+  createdAt DateTime @default(now())
+}
+

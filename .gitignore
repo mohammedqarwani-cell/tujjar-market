@@ -1,0 +1,29 @@
+# dependencies & builds
+node_modules/
+.next/
+dist/
+build/
+out/
+coverage/
+*.tsbuildinfo
+next-env.d.ts
+
+# env & secrets
+.env
+.env.*
+!.env.example
+
+# local data
+infra/postgres-data/
+infra/minio-data/
+apps/api/prisma/*.db
+apps/api/prisma/*.db-journal
+apps/api/$null
+.git-empty-backup/
+
+# logs & OS
+*.log
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/

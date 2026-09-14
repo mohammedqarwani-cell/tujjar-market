@@ -1,0 +1,9 @@
+@import "tailwindcss";
+
+/* (اختياري) سمات عامة */
+@theme {
+  --color-brand: #0ea5e9; /* sky-500 */
+}
+
+/* تحسينات صغيرة */
+html, body { height: 100%; }
