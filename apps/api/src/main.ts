@@ -1,19 +1,22 @@
+import { env } from './env';
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
 import { ValidationPipe } from '@nestjs/common';
-import { PrismaExceptionFilter } from './common/prisma-exception.filter';
+import { AppModule } from './app.module';
+import { PrismaExceptionFilter } from './common/filters/prisma-exception.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule, { cors: true });
+  const app = await NestFactory.create(AppModule);
 
   app.enableCors({
-    origin: ['http://localhost:3000'],
+    origin: env.webOrigins,
     methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
-
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, transform: true }));
+  app.useGlobalPipes(
+    new ValidationPipe({ whitelist: true, transform: true, stopAtFirstError: true }),
+  );
   app.useGlobalFilters(new PrismaExceptionFilter());
-  await app.listen(4000);
+
+  await app.listen(env.port);
 }
 bootstrap();

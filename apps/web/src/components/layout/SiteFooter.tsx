@@ -1,88 +1,37 @@
-export default function SiteFooter() {
+import Link from "next/link";
+import { Logo } from "@components/brand/Logo";
+
+export function SiteFooter() {
   return (
-    <footer className="mt-12 border-t bg-white">
-      <div className="mx-auto max-w-7xl px-4 py-8 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-2">
-          <div className="font-bold text-lg">تُجّار ماركت</div>
-          <p className="text-sm text-gray-600">
-            منصّة تستعرض متاجر الأسواق حسب المدينة والسوق، مع إمكانية تصفّح
-            المنتجات وفتح متجر إلكتروني.
+    <footer className="mt-16 border-t border-line bg-sand/60">
+      <div className="mx-auto grid max-w-6xl gap-8 px-4 py-10 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-3 lg:col-span-2">
+          <Logo />
+          <p className="max-w-sm text-sm leading-7 text-muted">
+            منصة سورية تجمع محلات الأسواق في مكان واحد. ابحث عن المنتج، قارن الأسعار، وتواصل مع التاجر
+            مباشرة — بدون وسيط وبدون عمولة.
           </p>
         </div>
-
         <div>
-          <div className="font-semibold mb-2">روابط</div>
-          <ul className="space-y-1 text-sm">
-            <li>
-              <a className="hover:underline" href="/">
-                الرئيسية
-              </a>
-            </li>
-            <li>
-              <a className="hover:underline" href="/markets">
-                الأسواق
-              </a>
-            </li>
-            <li>
-              <a className="hover:underline" href="/stores">
-                المتاجر
-              </a>
-            </li>
-            <li>
-              <a className="hover:underline" href="/offers">
-                العروض
-              </a>
-            </li>
+          <h3 className="mb-3 text-sm font-bold">تسوّق</h3>
+          <ul className="space-y-2 text-sm text-muted">
+            <li><Link href="/markets" className="hover:text-ink">الأسواق حسب المحافظة</Link></li>
+            <li><Link href="/search?offers=1" className="hover:text-ink">العروض والتخفيضات</Link></li>
+            <li><Link href="/search?type=stores" className="hover:text-ink">كل المتاجر</Link></li>
+            <li><Link href="/favorites" className="hover:text-ink">المفضلة</Link></li>
           </ul>
         </div>
-
         <div>
-          <div className="font-semibold mb-2">للتجّار</div>
-          <ul className="space-y-1 text-sm">
-            <li>
-              <a className="hover:underline" href="/dashboard">
-                لوحة التاجر
-              </a>
-            </li>
-            <li>
-              <a className="hover:underline" href="/login">
-                تسجيل الدخول
-              </a>
-            </li>
-            <li>
-              <a className="hover:underline" href="/register">
-                إنشاء حساب
-              </a>
-            </li>
-          </ul>
-        </div>
-
-        <div>
-          <div className="font-semibold mb-2">الدعم</div>
-          <ul className="space-y-1 text-sm">
-            <li>
-              <a className="hover:underline" href="/help">
-                المساعدة
-              </a>
-            </li>
-            <li>
-              <a className="hover:underline" href="/terms">
-                الشروط
-              </a>
-            </li>
-            <li>
-              <a className="hover:underline" href="/privacy">
-                الخصوصية
-              </a>
-            </li>
+          <h3 className="mb-3 text-sm font-bold">للتجار</h3>
+          <ul className="space-y-2 text-sm text-muted">
+            <li><Link href="/join" className="hover:text-ink">افتح متجرك مجاناً</Link></li>
+            <li><Link href="/login" className="hover:text-ink">دخول التجار</Link></li>
+            <li><Link href="/dashboard" className="hover:text-ink">لوحة المتجر</Link></li>
           </ul>
         </div>
       </div>
-      <div className="border-t">
-        <div className="mx-auto max-w-7xl px-4 py-4 text-xs text-gray-500 flex items-center justify-between">
-          <span>© {new Date().getFullYear()} تُجّار ماركت</span>
-          <span>صنع بحب ❤</span>
-        </div>
+      <div className="border-t border-line/70 py-4 text-center text-xs text-muted">
+        © {new Date().getFullYear()} تُجّار ماركت · صُنع لأسواق سوريا
       </div>
     </footer>
   );

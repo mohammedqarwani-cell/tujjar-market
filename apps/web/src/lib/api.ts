@@ -1,31 +1,37 @@
-import { ENV } from "@lib/env";
+export const PUBLIC_API = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000").replace(/\/+$/, "");
+const SERVER_API = (process.env.API_BASE_URL ?? PUBLIC_API).replace(/\/+$/, "");
 
-type Options = RequestInit & { auth?: boolean };
+export class ApiError extends Error {
+  constructor(
+    public status: number,
+    message: string,
+  ) {
+    super(message);
+  }
+}
 
-export async function api<T = any>(
-  path: string,
-  opts: Options = {}
-): Promise<T> {
-  const headers: HeadersInit = { ...(opts.headers || {}) };
-  if (typeof window !== "undefined" && opts.auth) {
-    const token = localStorage.getItem("accessToken");
-    if (token) headers["Authorization"] = `Bearer ${token}`;
-  }
-  const res = await fetch(`${ENV.API_BASE_URL}${path}`, {
-    ...opts,
-    headers,
-    cache: "no-store",
-  });
-  if (!res.ok) {
-    let msg = "";
-    try {
-      msg = (await res.json()).message ?? "";
-    } catch {}
-    throw new Error(msg || `HTTP ${res.status}`);
-  }
+export async function readError(res: Response): Promise<string> {
   try {
-    return await res.json();
-  } catch {
-    return {} as T;
+    const body = await res.json();
+    const msg = Array.isArray(body?.message) ? body.message[0] : body?.message;
+    if (typeof msg === "string" && msg) return msg;
+  } catch {}
+  return res.status >= 500 ? "حدث خطأ في الخادم، حاول لاحقاً" : "تعذّر تنفيذ الطلب";
+}
+
+/** Public GET used by server components; responses are cached briefly. */
+export async function apiGet<T>(path: string, revalidate = 30): Promise<T> {
+  const base = typeof window === "undefined" ? SERVER_API : PUBLIC_API;
+  const res = await fetch(`${base}${path}`, { next: { revalidate } });
+  if (!res.ok) throw new ApiError(res.status, await readError(res));
+  return res.json() as Promise<T>;
+}
+
+export function toQuery(params: Record<string, string | number | undefined | null>): string {
+  const sp = new URLSearchParams();
+  for (const [k, v] of Object.entries(params)) {
+    if (v !== undefined && v !== null && v !== "") sp.set(k, String(v));
   }
+  const s = sp.toString();
+  return s ? `?${s}` : "";
 }

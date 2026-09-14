@@ -1,43 +1,21 @@
-datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
-}
-
 generator client {
   provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
 }
 
 enum Role {
   ADMIN
   MERCHANT
-  USER
 }
 
-model User {
-  id           String   @id @default(cuid())
-  email        String   @unique
-  passwordHash String
-  role         Role     @default(USER)
-  createdAt    DateTime @default(now())
-  stores       Store[]
+enum StoreStatus {
+  ACTIVE
+  SUSPENDED
 }
-
-model Store {
-  id        String   @id @default(cuid())
-  name      String
-  slug      String   @unique
-  ownerId   String
-  owner     User     @relation(fields: [ownerId], references: [id])
-  cityId    String?
-  marketId  String?
-  city      City?    @relation(fields: [cityId], references: [id])
-  market    Market?  @relation(fields: [marketId], references: [id])
-  imageUrl  String?
-  createdAt DateTime @default(now())
-  products  Product[]
-}
-
-
 
 enum ProductStatus {
   ACTIVE
@@ -45,51 +23,171 @@ enum ProductStatus {
   HIDDEN
 }
 
-model Product {
-  id            String        @id @default(cuid())
-  storeId       String
-  store         Store         @relation(fields: [storeId], references: [id])
-  name          String
-  price         Int
-  discountPrice Int? // ✅ جديد: سعر مخفّض (للعروض)
-  isFeatured    Boolean       @default(false) // ✅ جديد: منتج مميز/عرض
-  category      String
-  imageUrl      String?
-  status        ProductStatus @default(ACTIVE)
-  riskScore     Int           @default(0)
-  createdAt     DateTime      @default(now())
-
-  @@index([status, category])
-  @@index([storeId, createdAt])
+enum PriceType {
+  FIXED
+  NEGOTIABLE
+  ON_REQUEST
 }
 
-model Region {
-  id        String   @id @default(cuid())
-  country   String
-  name      String   @unique        // مثل: "Syria", "United Arab Emirates"
-  code      String?  @unique              // مثل: "SY", "AE"
-  cities    City[]
-  createdAt DateTime @default(now())
+enum Currency {
+  SYP
+  USD
 }
 
-model City {
+enum ItemCondition {
+  NEW
+  USED
+}
+
+enum ContactChannel {
+  WHATSAPP
+  CALL
+}
+
+enum ReportStatus {
+  OPEN
+  RESOLVED
+  DISMISSED
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  /// E.164 without the plus sign, e.g. 963912345678
+  phone        String   @unique
+  passwordHash String
+  role         Role     @default(MERCHANT)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  stores       Store[]
+}
+
+model Governorate {
   id        String   @id @default(cuid())
-  name      String
-  regionId  String
-  region    Region   @relation(fields: [regionId], references: [id])
-  markets   Market[]
+  slug      String   @unique
+  name      String   @unique
+  sortOrder Int      @default(0)
   latitude  Float?
   longitude Float?
+  markets   Market[]
   stores    Store[]
-  createdAt DateTime @default(now())
 }
 
 model Market {
-  id        String   @id @default(cuid())
-  name      String
-  cityId    String
-  city      City     @relation(fields: [cityId], references: [id])
-  stores    Store[]
-  createdAt DateTime @default(now())
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  name          String
+  description   String?
+  sortOrder     Int         @default(0)
+  governorateId String
+  governorate   Governorate @relation(fields: [governorateId], references: [id])
+  stores        Store[]
+
+  @@unique([governorateId, name])
 }
 
+model Category {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String    @unique
+  icon      String
+  sortOrder Int       @default(0)
+  products  Product[]
+  stores    Store[]
+}
+
+model Store {
+  id            String      @id @default(cuid())
+  slug          String      @unique
+  name          String
+  tagline       String?
+  description   String?
+  ownerId       String
+  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  governorateId String
+  governorate   Governorate @relation(fields: [governorateId], references: [id])
+  marketId      String?
+  market        Market?     @relation(fields: [marketId], references: [id])
+  categoryId    String?
+  category      Category?   @relation(fields: [categoryId], references: [id])
+  address       String?
+  mapUrl        String?
+  /// WhatsApp number, E.164 without plus
+  whatsapp      String
+  phone         String?
+  openingHours  String?
+  logoUrl       String?
+  coverUrl      String?
+  hasDelivery   Boolean     @default(false)
+  isVerified    Boolean     @default(false)
+  status        StoreStatus @default(ACTIVE)
+  /// Normalized Arabic text used for search
+  searchText    String      @default("")
+  viewsCount    Int         @default(0)
+  contactsCount Int         @default(0)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  products      Product[]
+  dailyStats    StoreDailyStat[]
+  reports       Report[]
+
+  @@index([status, governorateId, marketId])
+  @@index([categoryId])
+}
+
+model Product {
+  id            String        @id @default(cuid())
+  storeId       String
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      Category      @relation(fields: [categoryId], references: [id])
+  title         String
+  description   String?
+  priceType     PriceType     @default(FIXED)
+  price         Int?
+  oldPrice      Int?
+  currency      Currency      @default(SYP)
+  condition     ItemCondition @default(NEW)
+  inStock       Boolean       @default(true)
+  images        String[]
+  status        ProductStatus @default(ACTIVE)
+  riskScore     Int           @default(0)
+  isFeatured    Boolean       @default(false)
+  searchText    String        @default("")
+  viewsCount    Int           @default(0)
+  contactsCount Int           @default(0)
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  reports       Report[]
+
+  @@index([status, categoryId])
+  @@index([storeId, status])
+  @@index([createdAt])
+}
+
+/// Per-store daily counters that power the merchant dashboard
+model StoreDailyStat {
+  id       String   @id @default(cuid())
+  storeId  String
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  day      DateTime @db.Date
+  views    Int      @default(0)
+  whatsapp Int      @default(0)
+  calls    Int      @default(0)
+
+  @@unique([storeId, day])
+}
+
+model Report {
+  id        String       @id @default(cuid())
+  storeId   String?
+  store     Store?       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  reason    String
+  details   String?
+  status    ReportStatus @default(OPEN)
+  createdAt DateTime     @default(now())
+
+  @@index([status, createdAt])
+}

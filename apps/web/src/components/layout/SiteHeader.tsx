@@ -1,180 +1,52 @@
-// components/layout/SiteHeader.tsx
-"use client";
-
 import Link from "next/link";
-import { useRouter, usePathname } from "next/navigation";
-import { useMemo, useState } from "react";
-import RegionSwitcher from "@components/common/RegionSwitcher";
+import Form from "next/form";
+import { cookies } from "next/headers";
+import { Logo } from "@components/brand/Logo";
+import { SearchIcon } from "@components/ui/icons";
+import { apiGet } from "@lib/api";
+import { GOV_COOKIE } from "@lib/gov";
+import type { Governorate } from "@lib/types";
+import { GovernoratePicker } from "./GovernoratePicker";
+import { AccountLink } from "./AccountLink";
 
-function NavLink({
-  href,
-  children,
-}: {
-  href: string;
-  children: React.ReactNode;
-}) {
-  const pathname = usePathname();
-  const active =
-    pathname === href || (href !== "/" && pathname?.startsWith(href));
-  return (
-    <Link
-      href={href}
-      className={`px-3 py-2 rounded-full text-sm ${
-        active ? "bg-gray-900 text-white" : "hover:bg-gray-100"
-      }`}
-    >
-      {children}
-    </Link>
-  );
-}
-
-export default function SiteHeader() {
-  const router = useRouter();
-  const [q, setQ] = useState("");
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  function submitSearch(e: React.FormEvent) {
-    e.preventDefault();
-    const url = new URL("/search", window.location.origin);
-    if (q.trim()) url.searchParams.set("q", q.trim());
-    router.push(url.toString());
-    setMenuOpen(false);
-  }
-
-  const nav = useMemo(
-    () => [
-      { href: "/", label: "الرئيسية" },
-      { href: "/markets", label: "الأسواق" },
-      { href: "/stores", label: "المتاجر" },
-      { href: "/offers", label: "العروض" },
-    ],
-    []
-  );
+export async function SiteHeader() {
+  const [governorates, current] = await Promise.all([
+    apiGet<Governorate[]>("/governorates", 300).catch(() => [] as Governorate[]),
+    cookies().then((c) => c.get(GOV_COOKIE)?.value ?? ""),
+  ]);
 
   return (
-    <header className="sticky top-0 z-50 w-full border-b bg-white/80 backdrop-blur">
-      <div className="mx-auto max-w-7xl px-4 h-16 flex items-center justify-between gap-3">
-        {/* يسار: شعار + روابط دسكتوب */}
-        <div className="flex items-center gap-3">
-          <button
-            className="lg:hidden rounded-lg p-2 border"
-            aria-label="Toggle menu"
-            onClick={() => setMenuOpen((v) => !v)}
-          >
-            ☰
-          </button>
-          <Link href="/" className="font-bold text-lg">
-            تُجّار ماركت
-          </Link>
-          <nav className="hidden lg:flex items-center gap-1">
-            {nav.map((n) => (
-              <NavLink key={n.href} href={n.href}>
-                {n.label}
-              </NavLink>
-            ))}
-          </nav>
-        </div>
+    <header className="sticky top-0 z-40 border-b border-line/80 bg-canvas/90 backdrop-blur-md">
+      <div className="mx-auto flex h-16 max-w-6xl items-center gap-3 px-4">
+        <Link href="/" aria-label="تُجّار ماركت – الرئيسية" className="shrink-0">
+          <Logo />
+        </Link>
 
-        {/* وسط: البحث */}
-        <form
-          onSubmit={submitSearch}
-          className="hidden md:flex items-center gap-2 min-w-0 flex-1 max-w-xl mx-2"
-        >
+        <nav className="hidden items-center gap-1 text-sm font-medium lg:flex">
+          <Link href="/markets" className="rounded-full px-3 py-2 hover:bg-sand">الأسواق</Link>
+          <Link href="/search?type=stores" className="rounded-full px-3 py-2 hover:bg-sand">المتاجر</Link>
+          <Link href="/search?offers=1" className="rounded-full px-3 py-2 hover:bg-sand">العروض</Link>
+        </nav>
+
+        <Form action="/search" className="relative hidden flex-1 md:block">
+          <SearchIcon className="pointer-events-none absolute inset-y-0 start-3 my-auto text-muted" size={18} />
           <input
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-            placeholder="ابحث عن متجر أو منتج…"
-            className="w-full rounded-full border px-4 py-2 outline-none"
+            name="q"
+            type="search"
+            placeholder="ابحث عن منتج أو متجر…"
+            aria-label="بحث"
+            className="h-11 w-full rounded-full border border-line bg-surface ps-10 pe-4 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
           />
-          <button className="rounded-full px-4 py-2 bg-black text-white">
-            ابحث
-          </button>
-        </form>
+        </Form>
 
-        {/* يمين: المنطقة + الدخول/لوحة التاجر + CTA */}
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex">
-            <RegionSwitcher />
-          </div>
-          <Link
-            href="/login"
-            className="hidden sm:inline-block px-3 py-2 rounded-full text-sm hover:bg-gray-100"
-          >
-            دخول
-          </Link>
-          <Link
-            href="/dashboard"
-            className="hidden md:inline-block px-3 py-2 rounded-full bg-gray-900 text-white text-sm"
-          >
-            لوحة التاجر
-          </Link>
-          <Link
-            href="/dashboard/products/new"
-            className="px-3 py-2 rounded-full bg-amber-500 text-black text-sm font-semibold"
-          >
-            افتح متجرك
-          </Link>
+        <div className="ms-auto flex items-center gap-2 md:ms-0">
+          <GovernoratePicker
+            governorates={governorates.map(({ slug, name }) => ({ slug, name }))}
+            current={current}
+          />
+          <AccountLink />
         </div>
       </div>
-
-      {/* شريط الموبايل المنسدل */}
-      {menuOpen && (
-        <div className="lg:hidden border-t bg-white">
-          <div className="mx-auto max-w-7xl px-4 py-3 space-y-3">
-            <form onSubmit={submitSearch} className="flex items-center gap-2">
-              <input
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-                placeholder="ابحث عن متجر أو منتج…"
-                className="w-full rounded-full border px-4 py-2 outline-none"
-              />
-              <button className="rounded-full px-4 py-2 bg-black text-white">
-                ابحث
-              </button>
-            </form>
-
-            <div className="flex flex-wrap gap-2">
-              {nav.map((n) => (
-                <Link
-                  key={n.href}
-                  href={n.href}
-                  onClick={() => setMenuOpen(false)}
-                  className="px-3 py-2 rounded-full text-sm border hover:bg-gray-50"
-                >
-                  {n.label}
-                </Link>
-              ))}
-
-              {/* RegionSwitcher للموبايل */}
-              <div className="w-full">
-                <RegionSwitcher />
-              </div>
-
-              <Link
-                href="/login"
-                onClick={() => setMenuOpen(false)}
-                className="px-3 py-2 rounded-full text-sm border"
-              >
-                دخول
-              </Link>
-              <Link
-                href="/dashboard"
-                onClick={() => setMenuOpen(false)}
-                className="px-3 py-2 rounded-full text-sm border"
-              >
-                لوحة التاجر
-              </Link>
-              <Link
-                href="/dashboard/products/new"
-                onClick={() => setMenuOpen(false)}
-                className="px-3 py-2 rounded-full text-sm bg-amber-500 font-semibold"
-              >
-                افتح متجرك
-              </Link>
-            </div>
-          </div>
-        </div>
-      )}
     </header>
   );
 }
