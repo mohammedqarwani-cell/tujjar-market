@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { LogoMark } from "@components/brand/Logo";
 import { LoginForm } from "@components/auth/LoginForm";
+import { merchantUrl } from "@lib/urls";
 
 export const metadata: Metadata = { title: "تسجيل الدخول", robots: { index: false } };
 
@@ -22,7 +23,7 @@ export default function BuyerLoginPage() {
         <Link href="/account/register" className="font-bold text-brand-700 hover:text-brand-900">أنشئ حساباً</Link>
       </p>
       <p className="mt-2 text-center text-sm text-muted">
-        صاحب محل؟ <Link href="/login" className="font-medium text-ink hover:text-brand-700">دخول التجار</Link>
+        صاحب محل؟ <Link href={merchantUrl("/login")} className="font-medium text-ink hover:text-brand-700">دخول التجار</Link>
       </p>
     </div>
   );

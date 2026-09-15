@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@lib/api";
+import { merchantUrl } from "@lib/urls";
 import type { Governorate } from "@lib/types";
 
 export const metadata: Metadata = {
@@ -66,7 +67,7 @@ export default async function MarketsPage() {
             <p className="mt-1 text-sm text-muted">
               {empty.map((g) => g.name).join("، ")} — كن أول تاجر فيها واحصل على ظهور مميز.
             </p>
-            <Link href="/join" className="mt-4 inline-block rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700">
+            <Link href={merchantUrl("/join")} className="mt-4 inline-block rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700">
               افتح متجرك مجاناً
             </Link>
           </section>

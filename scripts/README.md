@@ -9,7 +9,8 @@
 
 1. حاويات Docker تعمل: `docker compose up -d` داخل `infra`
 2. قاعدة البيانات مُرحّلة وفيها البيانات التجريبية: `npx prisma migrate deploy` ثم `npx prisma db seed` داخل `apps/api`
-3. الـ API يعمل على المنفذ 4000، والموقع على المنفذ 3000
+3. الـ API يعمل على المنفذ 4000، وكل واجهة على منفذها: الزبائن 3000، التجار 3001، الإدارة 3002
+   (`npm run dev` و`npm run dev:merchant` و`npm run dev:admin` داخل `apps/web`)
 4. بناء أداة رموز المصادقة مرة واحدة:
 
 ```powershell

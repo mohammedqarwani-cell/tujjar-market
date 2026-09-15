@@ -2,23 +2,11 @@
 
 import Link from "next/link";
 import { useSession } from "@lib/session";
-import { StoreIcon, UserIcon } from "@components/ui/icons";
+import { UserIcon } from "@components/ui/icons";
+import { merchantUrl } from "@lib/urls";
 
 export function AccountLink() {
-  const merchant = useSession("merchant", { lazy: true });
   const buyer = useSession("web", { lazy: true });
-
-  if (merchant.user) {
-    return (
-      <Link
-        href="/dashboard"
-        className="hidden h-10 items-center gap-2 rounded-full bg-ink px-4 text-sm font-medium text-canvas transition hover:bg-brand-900 sm:flex"
-      >
-        <StoreIcon size={17} />
-        متجري
-      </Link>
-    );
-  }
 
   return (
     <div className="hidden items-center gap-1 sm:flex">
@@ -31,12 +19,12 @@ export function AccountLink() {
           دخول
         </Link>
       )}
-      <Link
-        href="/join"
+      <a
+        href={merchantUrl("/join")}
         className="flex h-10 items-center rounded-full bg-brand-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-brand-700"
       >
         افتح متجرك مجاناً
-      </Link>
+      </a>
     </div>
   );
 }

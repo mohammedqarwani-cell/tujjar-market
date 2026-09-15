@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { displayPhone } from "@lib/format";
 import { signOut, useSession } from "@lib/session";
 import { useFavorites } from "@lib/favorites";
+import { merchantUrl } from "@lib/urls";
 import { EmptyState } from "@components/ui/Section";
 import { HeartIcon, LogoutIcon, ShieldIcon, StoreIcon } from "@components/ui/icons";
 
@@ -27,7 +28,7 @@ export default function AccountPage() {
             <Link href="/account/register" className="rounded-xl px-5 py-2.5 font-bold text-ink ring-1 ring-line hover:ring-brand-200">حساب جديد</Link>
           </div>
         </EmptyState>
-        <Link href="/join" className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-muted hover:text-brand-700">
+        <Link href={merchantUrl("/join")} className="mt-4 flex items-center justify-center gap-2 text-sm font-medium text-muted hover:text-brand-700">
           <StoreIcon size={16} /> صاحب محل؟ افتح متجرك مجاناً
         </Link>
       </div>

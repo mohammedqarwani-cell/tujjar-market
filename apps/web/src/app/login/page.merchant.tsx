@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import Link from "next/link";
 import { LogoMark } from "@components/brand/Logo";
 import { LoginForm } from "@components/auth/LoginForm";
+import { webUrl } from "@lib/urls";
 
 export const metadata: Metadata = { title: "دخول التجار", robots: { index: false } };
 
@@ -23,7 +24,7 @@ export default function MerchantLoginPage() {
         <Link href="/join" className="font-bold text-brand-700 hover:text-brand-900">افتح متجرك مجاناً</Link>
       </p>
       <p className="mt-2 text-center text-sm text-muted">
-        زبون؟ <Link href="/account/login" className="font-medium text-ink hover:text-brand-700">دخول الزبائن</Link>
+        زبون؟ <Link href={webUrl("/account/login")} className="font-medium text-ink hover:text-brand-700">دخول الزبائن</Link>
       </p>
     </div>
   );

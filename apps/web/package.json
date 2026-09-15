@@ -3,10 +3,16 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "dev": "next dev",
-    "build": "next build",
-    "start": "next start",
-    "lint": "eslint"
+    "dev": "node scripts/run-interface.mjs web dev -p 3000",
+    "build": "node scripts/run-interface.mjs web build",
+    "start": "node scripts/run-interface.mjs web start -p 3000",
+    "lint": "eslint",
+    "dev:merchant": "node scripts/run-interface.mjs merchant dev -p 3001",
+    "dev:admin": "node scripts/run-interface.mjs admin dev -p 3002",
+    "build:merchant": "node scripts/run-interface.mjs merchant build",
+    "build:admin": "node scripts/run-interface.mjs admin build",
+    "start:merchant": "node scripts/run-interface.mjs merchant start -p 3001",
+    "start:admin": "node scripts/run-interface.mjs admin start -p 3002"
   },
   "dependencies": {
     "next": "^16.3.5",

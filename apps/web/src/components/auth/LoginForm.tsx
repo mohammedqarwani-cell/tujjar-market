@@ -76,7 +76,7 @@ export function LoginForm({ audience }: { audience: Audience }) {
       </SubmitButton>
       {audience !== "admin" && (
         <p className="text-center text-sm">
-          <Link href={`/account/reset?for=${audience}`} className="text-muted hover:text-brand-700">
+          <Link href="/reset-password" className="text-muted hover:text-brand-700">
             نسيت كلمة المرور؟
           </Link>
         </p>

@@ -2,16 +2,20 @@
 
 import { Suspense, useState } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import { LogoMark } from "@components/brand/Logo";
 import { Field, FormError, SubmitButton, inputClass } from "@components/forms/fields";
 import { OtpInput, PhoneInput } from "@components/forms/auth-fields";
 import { PASSWORD_HINT, isStrongPassword, normalizeSyrianMobile } from "@lib/input";
-import { apiRequest, requestOtp, type Audience } from "@lib/session";
+import { apiRequest, requestOtp } from "@lib/session";
+import { APP_INTERFACE } from "@lib/urls";
 
+// The interface decides whose password is reset, so a buyer link can never reset a merchant account
 const LOGIN: Record<"web" | "merchant", string> = { web: "/account/login", merchant: "/login" };
 
 export default function ResetPasswordPage() {
+  // Staff accounts are reset by an administrator, never by SMS
+  if (APP_INTERFACE === "admin") notFound();
   return (
     <div className="mx-auto flex max-w-md flex-col px-4 py-10 sm:py-16">
       <div className="rounded-card bg-surface p-6 shadow-card ring-1 ring-line sm:p-8">
@@ -27,7 +31,7 @@ export default function ResetPasswordPage() {
 
 function ResetForm() {
   const router = useRouter();
-  const audience: "web" | "merchant" = useSearchParams().get("for") === "merchant" ? "merchant" : "web";
+  const audience: "web" | "merchant" = APP_INTERFACE === "merchant" ? "merchant" : "web";
   const [step, setStep] = useState<"phone" | "code">("phone");
   const [phone, setPhone] = useState("");
   const [code, setCode] = useState("");
@@ -37,7 +41,7 @@ function ResetForm() {
   const [pending, setPending] = useState(false);
 
   async function sendCode() {
-    const res = await requestOtp(audience as Audience, phone, "RESET_PASSWORD");
+    const res = await requestOtp(audience, phone, "RESET_PASSWORD");
     setDevCode(res.devCode);
   }
 

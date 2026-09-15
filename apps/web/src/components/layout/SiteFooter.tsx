@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Logo } from "@components/brand/Logo";
+import { merchantUrl } from "@lib/urls";
 
 export function SiteFooter() {
   return (
@@ -24,9 +25,9 @@ export function SiteFooter() {
         <div>
           <h3 className="mb-3 text-sm font-bold">للتجار</h3>
           <ul className="space-y-2 text-sm text-muted">
-            <li><Link href="/join" className="hover:text-ink">افتح متجرك مجاناً</Link></li>
-            <li><Link href="/login" className="hover:text-ink">دخول التجار</Link></li>
-            <li><Link href="/dashboard" className="hover:text-ink">لوحة المتجر</Link></li>
+            <li><Link href={merchantUrl("/join")} className="hover:text-ink">افتح متجرك مجاناً</Link></li>
+            <li><Link href={merchantUrl("/login")} className="hover:text-ink">دخول التجار</Link></li>
+            <li><Link href={merchantUrl("/dashboard")} className="hover:text-ink">لوحة المتجر</Link></li>
           </ul>
         </div>
       </div>
