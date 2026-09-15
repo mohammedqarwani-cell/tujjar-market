@@ -40,8 +40,14 @@ export const productCardSelect = {
   },
 } satisfies Prisma.ProductSelect;
 
-/** Only products that are live and belong to a live store are public. */
+/** A store is public only while live and in a governorate that has opened. */
+export const publicStoreWhere = {
+  status: 'ACTIVE',
+  governorate: { status: 'ACTIVE' },
+} satisfies Prisma.StoreWhereInput;
+
+/** Only products that are live and belong to a public store are public. */
 export const publicProductWhere = {
   status: 'ACTIVE',
-  store: { status: 'ACTIVE' },
+  store: publicStoreWhere,
 } satisfies Prisma.ProductWhereInput;

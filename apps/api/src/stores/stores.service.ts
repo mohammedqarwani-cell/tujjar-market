@@ -5,7 +5,7 @@ import { AuditService } from '../audit/audit.module';
 import { buildSearchText, normalizeArabic } from '../common/text/arabic';
 import { normalizeSyrianMobile, normalizeSyrianPhone } from '../common/text/phone';
 import { pageResult, paging } from '../common/pagination';
-import { storeCardSelect } from '../common/selects';
+import { publicStoreWhere, storeCardSelect } from '../common/selects';
 import { atLeast } from '../verification/verification.levels';
 import { UpdateStoreDto } from './store.dto';
 
@@ -18,8 +18,8 @@ export class StoresService {
 
   async list(query: Record<string, string>) {
     const { page, pageSize, skip, take } = paging(query.page, query.pageSize);
-    const where: Prisma.StoreWhereInput = { status: 'ACTIVE' };
-    if (query.gov) where.governorate = { slug: query.gov };
+    const where: Prisma.StoreWhereInput = { ...publicStoreWhere };
+    if (query.gov) where.governorate = { status: 'ACTIVE', slug: query.gov };
     if (query.market) where.market = { slug: query.market };
     if (query.category) where.category = { slug: query.category };
     const terms = normalizeArabic(query.q).split(' ').filter((t) => t.length > 1).slice(0, 5);
@@ -40,7 +40,7 @@ export class StoresService {
 
   async bySlug(slug: string) {
     const store = await this.prisma.store.findFirst({
-      where: { slug, status: 'ACTIVE' },
+      where: { slug, ...publicStoreWhere },
       select: {
         ...storeCardSelect,
         description: true,
@@ -81,7 +81,15 @@ export class StoresService {
   async update(userId: string, dto: UpdateStoreDto) {
     const store = await this.prisma.store.findFirst({
       where: { ownerId: userId },
-      select: { id: true, name: true, governorateId: true, marketId: true, earnedLevel: true, badgeSuspendedAt: true },
+      select: {
+        id: true,
+        name: true,
+        governorateId: true,
+        marketId: true,
+        categoryId: true,
+        earnedLevel: true,
+        badgeSuspendedAt: true,
+      },
     });
     if (!store) throw new NotFoundException('لا يوجد متجر مرتبط بحسابك');
 
@@ -98,6 +106,16 @@ export class StoresService {
     if (!governorate) throw new BadRequestException('اختر المحافظة');
     if (dto.marketId && market?.governorateId !== governorate.id) {
       throw new BadRequestException('السوق لا يتبع المحافظة المختارة');
+    }
+    // A store can't move into a governorate that hasn't opened, or into a disabled market or category
+    if (governorate.id !== store.governorateId && governorate.status !== 'ACTIVE') {
+      throw new BadRequestException(`التسجيل في ${governorate.name} يفتح قريباً`);
+    }
+    if (market && market.id !== store.marketId && !market.isActive) {
+      throw new BadRequestException('هذا السوق غير متاح حالياً');
+    }
+    if (category && category.id !== store.categoryId && !category.isActive) {
+      throw new BadRequestException('هذا القسم غير متاح حالياً');
     }
 
     // Shop verification proves one sign in one market, so renaming or moving the store needs a new video

@@ -192,6 +192,9 @@ $r = Req -Method POST -Path "/merchant/products" -Client "merchant" -Body $produ
 Check "11th product is allowed after identity verification" ($r.Code -eq 201) "got $($r.Code)"
 
 # ---------- level 2: shop video with GPS ----------
+# Seeded geofences are drafts that never refuse anyone; confirm Hamidiyah's so the boundary is enforced
+$r = Req -Method PATCH -Path "/admin/markets/$($hamidiyah.id)/geofence" -Client "admin" -Body @{ latitude = 33.5113; longitude = 36.3035; radiusMeters = 400; status = "CONFIRMED" } -Jar $admJar
+Check "Admin confirms the market geofence" ($r.Code -eq 200 -and $r.Json.geofenceStatus -eq "CONFIRMED") "got $($r.Code)"
 $r = Upload "/merchant/verification/location" $merJar (LocationParts 33.5113 36.3035 20 (Get-Date).AddHours(-2))
 Check "An old recording is refused" ($r.Code -eq 400) "got $($r.Code)"
 $r = Upload "/merchant/verification/location" $merJar (LocationParts 33.5113 36.3035 500 (Get-Date))
@@ -243,6 +246,7 @@ $missing = @($expected | Where-Object { $actions -notcontains $_ })
 Check "Audit log records submissions, file views, decisions, geofence refusals and badge changes" ($missing.Count -eq 0) "missing: $($missing -join ',')"
 
 # ---------- cleanup ----------
+Req -Method PATCH -Path "/admin/markets/$($hamidiyah.id)/geofence" -Client "admin" -Body @{ latitude = 33.5113; longitude = 36.3035; radiusMeters = 400; status = "DRAFT" } -Jar $admJar | Out-Null
 KycObjects $storeId "delete" | Out-Null
 Sql 'DELETE FROM "User" WHERE phone = ''963900000400''; UPDATE "User" SET "totpEnabled" = false, "totpSecret" = NULL, "totpLastStep" = NULL WHERE phone = ''963900000001''; DELETE FROM "Session";' | Out-Null
 $k = KycObjects $storeId

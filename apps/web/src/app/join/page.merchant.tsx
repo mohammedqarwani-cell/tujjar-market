@@ -63,9 +63,10 @@ export default async function JoinPage() {
           </p>
           <RegisterForm
             categories={categories.map(({ id, name, icon }) => ({ id, name, icon }))}
-            governorates={governorates.map(({ id, name, markets }) => ({
+            governorates={governorates.map(({ id, name, status, markets }) => ({
               id,
               name,
+              status,
               markets: markets.map(({ id: mid, name: mname }) => ({ id: mid, name: mname })),
             }))}
           />

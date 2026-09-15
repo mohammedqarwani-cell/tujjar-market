@@ -15,6 +15,8 @@ import { LogoutIcon } from "@components/ui/icons";
 import { VerifiedMark } from "@components/catalog/VerificationBadge";
 import { TotpSetup } from "./TotpSetup";
 import { VerificationsTab } from "./VerificationsTab";
+import { MarketsTab } from "./MarketsTab";
+import { CategoriesTab } from "./CategoriesTab";
 
 type Overview = {
   stores: number;
@@ -87,6 +89,8 @@ const TABS = [
   { id: "products", label: "المنتجات", adminOnly: false },
   { id: "stores", label: "المتاجر", adminOnly: false },
   { id: "reports", label: "البلاغات", adminOnly: false },
+  { id: "markets", label: "المحافظات والأسواق", adminOnly: false },
+  { id: "categories", label: "الأقسام", adminOnly: false },
   { id: "audit", label: "سجل التدقيق", adminOnly: true },
 ] as const;
 
@@ -163,6 +167,8 @@ export default function AdminPage() {
         {tab === "stores" && <StoresTab isAdmin={isAdmin} />}
         {tab === "products" && <ProductsTab />}
         {tab === "reports" && <ReportsTab />}
+        {tab === "markets" && <MarketsTab isAdmin={isAdmin} />}
+        {tab === "categories" && <CategoriesTab isAdmin={isAdmin} />}
         {tab === "audit" && isAdmin && <AuditTab />}
       </div>
     </div>

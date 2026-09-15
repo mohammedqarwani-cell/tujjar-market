@@ -38,7 +38,7 @@ type AdminVerification = {
     verificationLevel: VerificationLevel;
     earnedLevel: VerificationLevel;
     governorate: { name: string };
-    market: { name: string } | null;
+    market: { name: string; geofenceStatus: "DRAFT" | "CONFIRMED" } | null;
     owner: { name: string; phone: string };
     _count: { verificationRequests: number };
   };
@@ -375,13 +375,23 @@ function ReviewPanel({ request: r, onDone }: { request: AdminVerification; onDon
 }
 
 function GeoCheckLine({ request: r }: { request: AdminVerification }) {
+  const market = r.store.market?.name;
+  const draft = r.store.market?.geofenceStatus !== "CONFIRMED";
   if (r.geoCheck === "INSIDE") {
     return (
       <div className="font-bold text-olive-700">
-        ✓ داخل حدود {r.store.market?.name} (يبعد {r.distanceMeters} م عن مركزه)
+        ✓ داخل {draft ? "الحدود المبدئية لـ" : "حدود "}
+        {market} (يبعد {r.distanceMeters} م عن مركزه)
       </div>
     );
   }
-  if (r.geoCheck === "OUTSIDE") return <div className="font-bold text-danger">✗ خارج حدود السوق</div>;
+  if (r.geoCheck === "OUTSIDE") {
+    // Only draft boundaries let an outside recording through, so the reviewer must check the map
+    return (
+      <div className="font-bold text-danger">
+        ✗ على بعد {r.distanceMeters} م من مركز {market}، خارج حدوده المبدئية غير المؤكدة. تحقق من الخريطة قبل القرار
+      </div>
+    );
+  }
   return <div className="font-bold text-brand-700">⚠ لا توجد حدود مسجلة لهذا السوق، تحقق من الخريطة يدوياً</div>;
 }
