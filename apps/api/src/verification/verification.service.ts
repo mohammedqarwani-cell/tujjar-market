@@ -54,7 +54,7 @@ const storeForVerification = {
   earnedLevel: true,
   verificationExpiresAt: true,
   badgeSuspendedAt: true,
-  market: { select: { name: true, latitude: true, longitude: true, radiusMeters: true } },
+  market: { select: { name: true, latitude: true, longitude: true, radiusMeters: true, geofenceStatus: true } },
   _count: { select: { products: true } },
 } satisfies Prisma.StoreSelect;
 type VerificationStore = Prisma.StoreGetPayload<{ select: typeof storeForVerification }>;
@@ -70,7 +70,13 @@ const adminStoreLevelSelect = {
 
 function geofenceOf(market: VerificationStore['market']) {
   if (!market || market.latitude === null || market.longitude === null || market.radiusMeters === null) return null;
-  return { lat: market.latitude, lng: market.longitude, radius: market.radiusMeters, name: market.name };
+  return {
+    lat: market.latitude,
+    lng: market.longitude,
+    radius: market.radiusMeters,
+    name: market.name,
+    confirmed: market.geofenceStatus === 'CONFIRMED',
+  };
 }
 
 @Injectable()
@@ -132,7 +138,7 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       expiresAt: store.verificationExpiresAt,
       productLimit: PRODUCT_LIMITS[store.verificationLevel],
       productCount: store._count.products,
-      market: store.market ? { name: store.market.name, hasGeofence: !!geofenceOf(store.market) } : null,
+      market: store.market ? { name: store.market.name, hasGeofence: !!geofenceOf(store.market)?.confirmed } : null,
       identity: step('IDENTITY'),
       location: step('LOCATION'),
       requests,
@@ -183,7 +189,9 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       distance = Math.round(distanceMeters(evidence.latitude, evidence.longitude, fence.lat, fence.lng));
       // GPS error is tolerated up to 100 m on top of the market radius
       const allowed = fence.radius + Math.min(evidence.accuracy, 100);
-      if (distance > allowed) {
+      const inside = distance <= allowed;
+      // Only a surveyed (confirmed) boundary refuses a merchant; a draft one is a hint for the reviewer
+      if (!inside && fence.confirmed) {
         await this.audit.log({
           actorId: userId,
           action: 'verification.geo_rejected',
@@ -196,7 +204,7 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
           `موقع التصوير يبعد ${distance} متر عن ${fence.name}. صوّر الفيديو من داخل محلك، أو صحّح السوق من إعدادات المتجر`,
         );
       }
-      geoCheck = 'INSIDE';
+      geoCheck = inside ? 'INSIDE' : 'OUTSIDE';
     }
 
     const prepared: Partial<Record<FileSlot, PreparedFile>> = { video: this.videoFile(files.video) };
@@ -359,7 +367,7 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
               verificationLevel: true,
               earnedLevel: true,
               governorate: { select: { name: true } },
-              market: { select: { name: true } },
+              market: { select: { name: true, geofenceStatus: true } },
               owner: { select: { name: true, phone: true } },
               _count: { select: { verificationRequests: { where: { status: 'REJECTED' } } } },
             },

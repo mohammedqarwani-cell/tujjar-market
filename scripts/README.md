@@ -24,6 +24,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-totp-helper.ps1
 | `node scripts\security-tests\totp-vectors.cjs $env:TEMP\tj-totp` | خوارزميات المصادقة الثنائية والتشفير مقارنة بمتجهات RFC 4226 / RFC 6238 | 11 |
 | `powershell -ExecutionPolicy Bypass -File scripts\security-tests\e2e-security.ps1` | الترويسات، CSRF، رموز SMS، الشروط، كلمات المرور، الكوكيز، فصل الواجهات، تبديل الجلسات، البلاغات، رفع الصور، المصادقة الثنائية، سجل التدقيق | 40 |
 | `powershell -ExecutionPolicy Bypass -File scripts\security-tests\e2e-lockout.ps1` | قفل الحساب بعد 5 محاولات فاشلة | 8 |
+| `powershell -ExecutionPolicy Bypass -File scripts\security-tests\e2e-markets.ps1` | الإطلاق التدريجي: حالة المحافظات، اهتمام التجار، إدارة الأسواق والأقسام، الحدود الجغرافية، إخفاء متاجر المحافظات غير المفتوحة، سجل التدقيق | 32 |
 | `powershell -ExecutionPolicy Bypass -File scripts\security-tests\e2e-verification.ps1` | التوثيق المتدرّج: التعهد عند التسجيل، حدود المنتجات، الهوية وفيديو المحل، التشفير في المخزن الخاص، المراجعة، حدود السوق الجغرافية، إلغاء التوثيق عند نقل المتجر، إيقاف الشارة بعد البلاغات، سجل التدقيق | 44 |
 
 **مهم:** `e2e-security.ps1` يستهلك حد محاولات الدخول (10 كل 15 دقيقة لكل IP). **أعد تشغيل الـ API** قبل تشغيل

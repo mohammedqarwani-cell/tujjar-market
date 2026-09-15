@@ -188,7 +188,10 @@ function StoreForm({
               className={inputClass}
             >
               {governorates.map((g) => (
-                <option key={g.id} value={g.id}>{g.name}</option>
+                <option key={g.id} value={g.id} disabled={g.status === "COMING_SOON" && g.id !== store.governorateId}>
+                  {g.name}
+                  {g.status === "COMING_SOON" ? " (قريباً)" : ""}
+                </option>
               ))}
             </select>
           </Field>

@@ -3,7 +3,7 @@ import { Prisma, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildSearchText, normalizeArabic } from '../common/text/arabic';
 import { pageResult, paging } from '../common/pagination';
-import { productCardSelect, publicProductWhere } from '../common/selects';
+import { productCardSelect, publicProductWhere, publicStoreWhere } from '../common/selects';
 import { PRODUCT_LIMITS } from '../verification/verification.levels';
 import { ProductInputDto } from './product.dto';
 
@@ -20,8 +20,8 @@ export class ProductsService {
 
   async list(query: Record<string, string>) {
     const { page, pageSize, skip, take } = paging(query.page, query.pageSize);
-    const store: Prisma.StoreWhereInput = { status: 'ACTIVE' };
-    if (query.gov) store.governorate = { slug: query.gov };
+    const store: Prisma.StoreWhereInput = { ...publicStoreWhere };
+    if (query.gov) store.governorate = { status: 'ACTIVE', slug: query.gov };
     if (query.market) store.market = { slug: query.market };
     if (query.store) store.slug = query.store;
 
@@ -180,11 +180,11 @@ export class ProductsService {
     const store = await this.storeOf(userId);
     const existing = await this.prisma.product.findFirst({
       where: { id, storeId: store.id },
-      select: { status: true },
+      select: { status: true, categoryId: true },
     });
     if (!existing) throw new NotFoundException('المنتج غير موجود');
 
-    const data = await this.prepare(dto, store);
+    const data = await this.prepare(dto, store, existing.categoryId);
     const risk = this.assessRisk(dto);
     // Keep the merchant's hidden choice, but flag risky edits for review
     const status: ProductStatus =
@@ -213,12 +213,16 @@ export class ProductsService {
     return { ok: true };
   }
 
+  /** A disabled category can't be chosen for new listings, but products already in it keep it. */
   private async prepare(
     dto: ProductInputDto,
     store: { name: string; governorate: { name: string }; market: { name: string } | null },
+    currentCategoryId?: string,
   ) {
     const category = await this.prisma.category.findUnique({ where: { id: dto.categoryId } });
-    if (!category) throw new BadRequestException('اختر تصنيف المنتج');
+    if (!category || (!category.isActive && category.id !== currentCategoryId)) {
+      throw new BadRequestException('اختر تصنيف المنتج');
+    }
 
     const onRequest = dto.priceType === 'ON_REQUEST';
     if (!onRequest && !dto.price) throw new BadRequestException('أدخل السعر أو اختر "السعر عند الطلب"');

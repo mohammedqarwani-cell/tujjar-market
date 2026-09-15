@@ -1,13 +1,15 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
-import { productCardSelect, publicProductWhere, storeCardSelect } from '../common/selects';
+import { productCardSelect, publicProductWhere, publicStoreWhere, storeCardSelect } from '../common/selects';
 
-const activeStores = { where: { status: 'ACTIVE' as const } };
+const publicStores = { where: publicStoreWhere };
 
 @Injectable()
 export class DirectoryService {
   constructor(private prisma: PrismaService) {}
 
+  /** All governorates with their status, so the site can show which ones are "coming soon". */
   async governorates() {
     const rows = await this.prisma.governorate.findMany({
       orderBy: { sortOrder: 'asc' },
@@ -15,10 +17,12 @@ export class DirectoryService {
         id: true,
         slug: true,
         name: true,
-        _count: { select: { stores: activeStores } },
+        status: true,
+        _count: { select: { stores: publicStores } },
         markets: {
+          where: { isActive: true },
           orderBy: { sortOrder: 'asc' },
-          select: { id: true, slug: true, name: true, _count: { select: { stores: activeStores } } },
+          select: { id: true, slug: true, name: true, _count: { select: { stores: publicStores } } },
         },
       },
     });
@@ -31,6 +35,7 @@ export class DirectoryService {
 
   async categories() {
     const rows = await this.prisma.category.findMany({
+      where: { isActive: true },
       orderBy: { sortOrder: 'asc' },
       select: {
         id: true,
@@ -44,15 +49,15 @@ export class DirectoryService {
   }
 
   async market(slug: string) {
-    const market = await this.prisma.market.findUnique({
-      where: { slug },
+    const market = await this.prisma.market.findFirst({
+      where: { slug, isActive: true, governorate: { status: 'ACTIVE' } },
       select: {
         id: true,
         slug: true,
         name: true,
         description: true,
         governorate: { select: { slug: true, name: true } },
-        _count: { select: { stores: activeStores } },
+        _count: { select: { stores: publicStores } },
       },
     });
     if (!market) throw new NotFoundException('السوق غير موجود');
@@ -61,8 +66,10 @@ export class DirectoryService {
   }
 
   async home(govSlug?: string) {
-    const storeScope = { status: 'ACTIVE' as const, ...(govSlug ? { governorate: { slug: govSlug } } : {}) };
-    const productScope = { ...publicProductWhere, store: storeScope };
+    const storeScope: Prisma.StoreWhereInput = govSlug
+      ? { ...publicStoreWhere, governorate: { status: 'ACTIVE', slug: govSlug } }
+      : publicStoreWhere;
+    const productScope: Prisma.ProductWhereInput = { ...publicProductWhere, store: storeScope };
 
     const [categories, governorates, featured, latest, stores, totals] = await Promise.all([
       this.categories(),
@@ -86,9 +93,9 @@ export class DirectoryService {
         take: 8,
       }),
       Promise.all([
-        this.prisma.store.count({ where: { status: 'ACTIVE' } }),
+        this.prisma.store.count({ where: publicStoreWhere }),
         this.prisma.product.count({ where: publicProductWhere }),
-        this.prisma.market.count(),
+        this.prisma.market.count({ where: { isActive: true, governorate: { status: 'ACTIVE' } } }),
       ]),
     ]);
 

@@ -41,7 +41,7 @@ export async function SiteHeader() {
 
         <div className="ms-auto flex items-center gap-2 md:ms-0">
           <GovernoratePicker
-            governorates={governorates.map(({ slug, name }) => ({ slug, name }))}
+            governorates={governorates.filter((g) => g.status !== "COMING_SOON").map(({ slug, name }) => ({ slug, name }))}
             current={current}
           />
           <AccountLink />

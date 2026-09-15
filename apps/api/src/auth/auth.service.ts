@@ -83,9 +83,13 @@ export class AuthService {
       this.prisma.category.findUnique({ where: { id: dto.categoryId } }),
     ]);
     if (!governorate) throw new BadRequestException('اختر المحافظة');
-    if (!category) throw new BadRequestException('اختر تصنيف المتجر');
-    if (dto.marketId && market?.governorateId !== governorate.id) {
-      throw new BadRequestException('السوق لا يتبع المحافظة المختارة');
+    // Pilot rollout: only opened governorates accept stores; the others collect merchant interest
+    if (governorate.status !== 'ACTIVE') {
+      throw new BadRequestException(`التسجيل في ${governorate.name} يفتح قريباً. سجّل اهتمامك وسنتواصل معك عند الافتتاح`);
+    }
+    if (!category || !category.isActive) throw new BadRequestException('اختر تصنيف المتجر');
+    if (dto.marketId && (!market || market.governorateId !== governorate.id || !market.isActive)) {
+      throw new BadRequestException('السوق غير متاح في المحافظة المختارة');
     }
 
     await this.otp.verify(phone, 'REGISTER', dto.otpCode);

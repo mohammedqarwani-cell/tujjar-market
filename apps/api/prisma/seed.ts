@@ -8,34 +8,46 @@ const prisma = new PrismaClient();
 const demoPhone = (n: number) => `9639000${String(n).padStart(5, '0')}`;
 
 type MarketSeed = [slug: string, name: string, description?: string];
+// Demo data. The real pilot opens Damascus only; governorates that have demo stores are ACTIVE so the
+// demo stays browsable, and the rest are "coming soon" (admins change this from the dashboard).
 const governorates: {
   slug: string;
   name: string;
   lat: number;
   lng: number;
+  status: 'ACTIVE' | 'COMING_SOON';
   markets: MarketSeed[];
 }[] = [
   {
-    slug: 'damascus', name: 'دمشق', lat: 33.5138, lng: 36.2765,
+    slug: 'damascus', name: 'دمشق', lat: 33.5138, lng: 36.2765, status: 'ACTIVE',
     markets: [
       ['al-hamidiyah', 'سوق الحميدية', 'أشهر أسواق دمشق القديمة، مسقوف ويمتد حتى الجامع الأموي'],
       ['al-buzuriyah', 'سوق البزورية', 'بهارات وعطارة وحلويات شامية'],
       ['al-hariqa', 'سوق الحريقة', 'أقمشة وألبسة بالجملة والمفرق'],
       ['midhat-pasha', 'سوق مدحت باشا', 'أقمشة وشرقيات وأدوات منزلية'],
+      ['al-maskiyah', 'سوق المسكية', 'كتب ومصاحف وقرطاسية بجوار الجامع الأموي'],
+      ['al-asrouniyah', 'سوق العصرونية', 'أدوات منزلية ونحاسيات'],
+      ['al-khayyatin', 'سوق الخياطين', 'أقمشة ومستلزمات خياطة'],
+      ['al-sagha', 'سوق الصاغة', 'ذهب ومجوهرات'],
+      ['al-harir', 'سوق الحرير', 'أقمشة وإكسسوارات'],
+      ['bab-al-jabiya', 'سوق باب الجابية', 'مواد غذائية وحبوب'],
+      ['bab-srijeh', 'سوق باب سريجة', 'خضار ولحوم ومواد غذائية'],
+      ['sarouja', 'سوق ساروجة', 'محلات متنوعة في حي تاريخي'],
       ['al-salihiyah', 'سوق الصالحية', 'ألبسة وأحذية وماركات'],
       ['al-hamra', 'شارع الحمرا', 'ألبسة وإكسسوارات عصرية'],
+      ['al-shaalan', 'سوق الشعلان', 'ألبسة ومحلات عصرية'],
       ['al-bahsa', 'البحصة', 'موبايلات وكمبيوتر وإلكترونيات'],
     ],
   },
   {
-    slug: 'rif-dimashq', name: 'ريف دمشق', lat: 33.5711, lng: 36.4033,
+    slug: 'rif-dimashq', name: 'ريف دمشق', lat: 33.5711, lng: 36.4033, status: 'ACTIVE',
     markets: [
       ['jaramana', 'سوق جرمانا', 'محلات متنوعة وأسعار شعبية'],
       ['douma', 'سوق دوما', 'مواد غذائية وألبسة وأدوات منزلية'],
     ],
   },
   {
-    slug: 'aleppo', name: 'حلب', lat: 36.2021, lng: 37.1343,
+    slug: 'aleppo', name: 'حلب', lat: 36.2021, lng: 37.1343, status: 'ACTIVE',
     markets: [
       ['souq-al-madina', 'سوق المدينة', 'السوق التاريخي المسقوف في حلب القديمة'],
       ['al-tilal', 'سوق التلل', 'ألبسة وأحذية وإكسسوارات'],
@@ -43,28 +55,28 @@ const governorates: {
     ],
   },
   {
-    slug: 'homs', name: 'حمص', lat: 34.7324, lng: 36.7137,
+    slug: 'homs', name: 'حمص', lat: 34.7324, lng: 36.7137, status: 'ACTIVE',
     markets: [
       ['homs-covered-souq', 'السوق المسقوف', 'السوق القديم في قلب حمص'],
       ['al-dablan', 'شارع الدبلان', 'ألبسة وأحذية وأدوات منزلية'],
     ],
   },
-  { slug: 'hama', name: 'حماة', lat: 35.1318, lng: 36.7578, markets: [['hama-center', 'وسط المدينة']] },
+  { slug: 'hama', name: 'حماة', lat: 35.1318, lng: 36.7578, status: 'ACTIVE', markets: [['hama-center', 'وسط المدينة']] },
   {
-    slug: 'latakia', name: 'اللاذقية', lat: 35.5317, lng: 35.7915,
+    slug: 'latakia', name: 'اللاذقية', lat: 35.5317, lng: 35.7915, status: 'ACTIVE',
     markets: [
       ['al-safan', 'سوق الصفن', 'سوق شعبي قديم'],
       ['sheikh-daher', 'الشيخ ضاهر', 'قلب اللاذقية التجاري'],
     ],
   },
-  { slug: 'tartus', name: 'طرطوس', lat: 34.889, lng: 35.8866, markets: [['tartus-center', 'وسط المدينة']] },
-  { slug: 'idlib', name: 'إدلب', lat: 35.9306, lng: 36.6339, markets: [['idlib-center', 'وسط المدينة']] },
-  { slug: 'daraa', name: 'درعا', lat: 32.6189, lng: 36.1021, markets: [['daraa-center', 'وسط المدينة']] },
-  { slug: 'as-suwayda', name: 'السويداء', lat: 32.709, lng: 36.5695, markets: [['suwayda-center', 'وسط المدينة']] },
-  { slug: 'quneitra', name: 'القنيطرة', lat: 33.1256, lng: 35.8249, markets: [['quneitra-center', 'وسط المدينة']] },
-  { slug: 'deir-ez-zor', name: 'دير الزور', lat: 35.3359, lng: 40.1408, markets: [['deir-ez-zor-center', 'وسط المدينة']] },
-  { slug: 'raqqa', name: 'الرقة', lat: 35.9594, lng: 39.0079, markets: [['raqqa-center', 'وسط المدينة']] },
-  { slug: 'al-hasakah', name: 'الحسكة', lat: 36.5024, lng: 40.7477, markets: [['hasakah-center', 'وسط المدينة']] },
+  { slug: 'tartus', name: 'طرطوس', lat: 34.889, lng: 35.8866, status: 'ACTIVE', markets: [['tartus-center', 'وسط المدينة']] },
+  { slug: 'idlib', name: 'إدلب', lat: 35.9306, lng: 36.6339, status: 'COMING_SOON', markets: [['idlib-center', 'وسط المدينة']] },
+  { slug: 'daraa', name: 'درعا', lat: 32.6189, lng: 36.1021, status: 'COMING_SOON', markets: [['daraa-center', 'وسط المدينة']] },
+  { slug: 'as-suwayda', name: 'السويداء', lat: 32.709, lng: 36.5695, status: 'COMING_SOON', markets: [['suwayda-center', 'وسط المدينة']] },
+  { slug: 'quneitra', name: 'القنيطرة', lat: 33.1256, lng: 35.8249, status: 'COMING_SOON', markets: [['quneitra-center', 'وسط المدينة']] },
+  { slug: 'deir-ez-zor', name: 'دير الزور', lat: 35.3359, lng: 40.1408, status: 'COMING_SOON', markets: [['deir-ez-zor-center', 'وسط المدينة']] },
+  { slug: 'raqqa', name: 'الرقة', lat: 35.9594, lng: 39.0079, status: 'COMING_SOON', markets: [['raqqa-center', 'وسط المدينة']] },
+  { slug: 'al-hasakah', name: 'الحسكة', lat: 36.5024, lng: 40.7477, status: 'COMING_SOON', markets: [['hasakah-center', 'وسط المدينة']] },
 ];
 
 const categories: [slug: string, name: string, icon: string][] = [
@@ -294,10 +306,25 @@ async function main() {
   await prisma.category.deleteMany();
 
   console.log('🗺️  Governorates & markets...');
-  // Approximate geofences for demos only; real market boundaries are surveyed in Phase 4
+  // Approximate starting points for Damascus markets, seeded as DRAFT geofences: they only guide
+  // reviewers and never refuse a merchant until an admin surveys and confirms each boundary.
   const geofences: Record<string, { lat: number; lng: number; radius: number }> = {
     'al-hamidiyah': { lat: 33.5113, lng: 36.3035, radius: 400 },
     'al-buzuriyah': { lat: 33.5098, lng: 36.3066, radius: 250 },
+    'al-hariqa': { lat: 33.509, lng: 36.301, radius: 300 },
+    'midhat-pasha': { lat: 33.5085, lng: 36.303, radius: 450 },
+    'al-maskiyah': { lat: 33.5118, lng: 36.3055, radius: 150 },
+    'al-asrouniyah': { lat: 33.5125, lng: 36.305, radius: 150 },
+    'al-khayyatin': { lat: 33.5095, lng: 36.3045, radius: 200 },
+    'al-sagha': { lat: 33.5105, lng: 36.304, radius: 150 },
+    'al-harir': { lat: 33.5102, lng: 36.305, radius: 150 },
+    'bab-al-jabiya': { lat: 33.508, lng: 36.299, radius: 250 },
+    'bab-srijeh': { lat: 33.5065, lng: 36.296, radius: 300 },
+    sarouja: { lat: 33.5165, lng: 36.302, radius: 250 },
+    'al-salihiyah': { lat: 33.519, lng: 36.293, radius: 400 },
+    'al-hamra': { lat: 33.5175, lng: 36.2915, radius: 300 },
+    'al-shaalan': { lat: 33.518, lng: 36.289, radius: 300 },
+    'al-bahsa': { lat: 33.514, lng: 36.2975, radius: 300 },
   };
   const govBySlug = new Map<string, { id: string; name: string }>();
   const marketBySlug = new Map<string, { id: string; name: string }>();
@@ -307,6 +334,7 @@ async function main() {
         slug: g.slug,
         name: g.name,
         sortOrder: i,
+        status: g.status,
         latitude: g.lat,
         longitude: g.lng,
         markets: {

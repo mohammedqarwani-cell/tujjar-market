@@ -117,7 +117,9 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
       <SearchControls
         params={params}
         isStores={isStores}
-        governorates={governorates.map((g) => ({ slug: g.slug, name: g.name, markets: g.markets }))}
+        governorates={governorates
+          .filter((g) => g.status !== "COMING_SOON")
+          .map((g) => ({ slug: g.slug, name: g.name, markets: g.markets }))}
       />
 
       <div className="mt-6">

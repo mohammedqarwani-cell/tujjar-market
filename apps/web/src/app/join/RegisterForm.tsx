@@ -4,9 +4,10 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Field, FormError, SubmitButton, inputClass } from "@components/forms/fields";
 import { OtpInput, PhoneInput, TermsCheckbox } from "@components/forms/auth-fields";
+import { InterestForm } from "@components/merchant/InterestForm";
 import { PASSWORD_HINT, isStrongPassword, normalizeSyrianMobile } from "@lib/input";
 import { apiRequest, requestOtp, setSessionUser } from "@lib/session";
-import type { SessionUser } from "@lib/types";
+import type { GovernorateStatus, SessionUser } from "@lib/types";
 
 type Option = { id: string; name: string };
 type Step = 1 | 2 | 3;
@@ -16,7 +17,7 @@ export function RegisterForm({
   governorates,
 }: {
   categories: (Option & { icon: string })[];
-  governorates: (Option & { markets: Option[] })[];
+  governorates: (Option & { status: GovernorateStatus; markets: Option[] })[];
 }) {
   const router = useRouter();
   const [step, setStep] = useState<Step>(1);
@@ -39,7 +40,10 @@ export function RegisterForm({
   const [pending, setPending] = useState(false);
 
   const set = <K extends keyof typeof form>(key: K, value: (typeof form)[K]) => setForm((f) => ({ ...f, [key]: value }));
-  const markets = governorates.find((g) => g.id === form.governorateId)?.markets ?? [];
+  const governorate = governorates.find((g) => g.id === form.governorateId);
+  // Governorates that haven't opened collect merchant interest instead of registrations
+  const comingSoon = governorate?.status === "COMING_SOON";
+  const markets = governorate?.markets ?? [];
 
   function storeStep(e: React.FormEvent) {
     e.preventDefault();
@@ -47,6 +51,7 @@ export function RegisterForm({
     if (form.storeName.trim().length < 2) return setError("اكتب اسم المتجر");
     if (!form.categoryId) return setError("اختر ماذا يبيع متجرك");
     if (!form.governorateId) return setError("اختر المحافظة");
+    if (comingSoon) return;
     setStep(2);
   }
 
@@ -127,43 +132,58 @@ export function RegisterForm({
       </ol>
 
       {step === 1 && (
-        <form onSubmit={storeStep} className="space-y-4" noValidate>
-          <Field label="اسم المتجر" hint="كما هو مكتوب على لافتة المحل">
-            <input value={form.storeName} onChange={(e) => set("storeName", e.target.value)} placeholder="مثال: بهارات أبو فؤاد" maxLength={60} className={inputClass} />
-          </Field>
-          <Field label="شو بيبيع متجرك؟">
-            <select value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)} className={inputClass}>
-              <option value="">اختر القسم</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
-              ))}
-            </select>
-          </Field>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field label="المحافظة">
-              <select
-                value={form.governorateId}
-                onChange={(e) => setForm((f) => ({ ...f, governorateId: e.target.value, marketId: "" }))}
-                className={inputClass}
-              >
-                <option value="">اختر</option>
-                {governorates.map((g) => (
-                  <option key={g.id} value={g.id}>{g.name}</option>
+        <div className="space-y-4">
+          <form onSubmit={storeStep} className="space-y-4" noValidate>
+            <Field label="اسم المتجر" hint="كما هو مكتوب على لافتة المحل">
+              <input value={form.storeName} onChange={(e) => set("storeName", e.target.value)} placeholder="مثال: بهارات أبو فؤاد" maxLength={60} className={inputClass} />
+            </Field>
+            <Field label="شو بيبيع متجرك؟">
+              <select value={form.categoryId} onChange={(e) => set("categoryId", e.target.value)} className={inputClass}>
+                <option value="">اختر القسم</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>{c.icon} {c.name}</option>
                 ))}
               </select>
             </Field>
-            <Field label="السوق" optional>
-              <select value={form.marketId} onChange={(e) => set("marketId", e.target.value)} disabled={!markets.length} className={inputClass}>
-                <option value="">غير مدرج / لا يوجد</option>
-                {markets.map((m) => (
-                  <option key={m.id} value={m.id}>{m.name}</option>
-                ))}
-              </select>
-            </Field>
-          </div>
-          <FormError message={error} />
-          <button type="submit" className="h-12 w-full rounded-xl bg-ink font-bold text-canvas transition hover:bg-brand-900">التالي</button>
-        </form>
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field label="المحافظة">
+                <select
+                  value={form.governorateId}
+                  onChange={(e) => setForm((f) => ({ ...f, governorateId: e.target.value, marketId: "" }))}
+                  className={inputClass}
+                >
+                  <option value="">اختر</option>
+                  {governorates.map((g) => (
+                    <option key={g.id} value={g.id}>
+                      {g.name}
+                      {g.status === "COMING_SOON" ? " (قريباً)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="السوق" optional>
+                <select value={form.marketId} onChange={(e) => set("marketId", e.target.value)} disabled={!markets.length || comingSoon} className={inputClass}>
+                  <option value="">غير مدرج / لا يوجد</option>
+                  {markets.map((m) => (
+                    <option key={m.id} value={m.id}>{m.name}</option>
+                  ))}
+                </select>
+              </Field>
+            </div>
+            <FormError message={error} />
+            {!comingSoon && (
+              <button type="submit" className="h-12 w-full rounded-xl bg-ink font-bold text-canvas transition hover:bg-brand-900">التالي</button>
+            )}
+          </form>
+          {comingSoon && governorate && (
+            <InterestForm
+              governorateId={governorate.id}
+              governorateName={governorate.name}
+              storeName={form.storeName}
+              categoryId={form.categoryId}
+            />
+          )}
+        </div>
       )}
 
       {step === 2 && (

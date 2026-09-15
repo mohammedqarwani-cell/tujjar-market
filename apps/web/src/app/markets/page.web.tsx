@@ -6,13 +6,16 @@ import type { Governorate } from "@lib/types";
 
 export const metadata: Metadata = {
   title: "أسواق سوريا",
-  description: "تصفح أسواق المحافظات السورية ومحلاتها: الحميدية، سوق المدينة، السوق المسقوف وغيرها.",
+  description: "تصفح أسواق دمشق ومحلاتها: الحميدية، البزورية، الحريقة، مدحت باشا وغيرها، وقريباً باقي المحافظات.",
 };
 
 export default async function MarketsPage() {
   const governorates = await apiGet<Governorate[]>("/governorates", 300);
-  const withStores = governorates.filter((g) => g.storesCount > 0);
-  const empty = governorates.filter((g) => g.storesCount === 0);
+  // Only an explicit COMING_SOON closes a governorate, so a response cached before rollout statuses existed stays open
+  const open = governorates.filter((g) => g.status !== "COMING_SOON");
+  const withStores = open.filter((g) => g.storesCount > 0);
+  const waiting = open.filter((g) => g.storesCount === 0);
+  const soon = governorates.filter((g) => g.status === "COMING_SOON");
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-8">
@@ -20,7 +23,7 @@ export default async function MarketsPage() {
       <p className="mt-2 text-muted">اختر المحافظة والسوق، وشوف المحلات ومنتجاتها من مكانك.</p>
 
       <nav aria-label="المحافظات" className="no-scrollbar -mx-4 mt-6 flex gap-2 overflow-x-auto px-4 pb-1">
-        {governorates.map((g) => (
+        {open.map((g) => (
           <a
             key={g.slug}
             href={`#${g.slug}`}
@@ -52,7 +55,7 @@ export default async function MarketsPage() {
                   <div className="relative">
                     <div className="font-bold">{m.name}</div>
                     <div className="mt-4 text-xs text-muted">
-                      {m.storesCount > 0 ? `${m.storesCount} متجر` : "قريباً"}
+                      {m.storesCount > 0 ? `${m.storesCount} متجر` : "بانتظار أول محل"}
                     </div>
                   </div>
                 </Link>
@@ -61,14 +64,33 @@ export default async function MarketsPage() {
           </section>
         ))}
 
-        {empty.length > 0 && (
+        {waiting.length > 0 && (
           <section className="rounded-card bg-sand/70 p-6">
             <h2 className="font-bold">محافظات تنتظر أول محلاتها</h2>
             <p className="mt-1 text-sm text-muted">
-              {empty.map((g) => g.name).join("، ")} — كن أول تاجر فيها واحصل على ظهور مميز.
+              {waiting.map((g) => g.name).join("، ")} — كن أول تاجر فيها واحصل على ظهور مميز.
             </p>
             <Link href={merchantUrl("/join")} className="mt-4 inline-block rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700">
               افتح متجرك مجاناً
+            </Link>
+          </section>
+        )}
+
+        {soon.length > 0 && (
+          <section className="rounded-card bg-surface p-6 ring-1 ring-line">
+            <h2 className="font-bold">قريباً في محافظات أخرى</h2>
+            <p className="mt-1 text-sm leading-7 text-muted">
+              نفتح المحافظات تباعاً لنضمن التحقق من كل محل. تاجر في إحداها؟ سجّل اهتمامك ونتواصل معك أول ما يفتح التسجيل.
+            </p>
+            <ul className="mt-3 flex flex-wrap gap-2">
+              {soon.map((g) => (
+                <li key={g.slug} className="rounded-full bg-sand px-3 py-1.5 text-sm">
+                  {g.name}
+                </li>
+              ))}
+            </ul>
+            <Link href={merchantUrl("/join")} className="mt-4 inline-block rounded-xl bg-ink px-5 py-2.5 text-sm font-bold text-canvas hover:bg-brand-900">
+              سجّل اهتمامك كتاجر
             </Link>
           </section>
         )}

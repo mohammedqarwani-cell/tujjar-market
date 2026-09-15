@@ -30,6 +30,20 @@ enum StoreStatus {
   SUSPENDED
 }
 
+enum GovernorateStatus {
+  /// Merchants can register and stores are public
+  ACTIVE
+  /// Shown as "coming soon"; merchants can only register interest
+  COMING_SOON
+}
+
+enum GeofenceStatus {
+  /// Approximate boundary: distances guide reviewers but never block a merchant
+  DRAFT
+  /// Surveyed boundary: shop videos recorded outside it are refused
+  CONFIRMED
+}
+
 /// Tiered, risk-based verification. The order matters: higher levels sort first.
 enum VerificationLevel {
   /// Phone and WhatsApp verified by SMS, terms accepted, information attested
@@ -168,41 +182,68 @@ model AuditLog {
 }
 
 model Governorate {
-  id        String   @id @default(cuid())
-  slug      String   @unique
-  name      String   @unique
-  sortOrder Int      @default(0)
+  id        String             @id @default(cuid())
+  slug      String             @unique
+  name      String             @unique
+  sortOrder Int                @default(0)
   latitude  Float?
   longitude Float?
+  /// Pilot rollout: stores open governorate by governorate
+  status    GovernorateStatus  @default(COMING_SOON)
   markets   Market[]
   stores    Store[]
+  interests MerchantInterest[]
 }
 
 model Market {
-  id            String      @id @default(cuid())
-  slug          String      @unique
-  name          String
-  description   String?
-  sortOrder     Int         @default(0)
-  /// Geofence centre and radius; a shop video recorded outside it is refused
-  latitude      Float?
-  longitude     Float?
-  radiusMeters  Int?
-  governorateId String
-  governorate   Governorate @relation(fields: [governorateId], references: [id])
-  stores        Store[]
+  id             String         @id @default(cuid())
+  slug           String         @unique
+  name           String
+  description    String?
+  sortOrder      Int            @default(0)
+  /// Hidden from lists and registration without touching its stores
+  isActive       Boolean        @default(true)
+  /// Geofence centre and radius
+  latitude       Float?
+  longitude      Float?
+  radiusMeters   Int?
+  geofenceStatus GeofenceStatus @default(DRAFT)
+  governorateId  String
+  governorate    Governorate    @relation(fields: [governorateId], references: [id])
+  stores         Store[]
 
   @@unique([governorateId, name])
 }
 
 model Category {
-  id        String    @id @default(cuid())
-  slug      String    @unique
-  name      String    @unique
+  id        String             @id @default(cuid())
+  slug      String             @unique
+  name      String             @unique
   icon      String
-  sortOrder Int       @default(0)
+  sortOrder Int                @default(0)
+  /// Hidden from lists and new listings; existing products keep it
+  isActive  Boolean            @default(true)
   products  Product[]
   stores    Store[]
+  interests MerchantInterest[]
+}
+
+/// Merchants who want to join from a governorate that hasn't opened yet
+model MerchantInterest {
+  id            String      @id @default(cuid())
+  governorateId String
+  governorate   Governorate @relation(fields: [governorateId], references: [id], onDelete: Cascade)
+  name          String
+  /// E.164 without the plus sign; not verified by SMS
+  phone         String
+  storeName     String?
+  categoryId    String?
+  category      Category?   @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  contactedAt   DateTime?
+  createdAt     DateTime    @default(now())
+
+  @@unique([governorateId, phone])
+  @@index([governorateId, createdAt])
 }
 
 model Store {

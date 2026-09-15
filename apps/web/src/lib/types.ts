@@ -10,7 +10,9 @@ export type CategoryRef = Ref & { icon: string };
 export type Category = CategoryRef & { id: string; productsCount: number };
 
 export type MarketSummary = Ref & { id: string; storesCount: number };
-export type Governorate = Ref & { id: string; storesCount: number; markets: MarketSummary[] };
+/** COMING_SOON governorates are listed but don't accept stores yet (pilot rollout) */
+export type GovernorateStatus = "ACTIVE" | "COMING_SOON";
+export type Governorate = Ref & { id: string; status: GovernorateStatus; storesCount: number; markets: MarketSummary[] };
 
 export type ProductCardData = {
   id: string;
