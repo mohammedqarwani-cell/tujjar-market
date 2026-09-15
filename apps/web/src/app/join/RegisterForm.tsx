@@ -31,6 +31,7 @@ export function RegisterForm({
     whatsapp: "",
     password: "",
     terms: false,
+    attest: false,
   });
   const [code, setCode] = useState("");
   const [devCode, setDevCode] = useState<string>();
@@ -62,6 +63,7 @@ export function RegisterForm({
     if (!form.sameWhatsapp && !normalizeSyrianMobile(form.whatsapp)) return setError("رقم الواتساب غير صحيح");
     if (!isStrongPassword(form.password)) return setError(`كلمة المرور ${PASSWORD_HINT}`);
     if (!form.terms) return setError("يجب الموافقة على الشروط والأحكام وسياسة الخصوصية");
+    if (!form.attest) return setError("يجب التعهد بصحة معلومات المتجر");
     setPending(true);
     try {
       await sendCode();
@@ -93,6 +95,7 @@ export function RegisterForm({
           password: form.password,
           otpCode: code,
           acceptTerms: true,
+          attestTruth: true,
         },
       });
       setSessionUser("merchant", user);
@@ -184,6 +187,17 @@ export function RegisterForm({
             <input value={form.password} onChange={(e) => set("password", e.target.value)} type="password" autoComplete="new-password" className={inputClass} />
           </Field>
           <TermsCheckbox checked={form.terms} onChange={(v) => set("terms", v)} />
+          <label className="flex cursor-pointer items-start gap-2.5 text-sm leading-6">
+            <input
+              type="checkbox"
+              checked={form.attest}
+              onChange={(e) => set("attest", e.target.checked)}
+              className="mt-1 h-4 w-4 shrink-0 accent-brand-600"
+            />
+            <span>
+              أتعهد بأن معلومات متجري صحيحة، وأن المحل موجود فعلاً في المحافظة والسوق اللذين اخترتهما، وأتحمل المسؤولية عن أي معلومات مضللة.
+            </span>
+          </label>
           <FormError message={error} />
           <div className="flex gap-2">
             {back(1)}

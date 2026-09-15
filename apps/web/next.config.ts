@@ -17,6 +17,8 @@ const contentSecurityPolicy = [
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
   `img-src 'self' data: blob: ${mediaOrigin}`,
+  // Recorded shop videos are previewed, and reviewed by moderators, from in-memory blob URLs
+  "media-src 'self' blob:",
   "font-src 'self'",
   `connect-src 'self' ${apiOrigin}${isDev ? " ws: wss:" : ""}`,
   "frame-ancestors 'none'",

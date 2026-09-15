@@ -30,6 +30,35 @@ enum StoreStatus {
   SUSPENDED
 }
 
+/// Tiered, risk-based verification. The order matters: higher levels sort first.
+enum VerificationLevel {
+  /// Phone and WhatsApp verified by SMS, terms accepted, information attested
+  REGISTERED
+  /// Owner identity document and selfie reviewed
+  IDENTITY
+  /// In-app shop video with GPS inside the chosen market reviewed
+  LOCATION
+  /// Shop visited by a field agent
+  PREMIUM
+}
+
+enum VerificationKind {
+  IDENTITY
+  LOCATION
+}
+
+enum VerificationStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+enum GeoCheck {
+  INSIDE
+  OUTSIDE
+  NO_GEOFENCE
+}
+
 enum ProductStatus {
   ACTIVE
   UNDER_REVIEW
@@ -59,30 +88,31 @@ enum ReportStatus {
 }
 
 model User {
-  id              String     @id @default(cuid())
-  name            String
+  id                    String                @id @default(cuid())
+  name                  String
   /// E.164 without the plus sign, e.g. 963912345678
-  phone           String     @unique
-  passwordHash    String
-  role            Role       @default(BUYER)
-  status          UserStatus @default(ACTIVE)
-  phoneVerifiedAt DateTime?
-  failedLogins    Int        @default(0)
-  lockedUntil     DateTime?
-  lastLoginAt     DateTime?
+  phone                 String                @unique
+  passwordHash          String
+  role                  Role                  @default(BUYER)
+  status                UserStatus            @default(ACTIVE)
+  phoneVerifiedAt       DateTime?
+  failedLogins          Int                   @default(0)
+  lockedUntil           DateTime?
+  lastLoginAt           DateTime?
   /// AES-256-GCM encrypted base32 TOTP secret
-  totpSecret      String?
-  totpEnabled     Boolean    @default(false)
+  totpSecret            String?
+  totpEnabled           Boolean               @default(false)
   /// Last accepted TOTP time step, blocks code replay
-  totpLastStep    Int?
-  termsVersion    String?
-  termsAcceptedAt DateTime?
-  createdAt       DateTime   @default(now())
-  updatedAt       DateTime   @updatedAt
-  stores          Store[]
-  sessions        Session[]
-  reports         Report[]   @relation("ReportedBy")
-  auditLogs       AuditLog[]
+  totpLastStep          Int?
+  termsVersion          String?
+  termsAcceptedAt       DateTime?
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  stores                Store[]
+  sessions              Session[]
+  reports               Report[]              @relation("ReportedBy")
+  auditLogs             AuditLog[]
+  reviewedVerifications VerificationRequest[] @relation("VerificationReviewer")
 }
 
 /// One refresh-token session per signed-in device and interface
@@ -154,6 +184,10 @@ model Market {
   name          String
   description   String?
   sortOrder     Int         @default(0)
+  /// Geofence centre and radius; a shop video recorded outside it is refused
+  latitude      Float?
+  longitude     Float?
+  radiusMeters  Int?
   governorateId String
   governorate   Governorate @relation(fields: [governorateId], references: [id])
   stores        Store[]
@@ -172,42 +206,82 @@ model Category {
 }
 
 model Store {
-  id            String           @id @default(cuid())
-  slug          String           @unique
-  name          String
-  tagline       String?
-  description   String?
-  ownerId       String
-  owner         User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
-  governorateId String
-  governorate   Governorate      @relation(fields: [governorateId], references: [id])
-  marketId      String?
-  market        Market?          @relation(fields: [marketId], references: [id])
-  categoryId    String?
-  category      Category?        @relation(fields: [categoryId], references: [id])
-  address       String?
-  mapUrl        String?
+  id                    String                @id @default(cuid())
+  slug                  String                @unique
+  name                  String
+  tagline               String?
+  description           String?
+  ownerId               String
+  owner                 User                  @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  governorateId         String
+  governorate           Governorate           @relation(fields: [governorateId], references: [id])
+  marketId              String?
+  market                Market?               @relation(fields: [marketId], references: [id])
+  categoryId            String?
+  category              Category?             @relation(fields: [categoryId], references: [id])
+  address               String?
+  mapUrl                String?
   /// WhatsApp number, E.164 without plus
-  whatsapp      String
-  phone         String?
-  openingHours  String?
-  logoUrl       String?
-  coverUrl      String?
-  hasDelivery   Boolean          @default(false)
-  isVerified    Boolean          @default(false)
-  status        StoreStatus      @default(ACTIVE)
+  whatsapp              String
+  phone                 String?
+  openingHours          String?
+  logoUrl               String?
+  coverUrl              String?
+  hasDelivery           Boolean               @default(false)
+  /// Public level: what buyers see, what ranks the store and which limits apply
+  verificationLevel     VerificationLevel     @default(REGISTERED)
+  /// Highest level earned; differs from verificationLevel while the badge is suspended
+  earnedLevel           VerificationLevel     @default(REGISTERED)
+  /// Shop verification (LOCATION and above) expires and must be renewed yearly
+  verificationExpiresAt DateTime?
+  /// Set after repeated confirmed reports; the badge stays hidden until an admin restores it
+  badgeSuspendedAt      DateTime?
+  badgeRestoredAt       DateTime?
+  /// When the merchant declared the store information true
+  attestedAt            DateTime?
+  status                StoreStatus           @default(ACTIVE)
   /// Normalized Arabic text used for search
-  searchText    String           @default("")
-  viewsCount    Int              @default(0)
-  contactsCount Int              @default(0)
-  createdAt     DateTime         @default(now())
-  updatedAt     DateTime         @updatedAt
-  products      Product[]
-  dailyStats    StoreDailyStat[]
-  reports       Report[]
+  searchText            String                @default("")
+  viewsCount            Int                   @default(0)
+  contactsCount         Int                   @default(0)
+  createdAt             DateTime              @default(now())
+  updatedAt             DateTime              @updatedAt
+  products              Product[]
+  dailyStats            StoreDailyStat[]
+  reports               Report[]
+  verificationRequests  VerificationRequest[]
 
   @@index([status, governorateId, marketId])
+  @@index([status, verificationLevel])
   @@index([categoryId])
+}
+
+/// Evidence a merchant submits to reach the next verification level
+model VerificationRequest {
+  id             String             @id @default(cuid())
+  storeId        String
+  store          Store              @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  kind           VerificationKind
+  status         VerificationStatus @default(PENDING)
+  /// Encrypted objects in the private bucket, by slot: { idFront: { key, type, size }, ... }
+  files          Json
+  latitude       Float?
+  longitude      Float?
+  accuracyMeters Float?
+  /// When the shop video started recording, as reported by the phone
+  capturedAt     DateTime?
+  geoCheck       GeoCheck?
+  distanceMeters Int?
+  rejectReason   String?
+  reviewerId     String?
+  reviewer       User?              @relation("VerificationReviewer", fields: [reviewerId], references: [id], onDelete: SetNull)
+  reviewedAt     DateTime?
+  /// Files of rejected requests are deleted after the retention period
+  purgedAt       DateTime?
+  createdAt      DateTime           @default(now())
+
+  @@index([status, kind, createdAt])
+  @@index([storeId, createdAt])
 }
 
 model Product {

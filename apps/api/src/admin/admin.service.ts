@@ -1,9 +1,11 @@
 import { Injectable } from '@nestjs/common';
-import { Prisma, ProductStatus, ReportStatus, StoreStatus } from '@prisma/client';
+import { Prisma, ProductStatus, ReportStatus, StoreStatus, VerificationLevel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.module';
 import { normalizeArabic } from '../common/text/arabic';
 import { pageResult, paging } from '../common/pagination';
+import { VerificationService } from '../verification/verification.service';
+import { LEVELS } from '../verification/verification.levels';
 
 const searchTerms = (q?: string) =>
   normalizeArabic(q).split(' ').filter((t) => t.length > 1).slice(0, 5);
@@ -13,27 +15,31 @@ export class AdminService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private verification: VerificationService,
   ) {}
 
   async overview() {
-    const [stores, suspended, unverified, products, underReview, openReports, merchants, buyers] = await Promise.all([
-      this.prisma.store.count(),
-      this.prisma.store.count({ where: { status: 'SUSPENDED' } }),
-      this.prisma.store.count({ where: { isVerified: false, status: 'ACTIVE' } }),
-      this.prisma.product.count(),
-      this.prisma.product.count({ where: { status: 'UNDER_REVIEW' } }),
-      this.prisma.report.count({ where: { status: 'OPEN' } }),
-      this.prisma.user.count({ where: { role: 'MERCHANT' } }),
-      this.prisma.user.count({ where: { role: 'BUYER' } }),
-    ]);
-    return { stores, suspended, unverified, products, underReview, openReports, merchants, buyers };
+    const [stores, suspended, unverified, pendingVerifications, products, underReview, openReports, merchants, buyers] =
+      await Promise.all([
+        this.prisma.store.count(),
+        this.prisma.store.count({ where: { status: 'SUSPENDED' } }),
+        this.prisma.store.count({ where: { verificationLevel: 'REGISTERED', status: 'ACTIVE' } }),
+        this.prisma.verificationRequest.count({ where: { status: 'PENDING' } }),
+        this.prisma.product.count(),
+        this.prisma.product.count({ where: { status: 'UNDER_REVIEW' } }),
+        this.prisma.report.count({ where: { status: 'OPEN' } }),
+        this.prisma.user.count({ where: { role: 'MERCHANT' } }),
+        this.prisma.user.count({ where: { role: 'BUYER' } }),
+      ]);
+    return { stores, suspended, unverified, pendingVerifications, products, underReview, openReports, merchants, buyers };
   }
 
   async stores(query: Record<string, string>) {
     const { page, pageSize, skip, take } = paging(query.page, query.pageSize, 100);
     const where: Prisma.StoreWhereInput = {};
     if (query.status === 'ACTIVE' || query.status === 'SUSPENDED') where.status = query.status as StoreStatus;
-    if (query.verified === '0') where.isVerified = false;
+    if (LEVELS.includes(query.level as VerificationLevel)) where.verificationLevel = query.level as VerificationLevel;
+    if (query.badge === 'suspended') where.badgeSuspendedAt = { not: null };
     const terms = searchTerms(query.q);
     if (terms.length) where.AND = terms.map((t) => ({ searchText: { contains: t } }));
 
@@ -45,7 +51,10 @@ export class AdminService {
           slug: true,
           name: true,
           whatsapp: true,
-          isVerified: true,
+          verificationLevel: true,
+          earnedLevel: true,
+          badgeSuspendedAt: true,
+          verificationExpiresAt: true,
           status: true,
           createdAt: true,
           contactsCount: true,
@@ -63,14 +72,12 @@ export class AdminService {
     return pageResult(items, total, page, pageSize);
   }
 
-  async verifyStore(actorId: string, id: string, isVerified: boolean, ip: string) {
-    const store = await this.prisma.store.update({ where: { id }, data: { isVerified }, select: { id: true, isVerified: true, status: true } });
-    await this.audit.log({ actorId, action: isVerified ? 'store.verify' : 'store.unverify', entityType: 'store', entityId: id, ip });
-    return store;
-  }
-
   async setStoreStatus(actorId: string, id: string, status: StoreStatus, ip: string) {
-    const store = await this.prisma.store.update({ where: { id }, data: { status }, select: { id: true, isVerified: true, status: true } });
+    const store = await this.prisma.store.update({
+      where: { id },
+      data: { status },
+      select: { id: true, verificationLevel: true, status: true },
+    });
     await this.audit.log({ actorId, action: status === 'SUSPENDED' ? 'store.suspend' : 'store.reactivate', entityType: 'store', entityId: id, ip });
     return store;
   }
@@ -140,9 +147,15 @@ export class AdminService {
   }
 
   async updateReport(actorId: string, id: string, status: ReportStatus, ip: string) {
-    const report = await this.prisma.report.update({ where: { id }, data: { status }, select: { id: true, status: true } });
+    const report = await this.prisma.report.update({
+      where: { id },
+      data: { status },
+      select: { id: true, status: true, storeId: true },
+    });
     await this.audit.log({ actorId, action: `report.${status.toLowerCase()}`, entityType: 'report', entityId: id, ip });
-    return report;
+    // A confirmed report counts towards automatically suspending the store's verification badge
+    if (status === 'RESOLVED' && report.storeId) await this.verification.applyReportThreshold(report.storeId);
+    return { id: report.id, status: report.status };
   }
 
   async auditLogs(query: Record<string, string>) {

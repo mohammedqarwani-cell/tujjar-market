@@ -34,6 +34,11 @@ function Overview() {
 
   const checklist = store
     ? [
+        {
+          done: store.verificationLevel === "LOCATION" || store.verificationLevel === "PREMIUM",
+          label: "وثّق متجرك لتحصل على شارة «محل موثّق» وظهور أعلى في البحث",
+          href: "/dashboard/verification",
+        },
         { done: !!store.logoUrl, label: "أضف شعار المتجر", href: "/dashboard/store" },
         { done: store._count.products >= 5, label: `أضف 5 منتجات على الأقل (${store._count.products}/5)`, href: "/dashboard/products/new" },
         { done: !!(store.tagline && store.openingHours), label: "اكتب جملة تعريفية وأوقات الدوام", href: "/dashboard/store" },

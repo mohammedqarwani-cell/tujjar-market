@@ -1,10 +1,10 @@
 import Link from "next/link";
 import type { ProductCardData } from "@lib/types";
 import { discountPercent, storeLocation } from "@lib/format";
-import { VerifiedIcon } from "@components/ui/icons";
 import { ProductArt } from "./ProductArt";
 import { PriceTag } from "./PriceTag";
 import { FavoriteButton } from "./FavoriteButton";
+import { VerifiedMark } from "./VerificationBadge";
 
 export function ProductCard({ product: p }: { product: ProductCardData }) {
   const discount = discountPercent(p.price, p.oldPrice);
@@ -50,7 +50,7 @@ export function ProductCard({ product: p }: { product: ProductCardData }) {
           <PriceTag price={p.price} oldPrice={p.oldPrice} currency={p.currency} priceType={p.priceType} />
           <div className="mt-auto flex items-center gap-1 pt-1 text-xs text-muted">
             <span className="truncate font-medium text-ink/80">{p.store.name}</span>
-            {p.store.isVerified && <VerifiedIcon size={14} className="shrink-0 text-olive-500" />}
+            <VerifiedMark level={p.store.verificationLevel} size={14} />
           </div>
           <div className="truncate text-[11px] text-muted">{storeLocation(p.store)}</div>
         </div>

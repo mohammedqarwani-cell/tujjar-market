@@ -35,6 +35,10 @@ export class RegisterMerchantDto extends RegisterBaseDto {
   /** Defaults to the verified login phone when omitted */
   @IsOptional() @IsString() whatsapp?: string;
   @IsOptional() @IsString() @MaxLength(160) address?: string;
+  /** Self-declaration required before opening a store (trader traceability, DSA Art. 30) */
+  @IsBoolean()
+  @Equals(true, { message: 'يجب التعهد بصحة معلومات المتجر ووجود المحل في السوق المختار' })
+  attestTruth!: boolean;
 }
 
 export class ResetPasswordDto {

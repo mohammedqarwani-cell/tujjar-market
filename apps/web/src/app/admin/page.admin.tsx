@@ -7,16 +7,20 @@ import { toQuery } from "@lib/api";
 import { webUrl } from "@lib/urls";
 import { displayPhone, formatNumber, priceLabel, timeAgo } from "@lib/format";
 import { adminFetch, apiRequest, signOut, useSession } from "@lib/session";
-import type { Currency, Page, PriceType } from "@lib/types";
+import { LEVELS, formatDate } from "@lib/verification";
+import type { Currency, Page, PriceType, VerificationLevel } from "@lib/types";
 import { FormError } from "@components/forms/fields";
 import { EmptyState } from "@components/ui/Section";
-import { LogoutIcon, VerifiedIcon } from "@components/ui/icons";
+import { LogoutIcon } from "@components/ui/icons";
+import { VerifiedMark } from "@components/catalog/VerificationBadge";
 import { TotpSetup } from "./TotpSetup";
+import { VerificationsTab } from "./VerificationsTab";
 
 type Overview = {
   stores: number;
   suspended: number;
   unverified: number;
+  pendingVerifications: number;
   products: number;
   underReview: number;
   openReports: number;
@@ -29,7 +33,10 @@ type AdminStore = {
   slug: string;
   name: string;
   whatsapp: string;
-  isVerified: boolean;
+  verificationLevel: VerificationLevel;
+  earnedLevel: VerificationLevel;
+  badgeSuspendedAt: string | null;
+  verificationExpiresAt: string | null;
   status: "ACTIVE" | "SUSPENDED";
   createdAt: string;
   contactsCount: number;
@@ -76,6 +83,7 @@ type AuditLog = {
 };
 
 const TABS = [
+  { id: "verifications", label: "التوثيق", adminOnly: false },
   { id: "products", label: "المنتجات", adminOnly: false },
   { id: "stores", label: "المتاجر", adminOnly: false },
   { id: "reports", label: "البلاغات", adminOnly: false },
@@ -105,7 +113,7 @@ function useAdminData<T>(path: string) {
 export default function AdminPage() {
   const { status, user } = useSession("admin");
   const router = useRouter();
-  const [tab, setTab] = useState<Tab>("products");
+  const [tab, setTab] = useState<Tab>("verifications");
 
   useEffect(() => {
     if (status === "anonymous") router.replace("/admin/login");
@@ -151,7 +159,8 @@ export default function AdminPage() {
       </div>
 
       <div className="mt-4">
-        {tab === "stores" && <StoresTab canSuspend={isAdmin} />}
+        {tab === "verifications" && <VerificationsTab />}
+        {tab === "stores" && <StoresTab isAdmin={isAdmin} />}
         {tab === "products" && <ProductsTab />}
         {tab === "reports" && <ReportsTab />}
         {tab === "audit" && isAdmin && <AuditTab />}
@@ -163,13 +172,14 @@ export default function AdminPage() {
 function OverviewCards() {
   const { data } = useAdminData<Overview>("/admin/overview");
   const cards = [
+    { label: "طلبات توثيق", value: data?.pendingVerifications, sub: "بانتظار المراجعة", alert: !!data?.pendingVerifications },
     { label: "المتاجر", value: data?.stores, sub: data ? `${data.unverified} غير موثّق` : "" },
     { label: "المنتجات", value: data?.products, sub: data ? `${data.underReview} قيد المراجعة` : "" },
     { label: "بلاغات مفتوحة", value: data?.openReports, sub: "تحتاج متابعة", alert: !!data?.openReports },
     { label: "المستخدمون", value: data ? data.merchants + data.buyers : undefined, sub: data ? `${data.merchants} تاجر · ${data.buyers} زبون` : "" },
   ];
   return (
-    <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-4">
+    <div className="mt-5 grid grid-cols-2 gap-3 lg:grid-cols-5">
       {cards.map((c) => (
         <div key={c.label} className={`rounded-card bg-surface p-4 ring-1 ${c.alert ? "ring-danger/40" : "ring-line"}`}>
           <div className="text-sm text-muted">{c.label}</div>
@@ -202,22 +212,37 @@ function useAction(reload: () => Promise<void>) {
 const chip = "rounded-lg px-3 py-1.5 text-xs font-bold ring-1 transition disabled:opacity-50";
 const selectClass = "h-10 rounded-xl border border-line bg-surface px-3 text-sm";
 
-function StoresTab({ canSuspend }: { canSuspend: boolean }) {
+const STORE_FILTERS: { value: string; label: string; query: Record<string, string> }[] = [
+  { value: "", label: "كل المتاجر", query: {} },
+  { value: "REGISTERED", label: "غير موثّقة", query: { level: "REGISTERED" } },
+  { value: "IDENTITY", label: "هوية موثّقة", query: { level: "IDENTITY" } },
+  { value: "LOCATION", label: "محل موثّق", query: { level: "LOCATION" } },
+  { value: "PREMIUM", label: "تاجر مميز", query: { level: "PREMIUM" } },
+  { value: "badge", label: "شارة موقوفة", query: { badge: "suspended" } },
+  { value: "SUSPENDED", label: "متاجر موقوفة", query: { status: "SUSPENDED" } },
+];
+
+/** Asks for a written note, which the API stores in the audit log with the change. */
+function withNote(question: string, run: (note: string) => void) {
+  const note = prompt(question)?.trim();
+  if (note) run(note);
+}
+
+function StoresTab({ isAdmin }: { isAdmin: boolean }) {
   const [filter, setFilter] = useState("");
   const [q, setQ] = useState("");
   const [query, setQuery] = useState("");
-  const { data, error, reload } = useAdminData<Page<AdminStore>>(
-    `/admin/stores${toQuery({ q: query, pageSize: 100, ...(filter === "unverified" ? { verified: "0" } : filter ? { status: filter } : {}) })}`,
-  );
+  const filterQuery = STORE_FILTERS.find((f) => f.value === filter)?.query ?? {};
+  const { data, error, reload } = useAdminData<Page<AdminStore>>(`/admin/stores${toQuery({ q: query, pageSize: 100, ...filterQuery })}`);
   const action = useAction(reload);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap gap-2">
         <select value={filter} onChange={(e) => setFilter(e.target.value)} className={selectClass}>
-          <option value="">كل المتاجر</option>
-          <option value="unverified">غير موثّقة</option>
-          <option value="SUSPENDED">موقوفة</option>
+          {STORE_FILTERS.map((f) => (
+            <option key={f.value} value={f.value}>{f.label}</option>
+          ))}
         </select>
         <form onSubmit={(e) => { e.preventDefault(); setQuery(q); }}>
           <input value={q} onChange={(e) => setQ(e.target.value)} type="search" placeholder="بحث باسم المتجر…" className={selectClass} />
@@ -230,26 +255,65 @@ function StoresTab({ canSuspend }: { canSuspend: boolean }) {
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
               <Link href={webUrl(`/stores/${s.slug}`)} target="_blank" className="font-bold hover:text-brand-700">{s.name}</Link>
-              {s.isVerified && <VerifiedIcon size={16} className="text-olive-500" />}
+              <VerifiedMark level={s.verificationLevel} />
+              <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${s.verificationLevel === "REGISTERED" ? "bg-sand text-muted" : "bg-olive-50 text-olive-700"}`}>
+                {LEVELS[s.verificationLevel].badge}
+              </span>
+              {s.badgeSuspendedAt && (
+                <span className="rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-bold text-danger">
+                  الشارة موقوفة (مكتسب: {LEVELS[s.earnedLevel].name})
+                </span>
+              )}
               {s.status === "SUSPENDED" && <span className="rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-bold text-danger">موقوف</span>}
               {s._count.reports > 0 && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700">{s._count.reports} بلاغ</span>}
             </div>
             <div className="mt-1 text-xs leading-6 text-muted">
               {s.market ? `${s.market.name}، ` : ""}{s.governorate.name} · {s._count.products} منتج · {s.contactsCount} تواصل · انضم {timeAgo(s.createdAt)}
+              {s.verificationExpiresAt && ` · توثيق المحل حتى ${formatDate(s.verificationExpiresAt)}`}
               <br />
               المالك: {s.owner.name} · <bdi dir="ltr">{displayPhone(s.owner.phone)}</bdi>
             </div>
           </div>
-          <div className="flex shrink-0 gap-2">
-            <button
-              type="button"
-              disabled={!!action.busy}
-              onClick={() => action.run(s.id, `/admin/stores/${s.id}/verification`, { isVerified: !s.isVerified })}
-              className={`${chip} ${s.isVerified ? "text-muted ring-line" : "bg-olive-500 text-white ring-olive-500"}`}
-            >
-              {s.isVerified ? "إلغاء التوثيق" : "توثيق"}
-            </button>
-            {canSuspend && (
+          {isAdmin && (
+            <div className="flex shrink-0 flex-wrap gap-2">
+              {s.earnedLevel === "LOCATION" && (
+                <button
+                  type="button"
+                  disabled={!!action.busy}
+                  onClick={() =>
+                    withNote(`ترقية «${s.name}» إلى تاجر مميز بعد الزيارة الميدانية. اكتب ملخص الزيارة (التاريخ واسم المندوب):`, (note) =>
+                      action.run(s.id, `/admin/stores/${s.id}/level`, { level: "PREMIUM", note }),
+                    )
+                  }
+                  className={`${chip} bg-brand-600 text-white ring-brand-600`}
+                >
+                  تاجر مميز
+                </button>
+              )}
+              {s.badgeSuspendedAt && (
+                <button
+                  type="button"
+                  disabled={!!action.busy}
+                  onClick={() => withNote("سبب استعادة الشارة:", (note) => action.run(s.id, `/admin/stores/${s.id}/badge`, { note }))}
+                  className={`${chip} bg-olive-500 text-white ring-olive-500`}
+                >
+                  استعادة الشارة
+                </button>
+              )}
+              {s.earnedLevel !== "REGISTERED" && (
+                <button
+                  type="button"
+                  disabled={!!action.busy}
+                  onClick={() =>
+                    withNote(`سحب كل مستويات التوثيق من «${s.name}»؟ اكتب السبب:`, (note) =>
+                      action.run(s.id, `/admin/stores/${s.id}/level`, { level: "REGISTERED", note }),
+                    )
+                  }
+                  className={`${chip} text-muted ring-line`}
+                >
+                  سحب التوثيق
+                </button>
+              )}
               <button
                 type="button"
                 disabled={!!action.busy}
@@ -263,8 +327,8 @@ function StoresTab({ canSuspend }: { canSuspend: boolean }) {
               >
                 {s.status === "ACTIVE" ? "إيقاف" : "إعادة تفعيل"}
               </button>
-            )}
-          </div>
+            </div>
+          )}
         </article>
       ))}
     </div>
@@ -335,6 +399,7 @@ function ReportsTab() {
         <option value="RESOLVED">تمت معالجتها</option>
         <option value="DISMISSED">مرفوضة</option>
       </select>
+      <p className="text-xs text-muted">«تمت المعالجة» يعني أن البلاغ مؤكد: 3 بلاغات مؤكدة خلال 90 يوماً توقف شارة توثيق المتجر تلقائياً.</p>
       <FormError message={error || action.error} />
       {data?.items.length === 0 && <EmptyState icon="🕊️" title="لا توجد بلاغات" />}
       {data?.items.map((r) => (
@@ -392,6 +457,16 @@ const ACTION_LABELS: Record<string, string> = {
   "store.unverify": "إلغاء توثيق",
   "store.suspend": "إيقاف متجر",
   "store.reactivate": "إعادة تفعيل متجر",
+  "store.level_changed": "تغيير مستوى التوثيق",
+  "store.badge_suspended": "إيقاف شارة تلقائياً (بلاغات مؤكدة)",
+  "store.badge_restored": "استعادة شارة التوثيق",
+  "store.verification_expired": "انتهاء توثيق المحل",
+  "store.verification_reset": "إلغاء توثيق المحل بعد تعديل الاسم أو السوق",
+  "verification.submitted": "طلب توثيق جديد",
+  "verification.approved": "قبول طلب توثيق",
+  "verification.rejected": "رفض طلب توثيق",
+  "verification.file_viewed": "اطلاع على وثائق توثيق",
+  "verification.geo_rejected": "رفض فيديو صُوّر خارج السوق",
   "product.moderate": "مراجعة منتج",
   "report.create": "بلاغ جديد",
   "report.resolved": "معالجة بلاغ",
@@ -418,8 +493,8 @@ function AuditTab() {
             {data?.items.map((log) => (
               <tr key={log.id} className="border-t border-line">
                 <td className="whitespace-nowrap px-4 py-2 text-muted">{timeAgo(log.createdAt)}</td>
-                <td className="px-4 py-2">{log.actor?.name ?? "—"}</td>
-                <td className={`px-4 py-2 font-medium ${log.action.includes("fail") || log.action.includes("reuse") || log.action.includes("locked") ? "text-danger" : ""}`}>
+                <td className="px-4 py-2">{log.actor?.name ?? "النظام"}</td>
+                <td className={`px-4 py-2 font-medium ${/fail|reuse|locked|rejected|suspend/.test(log.action) ? "text-danger" : ""}`}>
                   {ACTION_LABELS[log.action] ?? log.action}
                 </td>
                 <td className="px-4 py-2 text-muted">{log.entityType}</td>

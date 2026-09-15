@@ -2,6 +2,8 @@ export type Currency = "SYP" | "USD";
 export type PriceType = "FIXED" | "NEGOTIABLE" | "ON_REQUEST";
 export type Condition = "NEW" | "USED";
 export type ProductStatus = "ACTIVE" | "UNDER_REVIEW" | "HIDDEN";
+/** Tiered store verification, lowest to highest */
+export type VerificationLevel = "REGISTERED" | "IDENTITY" | "LOCATION" | "PREMIUM";
 
 export type Ref = { slug: string; name: string };
 export type CategoryRef = Ref & { icon: string };
@@ -26,7 +28,7 @@ export type ProductCardData = {
   store: {
     slug: string;
     name: string;
-    isVerified: boolean;
+    verificationLevel: VerificationLevel;
     governorate: { name: string };
     market: { name: string } | null;
   };
@@ -39,8 +41,9 @@ export type StoreCardData = {
   tagline: string | null;
   logoUrl: string | null;
   coverUrl: string | null;
-  isVerified: boolean;
+  verificationLevel: VerificationLevel;
   hasDelivery: boolean;
+  createdAt: string;
   governorate: Ref;
   market: Ref | null;
   category: CategoryRef | null;
@@ -65,7 +68,6 @@ export type StoreDetail = StoreCardData & {
   whatsapp: string;
   phone: string | null;
   openingHours: string | null;
-  createdAt: string;
   productCategories: CategoryRef[];
 };
 
@@ -79,7 +81,7 @@ export type ProductDetail = ProductCardData & {
     name: string;
     tagline: string | null;
     logoUrl: string | null;
-    isVerified: boolean;
+    verificationLevel: VerificationLevel;
     hasDelivery: boolean;
     whatsapp: string;
     phone: string | null;

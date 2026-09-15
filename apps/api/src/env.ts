@@ -16,17 +16,22 @@ function secret(name: string, minLength: number, devFallback: string): string {
   return value;
 }
 
+/** A 32-byte AES key given as base64. */
+function aesKey(name: string, devFallback: string): Buffer {
+  const key = Buffer.from(secret(name, 44, Buffer.from(devFallback).toString('base64')), 'base64');
+  if (key.length !== 32) throw new Error(`${name} must be 32 bytes, base64 encoded`);
+  return key;
+}
+
 const list = (value: string | undefined, fallback: string) =>
   (value ?? fallback)
     .split(',')
     .map((v) => v.trim())
     .filter(Boolean);
 
-const totpKey = Buffer.from(
-  secret('TOTP_ENC_KEY', 44, Buffer.from('dev-totp-key-32-bytes-long-00000').toString('base64')),
-  'base64',
-);
-if (totpKey.length !== 32) throw new Error('TOTP_ENC_KEY must be 32 bytes, base64 encoded');
+const publicBucket = process.env.MINIO_BUCKET ?? 'public';
+const privateBucket = process.env.MINIO_PRIVATE_BUCKET ?? 'kyc';
+if (publicBucket === privateBucket) throw new Error('MINIO_PRIVATE_BUCKET must differ from the public MINIO_BUCKET');
 
 export const env = {
   isProd,
@@ -40,7 +45,9 @@ export const env = {
   },
   jwtAccessSecret: secret('JWT_ACCESS_SECRET', 32, 'dev-access-secret-change-me-0123456789abcdef'),
   otpPepper: secret('OTP_PEPPER', 32, 'dev-otp-pepper-change-me-0123456789abcdefgh'),
-  totpKey,
+  totpKey: aesKey('TOTP_ENC_KEY', 'dev-totp-key-32-bytes-long-00000'),
+  /** Encrypts merchant identity documents and shop videos before they reach storage */
+  kycKey: aesKey('KYC_ENC_KEY', 'dev-kyc-files-key-32-bytes-00000'),
   cookieSecure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProd,
   cookieDomain: process.env.COOKIE_DOMAIN || undefined,
   /** Dev only: return OTP codes in the API response so flows can be tested without SMS */
@@ -50,7 +57,9 @@ export const env = {
     endpoint: process.env.MINIO_ENDPOINT ?? 'http://localhost:9000',
     accessKey: process.env.MINIO_ACCESS_KEY ?? '',
     secretKey: process.env.MINIO_SECRET_KEY ?? '',
-    bucket: process.env.MINIO_BUCKET ?? 'public',
+    bucket: publicBucket,
+    /** Never given a public policy: verification evidence only leaves it through the admin API */
+    privateBucket,
     publicUrl: process.env.MEDIA_PUBLIC_URL ?? 'http://localhost:9000/public',
   },
 };

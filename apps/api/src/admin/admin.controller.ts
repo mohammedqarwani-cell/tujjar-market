@@ -7,10 +7,6 @@ import type { AuthUser } from '../auth/current-user.decorator';
 import { clientIp } from '../common/request';
 import { AdminService } from './admin.service';
 
-class VerifyStoreDto {
-  @IsBoolean() isVerified!: boolean;
-}
-
 class StoreStatusDto {
   @IsIn(['ACTIVE', 'SUSPENDED']) status!: 'ACTIVE' | 'SUSPENDED';
 }
@@ -24,6 +20,7 @@ class UpdateReportDto {
   @IsIn(['OPEN', 'RESOLVED', 'DISMISSED']) status!: 'OPEN' | 'RESOLVED' | 'DISMISSED';
 }
 
+/** Store verification levels are managed by AdminVerificationController. */
 @Controller('admin')
 @Auth('ADMIN', 'MODERATOR')
 export class AdminController {
@@ -37,11 +34,6 @@ export class AdminController {
   @Get('stores')
   stores(@Query() query: Record<string, string>) {
     return this.admin.stores(query);
-  }
-
-  @Patch('stores/:id/verification')
-  verifyStore(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: VerifyStoreDto, @Req() req: Request) {
-    return this.admin.verifyStore(actor.id, id, dto.isVerified, clientIp(req));
   }
 
   /** Suspending a store hides it and all its products, so only full admins may do it. */
