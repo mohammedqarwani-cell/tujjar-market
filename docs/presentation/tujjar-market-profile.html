@@ -1,0 +1,761 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>تُجّار ماركت — الملف التعريفي للمنصة</title>
+<style>
+  @font-face { font-family: "Plex Arabic"; font-weight: 400; src: url("fonts/plex-arabic-400.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 500; src: url("fonts/plex-arabic-500.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 700; src: url("fonts/plex-arabic-700.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 400; src: url("fonts/plex-latin-400.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 500; src: url("fonts/plex-latin-500.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 700; src: url("fonts/plex-latin-700.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC; }
+
+  :root {
+    --canvas: #fbf7f1; --sand: #f4ece0; --ink: #1f1a14; --muted: #6f655a; --line: #e6dccd;
+    --brand: #b86e14; --brand-dark: #8f5410; --brand-soft: #fdf3e2; --olive: #56632a; --olive-soft: #eef2e1;
+    --wa: #178a45; --danger: #b73a28;
+  }
+  @page { size: A4; margin: 15mm 14mm 17mm; }
+  @page :first { margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Plex Arabic", "Segoe UI", Tahoma, sans-serif;
+    color: var(--ink); font-size: 10.5pt; line-height: 1.85; background: #fff;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  h1, h2, h3, h4 { line-height: 1.4; margin: 0; }
+  h2, h3, h4 { break-after: avoid; }
+  p { margin: 0 0 3mm; }
+  ul { margin: 0 0 3mm; padding-inline-start: 5mm; }
+  li { margin-bottom: 1mm; }
+  strong { font-weight: 700; }
+  .ltr { direction: ltr; unicode-bidi: isolate; }
+
+  .page-break { break-before: page; }
+
+  /* Cover */
+  .cover {
+    height: 297mm; width: 210mm; position: relative; overflow: hidden;
+    background: linear-gradient(160deg, #fdf3e2 0%, #fbf7f1 55%, #eef2e1 100%);
+    padding: 26mm 22mm; display: flex; flex-direction: column;
+  }
+  .cover::after {
+    content: ""; position: absolute; inset: auto 0 0 0; height: 115mm; opacity: .5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='64' viewBox='0 0 56 64'%3E%3Cpath d='M6 64V30a22 22 0 0 1 44 0v34' fill='none' stroke='%23b86e14' stroke-opacity='.22' stroke-width='2'/%3E%3C/svg%3E");
+    background-size: 56px 64px;
+    -webkit-mask-image: linear-gradient(to top, #000, transparent);
+  }
+  .brand { display: flex; align-items: center; gap: 4mm; }
+  .brand-name { font-size: 20pt; font-weight: 700; }
+  .brand-tag { font-size: 10pt; color: var(--muted); }
+  .cover-title { margin-top: 42mm; font-size: 34pt; font-weight: 700; line-height: 1.3; }
+  .cover-title span { color: var(--brand); }
+  .cover-sub { margin-top: 7mm; font-size: 13pt; color: var(--muted); max-width: 150mm; line-height: 1.9; }
+  .cover-meta { margin-top: auto; position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; }
+  .cover-meta div { background: rgba(255,255,255,.75); border: 1px solid var(--line); border-radius: 4mm; padding: 4mm 5mm; }
+  .cover-meta b { display: block; font-size: 9pt; color: var(--muted); font-weight: 500; }
+  .cover-meta span { font-weight: 700; }
+
+  /* Headings */
+  .section-no { display: inline-block; font-size: 9pt; font-weight: 700; color: var(--brand); background: var(--brand-soft); border-radius: 99px; padding: .5mm 3.5mm; margin-bottom: 2mm; }
+  h2 { font-size: 20pt; font-weight: 700; margin-bottom: 4mm; }
+  h3 { font-size: 13pt; font-weight: 700; margin: 7mm 0 2.5mm; }
+  h4 { font-size: 11pt; font-weight: 700; margin: 4mm 0 1.5mm; }
+  .lead { font-size: 11.5pt; color: #3d352c; }
+
+  /* Blocks */
+  .note { background: var(--brand-soft); border-inline-start: 3px solid var(--brand); border-radius: 2mm; padding: 3mm 4.5mm; margin: 4mm 0; font-size: 10pt; break-inside: avoid; }
+  .note.olive { background: var(--olive-soft); border-color: var(--olive); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .card { border: 1px solid var(--line); border-radius: 3.5mm; padding: 4mm 5mm; background: #fff; break-inside: avoid; }
+  .card h4 { margin-top: 0; }
+  .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+  .icon { display: inline-flex; width: 9mm; height: 9mm; border-radius: 2.5mm; align-items: center; justify-content: center; background: var(--brand-soft); font-size: 13pt; margin-bottom: 2mm; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; margin: 5mm 0; }
+  .stat { background: var(--sand); border-radius: 3mm; padding: 3.5mm 4mm; text-align: center; }
+  .stat b { display: block; font-size: 18pt; line-height: 1.2; color: var(--brand-dark); }
+  .stat span { font-size: 9pt; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 9.5pt; }
+  th { background: var(--sand); text-align: right; font-weight: 700; padding: 2.2mm 3mm; border-bottom: 1px solid var(--line); }
+  td { padding: 2.2mm 3mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr { break-inside: avoid; }
+  .ok { color: var(--olive); font-weight: 700; }
+  .wip { color: var(--brand-dark); font-weight: 700; }
+  .todo { color: var(--muted); font-weight: 700; }
+
+  /* Denser sections that must stay on one page */
+  .compact { line-height: 1.7; }
+  .compact h3 { margin-top: 4.5mm; }
+  .compact th, .compact td { padding: 1.5mm 2.5mm; font-size: 9pt; }
+  .compact .stats { margin: 3mm 0; }
+  .compact .stat b { font-size: 15pt; }
+
+  /* Flow */
+  .flow { display: flex; align-items: stretch; gap: 2.5mm; margin: 4mm 0; break-inside: avoid; }
+  .flow .step { flex: 1; border: 1px solid var(--line); border-radius: 3mm; padding: 3mm; background: #fff; text-align: center; font-size: 9.5pt; }
+  .flow .step b { display: block; color: var(--brand-dark); font-size: 10pt; }
+  .flow .arrow { align-self: center; color: var(--brand); font-weight: 700; }
+
+  /* Screenshots */
+  figure { margin: 4mm 0 5mm; break-inside: avoid; }
+  .shot { border: 1px solid var(--line); border-radius: 3mm; overflow: hidden; background: var(--sand); box-shadow: 0 1.5mm 5mm rgba(31,26,20,.08); }
+  .shot img { display: block; width: 100%; object-fit: cover; object-position: top; }
+  .shot .bar { height: 5mm; background: #efe7da; display: flex; align-items: center; gap: 1.2mm; padding: 0 3mm; direction: ltr; }
+  .shot .bar i { width: 1.8mm; height: 1.8mm; border-radius: 50%; background: #d8cbb6; }
+  .phone { width: 52mm; border: 2.2mm solid #2a241d; border-radius: 7mm; overflow: hidden; background: #2a241d; box-shadow: 0 2mm 6mm rgba(31,26,20,.18); margin-inline: auto; }
+  .phone img { display: block; width: 100%; object-fit: cover; object-position: top; border-radius: 4.5mm; }
+  figcaption { font-size: 9pt; color: var(--muted); margin-top: 2mm; text-align: center; }
+  .side { display: grid; grid-template-columns: 1fr 58mm; gap: 7mm; align-items: start; }
+  .side figure { margin: 0; }
+
+  /* Architecture */
+  .arch { display: grid; grid-template-columns: 1fr; gap: 2.5mm; margin: 3mm 0; }
+  .arch .row { display: grid; gap: 3mm; }
+  .arch .box { border: 1px solid var(--line); border-radius: 3mm; padding: 2.5mm 3mm; text-align: center; background: #fff; font-size: 9.5pt; }
+  .arch .box b { display: block; font-size: 10.5pt; }
+  .arch .box.accent { background: var(--brand-soft); border-color: #efd3a6; }
+  .arch .box.olive { background: var(--olive-soft); border-color: #d5dcbd; }
+  .arch .down { text-align: center; color: var(--brand); font-size: 11pt; line-height: 1; }
+
+  .toc li { display: flex; justify-content: space-between; border-bottom: 1px dotted var(--line); padding: 1.5mm 0; list-style: none; }
+  .toc { padding: 0; }
+
+  .phase { display: grid; grid-template-columns: 30mm 1fr 26mm; gap: 4mm; padding: 3mm 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+  .phase b { font-size: 10pt; }
+  .pill { display: inline-block; border-radius: 99px; padding: 0 3mm; font-size: 8.5pt; font-weight: 700; text-align: center; }
+  .pill.ok { background: var(--olive-soft); }
+  .pill.wip { background: var(--brand-soft); }
+  .pill.todo { background: var(--sand); }
+
+  .footer-note { margin-top: 8mm; font-size: 8.5pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 3mm; }
+</style>
+</head>
+<body>
+
+<!-- ============ COVER ============ -->
+<section class="cover">
+  <div class="brand">
+    <svg width="48" height="48" viewBox="0 0 40 40" aria-hidden="true">
+      <rect width="40" height="40" rx="11" fill="#b86e14"/>
+      <path d="M11 31V18.5a9 9 0 0 1 18 0V31" fill="none" stroke="#fdf6ea" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M16 31v-9.5a4 4 0 0 1 8 0V31" fill="#6b7a36"/>
+      <circle cx="20" cy="11.5" r="1.8" fill="#f2cc8f"/>
+    </svg>
+    <div>
+      <div class="brand-name">تُجّار ماركت</div>
+      <div class="brand-tag">أسواق سوريا بين يديك</div>
+    </div>
+  </div>
+
+  <h1 class="cover-title">الملف التعريفي<br><span>لمنصة تُجّار ماركت</span></h1>
+  <p class="cover-sub">
+    منصة سورية رقمية تجمع محلات الأسواق في مكان واحد: يبحث الزبون عن المنتج ويقارن الأسعار،
+    ثم يتواصل مع التاجر مباشرة عبر واتساب أو الاتصال، بلا وسيط وبلا عمولة.
+  </p>
+
+  <div class="cover-meta">
+    <div><b>الإصدار</b><span>1.0 — أيلول 2026</span></div>
+    <div><b>المرحلة</b><span>نسخة تجريبية مكتملة الوظائف</span></div>
+    <div><b>نطاق الإطلاق</b><span>دمشق أولاً</span></div>
+  </div>
+</section>
+
+<!-- ============ TOC ============ -->
+<section class="page-break">
+  <span class="section-no">المحتويات</span>
+  <h2>محتويات الملف</h2>
+  <ol class="toc">
+    <li><span>1. الملخص التنفيذي</span></li>
+    <li><span>2. المشكلة التي نحلها</span></li>
+    <li><span>3. الحل وكيف تعمل المنصة</span></li>
+    <li><span>4. المستخدمون والأدوار</span></li>
+    <li><span>5. واجهة الزبائن — شرح الصفحات</span></li>
+    <li><span>6. بوابة التجار — شرح الأجزاء</span></li>
+    <li><span>7. لوحة الإدارة والرقابة</span></li>
+    <li><span>8. التغطية الجغرافية والأقسام</span></li>
+    <li><span>9. الأمان وحماية البيانات</span></li>
+    <li><span>10. البنية التقنية والأداء</span></li>
+    <li><span>11. الامتثال والتراخيص</span></li>
+    <li><span>12. نموذج العمل</span></li>
+    <li><span>13. خارطة الطريق</span></li>
+    <li><span>14. متطلبات الإطلاق الرسمي</span></li>
+  </ol>
+
+  <div class="note olive">
+    <strong>عن هذا الملف:</strong> يشرح المنصة كما هي مبنية فعلياً، وكل لقطات الشاشة مأخوذة من النسخة العاملة.
+    البيانات الظاهرة في اللقطات (المتاجر والمنتجات والأرقام) بيانات تجريبية لأغراض العرض.
+  </div>
+</section>
+
+<!-- ============ 1. EXECUTIVE SUMMARY ============ -->
+<section class="page-break">
+  <span class="section-no">1</span>
+  <h2>الملخص التنفيذي</h2>
+  <p class="lead">
+    <strong>تُجّار ماركت</strong> دليل رقمي ذكي لمحلات الأسواق السورية. يعرض كل محل منتجاته وأسعاره،
+    ويصل الزبون إلى المنتج من موبايله، ثم يتواصل مع صاحب المحل مباشرة برسالة واتساب جاهزة
+    تحتوي اسم المنتج وسعره.
+  </p>
+
+  <div class="grid-3" style="margin-top:5mm">
+    <div class="card"><div class="icon">🛍️</div><h4>للزبون</h4><p>يلاقي غرضه بأقرب سوق، يقارن الأسعار بين المحلات، ويوفّر مشوار السوق.</p></div>
+    <div class="card"><div class="icon">🏪</div><h4>للتاجر</h4><p>واجهة رقمية مجانية لمحله، زبائن جدد على واتساب، وإحصائيات عن الاهتمام بمنتجاته.</p></div>
+    <div class="card"><div class="icon">🛡️</div><h4>للسوق</h4><p>متاجر موثّقة، بلاغات مراقبة، وتنظيم للمحتوى يحدّ من الاحتيال والمنتجات الممنوعة.</p></div>
+  </div>
+
+  <h3>ما يميّز المنصة</h3>
+  <ul>
+    <li><strong>مصممة للواقع السوري:</strong> تعمل بسرعة على الإنترنت الضعيف، تدعم الأسعار بالليرة السورية وبالدولار، والتواصل عبر واتساب الأكثر استخداماً.</li>
+    <li><strong>بلا عمولة على البيع:</strong> المنصة لا تتدخل في عملية البيع ولا تمسك أموال الزبائن.</li>
+    <li><strong>منظّمة حسب المحافظة والسوق:</strong> الحميدية، مدحت باشا، البزورية، سوق المدينة… كما يعرفها الناس.</li>
+    <li><strong>أمان بمستوى التطبيقات الكبيرة:</strong> تحقق برمز SMS، مصادقة ثنائية للإدارة، وسجل تدقيق لكل عملية.</li>
+  </ul>
+
+  <h3>الحالة الحالية</h3>
+  <div class="stats">
+    <div class="stat"><b>3</b><span>واجهات منفصلة</span></div>
+    <div class="stat"><b>24</b><span>صفحة وشاشة</span></div>
+    <div class="stat"><b>59/59</b><span>اختبار أمني ناجح</span></div>
+    <div class="stat"><b>&lt; 0.6 ث</b><span>زمن استجابة الصفحات</span></div>
+  </div>
+  <p>
+    المنصة مبنية ومختبرة بالكامل في بيئة التطوير، وجاهزة للانتقال إلى مرحلة التجربة في دمشق بعد استكمال
+    متطلبات التشغيل الرسمي (الترخيص، مزوّد الرسائل، الاستضافة) المفصّلة في القسم 14.
+  </p>
+</section>
+
+<!-- ============ 2. PROBLEM ============ -->
+<section class="page-break">
+  <span class="section-no">2</span>
+  <h2>المشكلة التي نحلها</h2>
+
+  <div class="grid-2">
+    <div class="card"><div class="icon">🚶</div><h4>مشوار السوق بلا ضمان</h4><p>الزبون ينزل إلى السوق دون أن يعرف أي محل يملك المنتج، فيضيع وقته وأجرة مواصلاته بالتنقل بين المحلات.</p></div>
+    <div class="card"><div class="icon">💸</div><h4>غموض الأسعار</h4><p>لا توجد طريقة سهلة لمقارنة سعر نفس المنتج بين المحلات أو الأسواق قبل الشراء.</p></div>
+    <div class="card"><div class="icon">📵</div><h4>محلات بلا حضور رقمي</h4><p>أغلب محلات الأسواق التقليدية لا تملك موقعاً أو متجراً إلكترونياً، وتعتمد على المارّة فقط.</p></div>
+    <div class="card"><div class="icon">⚠️</div><h4>فوضى إعلانات المجموعات</h4><p>إعلانات مواقع التواصل غير منظمة، بلا تحقق من هوية البائع أو موقعه، وتكثر فيها عمليات الاحتيال.</p></div>
+    <div class="card"><div class="icon">📶</div><h4>إنترنت ضعيف</h4><p>التطبيقات الثقيلة المصممة لأسواق أخرى بطيئة ومكلفة على باقات الإنترنت في سوريا.</p></div>
+    <div class="card"><div class="icon">💳</div><h4>محدودية الدفع الإلكتروني</h4><p>منصات التجارة التقليدية تشترط دفعاً إلكترونياً وتوصيلاً منظماً، وهو غير متاح لأغلب المحلات.</p></div>
+  </div>
+
+  <div class="note">
+    <strong>الفكرة الأساسية:</strong> بدل إجبار السوق السوري على نموذج «متجر إلكتروني بسلة ودفع»،
+    نبني الجسر الأبسط: <strong>الزبون يلاقي المنتج ← ويحكي التاجر مباشرة</strong>، والتاجر يتمم البيع بطريقته المعتادة.
+  </div>
+</section>
+
+<!-- ============ 3. SOLUTION ============ -->
+<section class="page-break">
+  <span class="section-no">3</span>
+  <h2>الحل وكيف تعمل المنصة</h2>
+
+  <h3>رحلة الزبون</h3>
+  <div class="flow">
+    <div class="step"><b>1. يبحث</b>باسم المنتج أو يتصفح القسم أو السوق</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>2. يقارن</b>الأسعار والحالة بين محلات محافظته</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>3. يتواصل</b>بضغطة زر: واتساب برسالة جاهزة أو اتصال</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>4. يشتري</b>مباشرة من المحل أو بالتوصيل الذي يقدمه التاجر</div>
+  </div>
+
+  <h3>رحلة التاجر</h3>
+  <div class="flow">
+    <div class="step"><b>1. يسجّل</b>برقم موبايله مع رمز تحقق SMS</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>2. يجهّز متجره</b>الاسم، السوق، الشعار، أوقات الدوام</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>3. يضيف منتجاته</b>من الموبايل مع صور تُضغط تلقائياً</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>4. يستقبل الزبائن</b>ويتابع الزيارات والرسائل من لوحته</div>
+  </div>
+
+  <h3>الرسالة الجاهزة على واتساب</h3>
+  <p>عند ضغط «تواصل واتساب» تُفتح محادثة مع التاجر برسالة مكتوبة مسبقاً، مثال:</p>
+  <div class="card" style="background:#e9f7ee;border-color:#c7e8d2;max-width:125mm">
+    مرحباً النور للطاقة الشمسية، شفت «لوح طاقة شمسية 550 واط» على تُجّار ماركت بسعر 115$. هل ما زال متوفراً؟
+    <br><span class="ltr" style="color:var(--wa)">tujjar…/products/…</span>
+  </div>
+  <p style="margin-top:3mm">هكذا يعرف التاجر فوراً ما يريده الزبون ومن أين وصل، وتُحتسب الرسالة في إحصائيات متجره.</p>
+</section>
+
+<!-- ============ 4. USERS & ROLES ============ -->
+<section class="page-break">
+  <span class="section-no">4</span>
+  <h2>المستخدمون والأدوار</h2>
+  <p>تفصل المنصة بين المستخدمين فصلاً كاملاً: لكل فئة واجهة خاصة وجلسة دخول مستقلة، ولا يستطيع حساب فتح واجهة لا تخصه.</p>
+
+  <table>
+    <thead><tr><th style="width:26mm">الدور</th><th style="width:30mm">الواجهة</th><th>الصلاحيات</th><th style="width:34mm">طريقة الدخول</th></tr></thead>
+    <tbody>
+      <tr><td><strong>الزائر</strong></td><td>واجهة الزبائن</td><td>التصفح والبحث والتواصل مع التجار وحفظ المفضلة على جهازه، دون حساب.</td><td>بدون تسجيل</td></tr>
+      <tr><td><strong>الزبون</strong></td><td>واجهة الزبائن</td><td>كل ما سبق، إضافة للإبلاغ عن المتاجر والمنتجات المخالفة.</td><td>رقم موبايل موثّق برمز SMS + كلمة مرور</td></tr>
+      <tr><td><strong>التاجر</strong></td><td>بوابة التجار</td><td>إدارة متجره ومنتجاته وصوره، ومتابعة إحصائيات الزيارات والتواصل.</td><td>رقم موثّق برمز SMS + كلمة مرور</td></tr>
+      <tr><td><strong>المندوب الميداني</strong></td><td>لوحة الإدارة</td><td>مخصص لزيارة المحلات والتحقق من وجودها الفعلي في السوق (مرحلة التوثيق).</td><td>كلمة مرور + مصادقة ثنائية</td></tr>
+      <tr><td><strong>المشرف</strong></td><td>لوحة الإدارة</td><td>مراجعة المنتجات، توثيق المتاجر، معالجة البلاغات.</td><td>كلمة مرور + مصادقة ثنائية</td></tr>
+      <tr><td><strong>المدير</strong></td><td>لوحة الإدارة</td><td>كل صلاحيات المشرف، إضافة لإيقاف المتاجر والاطلاع على سجل التدقيق.</td><td>كلمة مرور + مصادقة ثنائية</td></tr>
+    </tbody>
+  </table>
+
+  <div class="grid-3">
+    <div class="card"><div class="icon">🛍️</div><h4>واجهة الزبائن</h4><p>الصفحات العامة، الحساب، المفضلة، البلاغات.</p></div>
+    <div class="card"><div class="icon">🏪</div><h4>بوابة التجار</h4><p>التسجيل، لوحة المتجر، المنتجات، الإحصائيات، الإعدادات.</p></div>
+    <div class="card"><div class="icon">🛡️</div><h4>لوحة الإدارة</h4><p>المراجعة، التوثيق، البلاغات، سجل التدقيق.</p></div>
+  </div>
+  <div class="note">عند النشر الرسمي تعمل كل واجهة على نطاق فرعي مستقل، مثل: الموقع الرئيسي للزبائن، ونطاق للتجار، ونطاق مستقل للإدارة.</div>
+</section>
+
+<!-- ============ 5. BUYER INTERFACE ============ -->
+<section class="page-break">
+  <span class="section-no">5</span>
+  <h2>واجهة الزبائن — شرح الصفحات</h2>
+
+  <h3>5.1 الصفحة الرئيسية</h3>
+  <div class="side">
+    <div>
+      <ul>
+        <li><strong>بحث كبير</strong> بسؤال بسيط: «شو بدك تشتري اليوم؟»، مع اقتراحات الأكثر بحثاً.</li>
+        <li><strong>اختيار المحافظة</strong> من أعلى الصفحة، فتتغير كل النتائج لتخص محافظة الزبون.</li>
+        <li><strong>الأقسام:</strong> 15 قسماً بأيقونات واضحة (موبايلات، طاقة شمسية، ألبسة…).</li>
+        <li><strong>مختارات من الأسواق:</strong> منتجات مميزة يطلبها الزبائن كثيراً.</li>
+        <li><strong>أسواق المحافظة</strong> ومتاجر موثّقة ووصل حديثاً.</li>
+        <li><strong>شرح «كيف تعمل»</strong> ودعوة للتجار لفتح متاجرهم مجاناً.</li>
+      </ul>
+      <p>على الموبايل يظهر شريط تنقل سفلي ثابت: الرئيسية، الأسواق، بحث، المفضلة، حسابي.</p>
+    </div>
+    <figure>
+      <div class="phone"><img src="screens/home-mobile.png" style="height:98mm" alt=""></div>
+      <figcaption>الرئيسية على الموبايل</figcaption>
+    </figure>
+  </div>
+  <figure>
+    <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="screens/home-desktop.png" style="height:84mm" alt=""></div>
+    <figcaption>الصفحة الرئيسية على الكمبيوتر</figcaption>
+  </figure>
+</section>
+
+<section class="page-break">
+  <h3 style="margin-top:0">5.2 البحث والفلترة</h3>
+  <p>
+    محرك بحث مصمم للعربية: يتجاهل اختلافات الكتابة (أ/ا، ة/ه، ى/ي، التشكيل) فكلمة «بطاريه» تجد «بطارية».
+    يمكن الفلترة حسب <strong>القسم، المحافظة، السوق، الحالة (جديد/مستعمل)، وجود خصم</strong>،
+    والترتيب حسب <strong>الأحدث، الأكثر طلباً، أو السعر</strong>، مع التبديل بين نتائج المنتجات والمتاجر.
+  </p>
+  <figure>
+    <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="screens/search.png" style="height:92mm" alt=""></div>
+    <figcaption>نتائج قسم «طاقة شمسية وبطاريات» مع الفلاتر</figcaption>
+  </figure>
+
+  <h3>5.3 الأسواق</h3>
+  <p>تصفّح الأسواق حسب المحافظة، ولكل سوق صفحة خاصة تعرض وصفه ومحلاته ومنتجاته. المحافظات التي لم تنضم محلاتها بعد تظهر مع دعوة للتجار ليكونوا أول الحاضرين.</p>
+  <div class="grid-2">
+    <figure><div class="shot"><img src="screens/markets.png" style="height:54mm" alt=""></div><figcaption>أسواق سوريا حسب المحافظة</figcaption></figure>
+    <figure><div class="shot"><img src="screens/market.png" style="height:54mm" alt=""></div><figcaption>صفحة سوق الحميدية</figcaption></figure>
+  </div>
+</section>
+
+<section class="page-break">
+  <h3 style="margin-top:0">5.4 صفحة المتجر</h3>
+  <p>
+    هوية المحل كاملة: الغلاف والشعار، شارة <strong>«متجر موثّق»</strong>، الموقع والسوق، أوقات الدوام، توفر التوصيل،
+    رقم التواصل، والوصف والعنوان مع رابط الخريطة. تحتها كل منتجات المتجر مع فلترة حسب القسم،
+    وأزرار <strong>واتساب واتصال ومشاركة وإبلاغ</strong>.
+  </p>
+  <figure>
+    <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="screens/store.png" style="height:175mm" alt=""></div>
+    <figcaption>صفحة متجر «بروكار الشام» في سوق الحميدية</figcaption>
+  </figure>
+</section>
+
+<section class="page-break">
+  <h3 style="margin-top:0">5.5 صفحة المنتج</h3>
+  <div class="side">
+    <div>
+      <ul>
+        <li>الصور، الاسم، <strong>السعر بالليرة أو الدولار</strong>، السعر قبل الخصم ونسبته.</li>
+        <li>نوع السعر: محدد، قابل للتفاوض، أو عند الطلب.</li>
+        <li>الحالة (جديد/مستعمل) والتوفر، وعدد المشاهدات وتاريخ الإضافة.</li>
+        <li>بطاقة المتجر مع موقعه وتوفر التوصيل.</li>
+        <li><strong>نصائح للشراء الآمن</strong> لحماية الزبون.</li>
+        <li>«منتجات مشابهة من محلات أخرى» لمقارنة الأسعار.</li>
+        <li>على الموبايل: زر واتساب واتصال ثابت أسفل الشاشة.</li>
+      </ul>
+    </div>
+    <figure>
+      <div class="phone"><img src="screens/product-mobile.png" style="height:98mm" alt=""></div>
+      <figcaption>صفحة المنتج على الموبايل</figcaption>
+    </figure>
+  </div>
+  <figure>
+    <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="screens/product.png" style="height:100mm" alt=""></div>
+    <figcaption>صفحة منتج على الكمبيوتر</figcaption>
+  </figure>
+</section>
+
+<section class="page-break">
+  <h3 style="margin-top:0">5.6 حساب الزبون والمفضلة والبلاغات</h3>
+  <div class="grid-2">
+    <div>
+      <ul>
+        <li><strong>التسجيل:</strong> الاسم ورقم الموبايل وكلمة مرور قوية، والموافقة على الشروط وسياسة الخصوصية، ثم رمز تحقق يصل برسالة SMS.</li>
+        <li><strong>المفضلة:</strong> يحفظ الزبون المنتجات بضغطة على القلب ويرجع لها لاحقاً.</li>
+        <li><strong>الإبلاغ:</strong> متاح للحساب الموثّق فقط، مع اختيار السبب (احتيال، منتج ممنوع، معلومات مضللة، رقم لا يعمل). اسم المُبلِّغ يظهر للإدارة فقط ولا يراه التاجر.</li>
+        <li><strong>استعادة كلمة المرور</strong> برمز SMS، مع تسجيل الخروج من كل الأجهزة.</li>
+      </ul>
+    </div>
+    <figure style="margin:0"><div class="shot"><img src="screens/register.png" style="height:72mm" alt=""></div><figcaption>إنشاء حساب زبون مع الموافقة على الشروط</figcaption></figure>
+  </div>
+  <figure>
+    <div class="shot"><img src="screens/buyer-account.png" style="height:70mm" alt=""></div>
+    <figcaption>صفحة حساب الزبون</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 6. MERCHANT PORTAL ============ -->
+<section class="page-break">
+  <span class="section-no">6</span>
+  <h2>بوابة التجار — شرح الأجزاء</h2>
+
+  <h3>6.1 فتح المتجر</h3>
+  <p>صفحة تعريفية بمزايا المنصة للتاجر، ونموذج من ثلاث خطوات:</p>
+  <div class="flow">
+    <div class="step"><b>المتجر</b>الاسم كما على اللافتة، القسم، المحافظة، السوق</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>الحساب</b>الاسم الكامل، الموبايل، رقم الواتساب، كلمة المرور، الموافقة على الشروط</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>التحقق</b>رمز SMS من 6 أرقام صالح 5 دقائق</div>
+  </div>
+  <figure>
+    <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="screens/join.png" style="height:92mm" alt=""></div>
+    <figcaption>صفحة «افتح متجرك مجاناً»</figcaption>
+  </figure>
+
+  <h3>6.2 لوحة المتجر والإحصائيات</h3>
+  <ul>
+    <li><strong>أرقام الأداء</strong> لآخر 7 أو 30 أو 90 يوماً: الزيارات، رسائل واتساب، الاتصالات، المنتجات المعروضة.</li>
+    <li><strong>رسوم بيانية يومية</strong> للزيارات وتواصل الزبائن، مع عرض كجدول.</li>
+    <li><strong>المنتجات الأكثر طلباً</strong> حسب المشاهدات والرسائل.</li>
+    <li><strong>قائمة خطوات</strong> ترفع ظهور المتجر: الشعار، 5 منتجات، أوقات الدوام، العنوان.</li>
+    <li><strong>مشاركة رابط المتجر</strong> على واتساب وفيسبوك.</li>
+  </ul>
+</section>
+
+<section class="page-break">
+  <figure style="margin-top:0">
+    <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="screens/merchant-dashboard.png" style="height:118mm" alt=""></div>
+    <figcaption>لوحة التاجر: الأداء والرسوم البيانية والمنتجات الأكثر طلباً</figcaption>
+  </figure>
+
+  <h3>6.3 إدارة المنتجات</h3>
+  <p>قائمة بكل المنتجات مع حالتها (معروض، مخفي، قيد المراجعة) وعدد مشاهداتها ورسائلها، وإمكانية التعديل والإخفاء والحذف والبحث.</p>
+  <figure>
+    <div class="shot"><img src="screens/merchant-products.png" style="height:62mm" alt=""></div>
+    <figcaption>قائمة منتجات التاجر</figcaption>
+  </figure>
+</section>
+
+<section class="page-break">
+  <h3 style="margin-top:0">6.4 إضافة منتج</h3>
+  <div class="grid-2">
+    <div>
+      <ul>
+        <li><strong>حتى 6 صور</strong> تُضغط على موبايل التاجر قبل الرفع (صورة 4 ميغا تصبح نحو 150 كيلوبايت)، ثم يعيد الخادم معالجتها ويحذف منها موقع التصوير.</li>
+        <li><strong>السعر:</strong> محدد أو قابل للتفاوض أو عند الطلب، بالليرة السورية أو بالدولار، مع سعر قبل الخصم اختياري.</li>
+        <li><strong>الحالة:</strong> جديد أو مستعمل، ومتوفر أو غير متوفر.</li>
+        <li><strong>مراجعة تلقائية:</strong> المنتجات التي تحتوي كلمات مشبوهة (أسلحة، مخدرات، أدوية، تقليد) تُحجز للمراجعة ولا تظهر قبل موافقة الإدارة.</li>
+      </ul>
+      <h3>6.5 إعدادات المتجر</h3>
+      <ul>
+        <li>الغلاف والشعار، الاسم والجملة التعريفية والنبذة.</li>
+        <li>رقم الواتساب ورقم الاتصال وأوقات الدوام وتوفر التوصيل.</li>
+        <li>المحافظة والسوق والعنوان التفصيلي ورابط خرائط Google.</li>
+      </ul>
+    </div>
+    <figure style="margin:0"><div class="shot"><img src="screens/merchant-product-form.png" alt=""></div><figcaption>نموذج إضافة منتج</figcaption></figure>
+  </div>
+</section>
+
+<section class="page-break">
+  <figure style="margin-top:0">
+    <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="screens/merchant-store-settings.png" style="height:150mm" alt=""></div>
+    <figcaption>إعدادات المتجر</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 7. ADMIN ============ -->
+<section class="page-break">
+  <span class="section-no">7</span>
+  <h2>لوحة الإدارة والرقابة</h2>
+
+  <h3>7.1 دخول محمي بالمصادقة الثنائية</h3>
+  <p>
+    يدخل فريق الإدارة من صفحة مستقلة. في أول دخول يُلزَم كل عضو بتفعيل <strong>المصادقة الثنائية</strong>
+    عبر تطبيق على موبايله (Google Authenticator أو Microsoft Authenticator)، ولا يستطيع تنفيذ أي عملية قبل تفعيلها.
+    بعدها يتطلب كل دخول كلمة المرور ورمزاً متغيراً كل 30 ثانية.
+  </p>
+  <div class="grid-2">
+    <figure><div class="shot"><img src="screens/admin-login.png" alt=""></div><figcaption>صفحة دخول فريق المنصة</figcaption></figure>
+    <figure>
+      <div class="shot" style="position:relative">
+        <img src="screens/admin-2fa-setup.png" alt="">
+        <!-- The setup key is masked: it is a real (now revoked) secret -->
+        <div style="position:absolute;top:35.5%;height:8%;left:34.5%;width:31%;background:#f1e9dc;border-radius:1.5mm;display:flex;align-items:center;justify-content:center;font-size:8pt;font-weight:700;color:#6f655a">•••• مفتاح سري مخفي ••••</div>
+      </div>
+      <figcaption>تفعيل المصادقة الثنائية عند أول دخول</figcaption>
+    </figure>
+  </div>
+
+  <h3>7.2 أدوات الرقابة</h3>
+  <table>
+    <thead><tr><th style="width:36mm">الأداة</th><th>ما تتيحه</th></tr></thead>
+    <tbody>
+      <tr><td><strong>نظرة عامة</strong></td><td>عدد المتاجر وغير الموثّق منها، المنتجات وما هو قيد المراجعة، البلاغات المفتوحة، أعداد التجار والزبائن.</td></tr>
+      <tr><td><strong>مراجعة المنتجات</strong></td><td>طابور المنتجات المحجوزة مرتبة حسب «مؤشر الخطورة»، مع الموافقة والنشر أو الإخفاء، وتمييز المنتجات.</td></tr>
+      <tr><td><strong>المتاجر</strong></td><td>بيانات المتجر ومالكه ورقمه وعدد البلاغات عليه، مع التوثيق وإلغائه، والإيقاف (للمدير فقط).</td></tr>
+      <tr><td><strong>البلاغات</strong></td><td>السبب والتفاصيل والمنتج أو المتجر المُبلَّغ عنه، مع <strong>اسم المُبلِّغ ورقمه</strong> للتواصل، ثم المعالجة أو الرفض.</td></tr>
+      <tr><td><strong>سجل التدقيق</strong></td><td>كل عمليات الدخول والمحاولات الفاشلة والتوثيق والمراجعة والبلاغات، مع المنفّذ والوقت وعنوان IP (للمدير فقط).</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<section class="page-break">
+  <figure style="margin-top:0">
+    <div class="shot"><div class="bar"><i></i><i></i><i></i></div><img src="screens/admin-stores.png" style="height:120mm" alt=""></div>
+    <figcaption>إدارة المتاجر: التوثيق والإيقاف وبيانات المالك</figcaption>
+  </figure>
+  <figure>
+    <div class="shot"><img src="screens/admin-audit-log.png" style="height:88mm" alt=""></div>
+    <figcaption>سجل التدقيق: كل عملية مسجلة مع المنفّذ والوقت وعنوان IP</figcaption>
+  </figure>
+</section>
+
+<!-- ============ 8. COVERAGE ============ -->
+<section class="page-break">
+  <span class="section-no">8</span>
+  <h2>التغطية الجغرافية والأقسام</h2>
+
+  <h3>المحافظات والأسواق</h3>
+  <p>تغطي البنية المحافظات السورية الـ 14، ولكل محافظة أسواقها. خطة الإطلاق تبدأ <strong>بدمشق كتجربة</strong> حيث يمكن التحقق الميداني من المحلات، ثم التوسع تدريجياً.</p>
+  <table>
+    <thead><tr><th style="width:34mm">المحافظة</th><th>أمثلة على الأسواق</th></tr></thead>
+    <tbody>
+      <tr><td><strong>دمشق</strong> (التجربة)</td><td>الحميدية، مدحت باشا، البزورية، الحريقة، الصالحية، الحمرا، البحصة — ويُستكمل: المسكية، العصرونية، الخياطين، تفضلي، نصري، الحرير، باب الجابية، الشعلان</td></tr>
+      <tr><td>ريف دمشق</td><td>جرمانا، دوما</td></tr>
+      <tr><td>حلب</td><td>سوق المدينة، التلل، العزيزية</td></tr>
+      <tr><td>حمص</td><td>السوق المسقوف، الدبلان</td></tr>
+      <tr><td>اللاذقية</td><td>سوق الصفن، الشيخ ضاهر</td></tr>
+      <tr><td>باقي المحافظات</td><td>حماة، طرطوس، إدلب، درعا، السويداء، القنيطرة، دير الزور، الرقة، الحسكة</td></tr>
+    </tbody>
+  </table>
+
+  <h3>الأقسام</h3>
+  <div class="grid-3" style="font-size:9.5pt">
+    <div class="card">👗 ألبسة وأزياء<br>👟 أحذية وحقائب<br>📱 موبايلات وإكسسوارات<br>💻 إلكترونيات وكمبيوتر<br>🔋 طاقة شمسية وبطاريات</div>
+    <div class="card">🍳 أدوات منزلية ومطبخ<br>🛋️ مفروشات وديكور<br>🧴 عطور وتجميل<br>🫒 مواد غذائية وبهارات<br>☕ حلويات وبن</div>
+    <div class="card">💍 ذهب وإكسسوارات<br>🧸 ألعاب وأطفال<br>📚 قرطاسية وكتب<br>🚗 قطع سيارات<br>🪡 حرف يدوية وتراث</div>
+  </div>
+  <div class="note">الأسعار تُعرض بالليرة السورية أو بالدولار حسب ما يعتمده التاجر، لأن أقساماً مثل الموبايلات والطاقة الشمسية تُسعَّر عادة بالدولار في السوق السوري.</div>
+</section>
+
+<!-- ============ 9. SECURITY ============ -->
+<section class="page-break compact">
+  <span class="section-no">9</span>
+  <h2>الأمان وحماية البيانات</h2>
+  <p>صُممت المنصة بطبقات حماية متعددة تستهدف متطلبات الاختبار الفني لدى الهيئة الناظمة للاتصالات والبريد.</p>
+
+  <table>
+    <thead><tr><th style="width:8mm">#</th><th style="width:34mm">الطبقة</th><th>التطبيق</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>التحقق من الهوية</strong></td><td>رمز SMS عند التسجيل واستعادة كلمة المرور، صالح 5 دقائق و5 محاولات، ومخزن بشكل مشفّر.</td></tr>
+      <tr><td>2</td><td><strong>كلمات المرور</strong></td><td>تشفير bcrypt، سياسة كلمات مرور قوية، قفل الحساب 15 دقيقة بعد 5 محاولات فاشلة.</td></tr>
+      <tr><td>3</td><td><strong>الجلسات</strong></td><td>كوكيز محمية لا يقرؤها المتصفح، رمز دخول لمدة 15 دقيقة يتجدد تلقائياً، وكشف إعادة استخدام الجلسة المسروقة.</td></tr>
+      <tr><td>4</td><td><strong>فصل الواجهات</strong></td><td>جلسة مستقلة لكل واجهة، ولا يمكن لحساب زبون أو تاجر دخول لوحة الإدارة.</td></tr>
+      <tr><td>5</td><td><strong>المصادقة الثنائية</strong></td><td>إلزامية لكل فريق الإدارة، مع تشفير المفتاح ومنع إعادة استخدام الرمز.</td></tr>
+      <tr><td>6</td><td><strong>الصلاحيات</strong></td><td>خمسة أدوار، وفحص الملكية في كل طلب (التاجر لا يصل إلا لمتجره).</td></tr>
+      <tr><td>7</td><td><strong>حماية الطلبات</strong></td><td>منع تزوير الطلبات (CSRF)، تقييد المصادر المسموحة، حدود لعدد الطلبات، تحقق صارم من المدخلات.</td></tr>
+      <tr><td>8</td><td><strong>ترويسات الأمان</strong></td><td>سياسة أمان المحتوى (CSP)، منع التضمين، HSTS، إخفاء معلومات الخادم.</td></tr>
+      <tr><td>9</td><td><strong>الملفات والصور</strong></td><td>فحص المحتوى الحقيقي للملف، إعادة ترميز كل صورة، وحذف البيانات المخفية وموقع GPS.</td></tr>
+      <tr><td>10</td><td><strong>الرقابة على المحتوى</strong></td><td>حجز المنتجات المشبوهة للمراجعة، والبلاغات من حسابات موثّقة.</td></tr>
+      <tr><td>11</td><td><strong>سجل التدقيق</strong></td><td>تسجيل عمليات الدخول والإدارة والتوثيق والبلاغات مع الوقت وعنوان IP.</td></tr>
+      <tr><td>12</td><td><strong>الخصوصية</strong></td><td>موافقة صريحة على الشروط وسياسة الخصوصية، وعدم إظهار بيانات الزبون للتجار.</td></tr>
+    </tbody>
+  </table>
+
+  <h3>نتائج الاختبارات الأمنية</h3>
+  <table>
+    <thead><tr><th>مجموعة الاختبار</th><th style="width:28mm">النتيجة</th></tr></thead>
+    <tbody>
+      <tr><td>خوارزميات المصادقة الثنائية والتشفير (مقارنة بالمعايير الدولية RFC 4226 وRFC 6238)</td><td class="ok">11 / 11 ناجح</td></tr>
+      <tr><td>اختبار أمني شامل: الترويسات، منع التزوير، رموز SMS، الكوكيز، فصل الواجهات، الجلسات، البلاغات، الرفع، المصادقة الثنائية، سجل التدقيق، حدود الطلبات</td><td class="ok">40 / 40 ناجح</td></tr>
+      <tr><td>قفل الحساب بعد المحاولات الفاشلة</td><td class="ok">8 / 8 ناجح</td></tr>
+      <tr><td>فحص ثغرات مكتبات الواجهة</td><td class="ok">0 ثغرات</td></tr>
+    </tbody>
+  </table>
+  <div class="note">الوثيقة التقنية التفصيلية لكل ضابط أمان ومكان تطبيقه في الكود متوفرة ضمن المشروع (SECURITY.md)، وتُقدَّم مع ملف الترخيص.</div>
+</section>
+
+<!-- ============ 10. ARCHITECTURE ============ -->
+<section class="page-break compact">
+  <span class="section-no">10</span>
+  <h2>البنية التقنية والأداء</h2>
+
+  <div class="arch">
+    <div class="row" style="grid-template-columns:repeat(3,1fr)">
+      <div class="box accent"><b>واجهة الزبائن</b>الموبايل والكمبيوتر</div>
+      <div class="box accent"><b>بوابة التجار</b>إدارة المتجر والمنتجات</div>
+      <div class="box accent"><b>لوحة الإدارة</b>الرقابة والتوثيق</div>
+    </div>
+    <div class="down">↓ اتصال مشفّر HTTPS ↓</div>
+    <div class="row" style="grid-template-columns:1fr">
+      <div class="box"><b>خادم التطبيق (API)</b>التحقق من الهوية والصلاحيات · منع التزوير وحدود الطلبات · منطق المتاجر والمنتجات والبحث · سجل التدقيق</div>
+    </div>
+    <div class="down">↓</div>
+    <div class="row" style="grid-template-columns:repeat(3,1fr)">
+      <div class="box olive"><b>قاعدة البيانات</b>PostgreSQL</div>
+      <div class="box olive"><b>تخزين الصور</b>S3 / MinIO</div>
+      <div class="box olive"><b>الرسائل</b>مزوّد SMS محلي</div>
+    </div>
+  </div>
+
+  <h3>التقنيات المستخدمة</h3>
+  <table>
+    <thead><tr><th style="width:32mm">المكوّن</th><th>التقنية</th><th style="width:60mm">سبب الاختيار</th></tr></thead>
+    <tbody>
+      <tr><td>الواجهات</td><td class="ltr" style="text-align:right">Next.js 16 · React 19 · Tailwind CSS</td><td>سرعة عالية، دعم كامل للعربية، صفحات قابلة للأرشفة في محركات البحث</td></tr>
+      <tr><td>خادم التطبيق</td><td class="ltr" style="text-align:right">NestJS 11 · TypeScript</td><td>بنية منظمة ومعيارية مناسبة للأنظمة الكبيرة</td></tr>
+      <tr><td>قاعدة البيانات</td><td class="ltr" style="text-align:right">PostgreSQL 16 · Prisma</td><td>موثوقية عالية واستعلامات آمنة من الحقن</td></tr>
+      <tr><td>الصور</td><td class="ltr" style="text-align:right">S3-compatible storage · sharp (WebP)</td><td>صور خفيفة وآمنة ومتوافقة مع التخزين السحابي</td></tr>
+      <tr><td>التشغيل</td><td class="ltr" style="text-align:right">Docker</td><td>نشر موحّد وسهل النقل بين الخوادم</td></tr>
+    </tbody>
+  </table>
+
+  <h3>الأداء على الإنترنت الضعيف</h3>
+  <div class="stats">
+    <div class="stat"><b>0.06–0.55 ث</b><span>زمن استجابة الصفحات*</span></div>
+    <div class="stat"><b>58 KB</b><span>حجم الصفحة الرئيسية مضغوطة</span></div>
+    <div class="stat"><b>~150 KB</b><span>حجم صورة المنتج بعد الضغط</span></div>
+    <div class="stat"><b>PWA</b><span>قابلة للتثبيت كتطبيق</span></div>
+  </div>
+  <p style="font-size:8.5pt;color:var(--muted);margin:0">* قياس على نسخة الإنتاج في خادم تجريبي محلي، ويختلف حسب الاستضافة النهائية.</p>
+</section>
+
+<!-- ============ 11. COMPLIANCE ============ -->
+<section class="page-break">
+  <span class="section-no">11</span>
+  <h2>الامتثال والتراخيص</h2>
+
+  <table>
+    <thead><tr><th style="width:52mm">المتطلب</th><th>التفاصيل</th><th style="width:26mm">الحالة</th></tr></thead>
+    <tbody>
+      <tr><td><strong>ترخيص التطبيق الإلكتروني</strong><br>الهيئة الناظمة للاتصالات والبريد</td><td>تقديم الأوراق المطلوبة، ثم اختبار فني لدى الهيئة الوطنية لخدمات تقانة المعلومات. المدة المعلنة حوالي 45 يوماً، ويُشترط تحقيق متطلبات أمن المعلومات.</td><td class="wip">قيد التحضير</td></tr>
+      <tr><td><strong>السجل التجاري</strong><br>وزارة الاقتصاد والصناعة</td><td>للشركة المشغّلة للمنصة، ومطلوب أيضاً للتعاقد مع بوابة الدفع ومزوّد الرسائل.</td><td class="todo">مطلوب</td></tr>
+      <tr><td><strong>أمن المعلومات</strong></td><td>12 طبقة حماية مطبّقة ومختبرة (القسم 9)، ووثيقة ضوابط تفصيلية جاهزة للتقديم.</td><td class="ok">جاهز</td></tr>
+      <tr><td><strong>الشروط والأحكام وسياسة الخصوصية</strong></td><td>مسودتان منشورتان على المنصة وموافقة إلزامية عند التسجيل مع حفظ الإصدار والتاريخ.</td><td class="wip">مراجعة قانونية</td></tr>
+      <tr><td><strong>حماية المستهلك والمحتوى الممنوع</strong></td><td>سياسة محتوى ممنوع، مراجعة تلقائية للمنتجات المشبوهة، بلاغات من حسابات موثّقة، ونصائح شراء آمن.</td><td class="ok">مطبّق</td></tr>
+      <tr><td><strong>توثيق التجار</strong></td><td>التحقق من الهوية والسجل التجاري أو رخصة المحل، وصورة واجهة المحل بموقع GPS، وزيارة ميدانية عند الحاجة.</td><td class="wip">المرحلة القادمة</td></tr>
+    </tbody>
+  </table>
+
+  <h3>ما يلتزم به التاجر (من الشروط والأحكام)</h3>
+  <ul>
+    <li>تقديم معلومات صحيحة عن المحل وموقعه، وتقديم وثائق التوثيق عند طلبها.</li>
+    <li>عرض منتجات حقيقية ومتوفرة بأسعار صحيحة، والالتزام بالقوانين السورية النافذة.</li>
+    <li>عدم عرض المحتوى الممنوع: الأسلحة، المخدرات، الأدوية دون ترخيص، المنتجات المقلدة أو المسروقة.</li>
+  </ul>
+  <div class="note">المنصة وسيط إعلاني وليست طرفاً في عملية البيع، ولا تستلم ثمن المنتجات. يُبسّط هذا متطلبات الترخيص المالي، ويحصر الدفع عبر المنصة في اشتراكات التجار ببوابة دفع مرخّصة.</div>
+</section>
+
+<!-- ============ 12. BUSINESS MODEL ============ -->
+<section class="page-break">
+  <span class="section-no">12</span>
+  <h2>نموذج العمل</h2>
+
+  <div class="grid-2">
+    <div class="card">
+      <div class="icon">🎁</div>
+      <h4>المرحلة الأولى: مجانية للتجار</h4>
+      <p>فتح المتجر وعرض المنتجات والتواصل مع الزبائن مجاني، لبناء قاعدة واسعة من المحلات والزبائن في دمشق.</p>
+    </div>
+    <div class="card">
+      <div class="icon">⭐</div>
+      <h4>المرحلة الثانية: باقات مميزة</h4>
+      <p>اشتراك شهري اختياري يمنح ظهوراً أعلى في البحث والصفحة الرئيسية، وإحصائيات متقدمة، وعدداً أكبر من المنتجات والصور.</p>
+    </div>
+    <div class="card">
+      <div class="icon">📣</div>
+      <h4>الإعلانات المميزة</h4>
+      <p>تمييز منتجات أو متاجر لفترة محددة في «مختارات من الأسواق» ونتائج البحث.</p>
+    </div>
+    <div class="card">
+      <div class="icon">💳</div>
+      <h4>الدفع الإلكتروني</h4>
+      <p>تحصيل الاشتراكات عبر بوابة دفع مرخّصة من مصرف سوريا المركزي تدعم البطاقات والمحافظ ورموز QR، مع خيار دفع يدوي عبر محافظ الموبايل.</p>
+    </div>
+  </div>
+
+  <h3>لماذا يربح الجميع؟</h3>
+  <table>
+    <thead><tr><th style="width:30mm">الطرف</th><th>القيمة</th></tr></thead>
+    <tbody>
+      <tr><td><strong>الزبون</strong></td><td>وقت ومال أقل في البحث، أسعار أوضح، ومتاجر موثّقة.</td></tr>
+      <tr><td><strong>التاجر</strong></td><td>زبائن جدد بلا عمولة على المبيعات، وحضور رقمي دون تكاليف موقع خاص.</td></tr>
+      <tr><td><strong>الأسواق</strong></td><td>تنشيط الأسواق التقليدية ووصولها لجيل يبحث من الموبايل.</td></tr>
+      <tr><td><strong>المنصة</strong></td><td>دخل مستدام من الخدمات الاختيارية دون المخاطرة بأموال الزبائن.</td></tr>
+    </tbody>
+  </table>
+</section>
+
+<!-- ============ 13. ROADMAP ============ -->
+<section class="page-break">
+  <span class="section-no">13</span>
+  <h2>خارطة الطريق</h2>
+
+  <div class="phase"><b>النواة</b><div>واجهة الزبائن كاملة، بوابة التجار، لوحة الإدارة، البحث العربي، الإحصائيات، البيانات الجغرافية.</div><span class="pill ok">مكتمل</span></div>
+  <div class="phase"><b>المرحلة 1<br>الأمان</b><div>التحقق برمز SMS، الجلسات المحمية، المصادقة الثنائية، سجل التدقيق، الشروط والخصوصية، ترويسات الأمان، الاختبارات الأمنية.</div><span class="pill ok">مكتمل</span></div>
+  <div class="phase"><b>تحديثات أمنية</b><div>ترقية إطار خادم التطبيق للإصدار الأحدث لإغلاق الثغرات المتبقية في المكتبات قبل التقديم للهيئة.</div><span class="pill wip">التالي</span></div>
+  <div class="phase"><b>المرحلة 2<br>فصل الواجهات</b><div>تشغيل كل واجهة كتطبيق مستقل على نطاق فرعي خاص.</div><span class="pill todo">مخطط</span></div>
+  <div class="phase"><b>المرحلة 3<br>توثيق التجار</b><div>رفع الهوية والسجل التجاري أو رخصة المحل، صورة الواجهة بموقع GPS ومطابقتها بحدود السوق، طابور توثيق ومندوب ميداني.</div><span class="pill todo">مخطط</span></div>
+  <div class="phase"><b>المرحلة 4<br>دمشق</b><div>إدخال كل أسواق دمشق بإحداثياتها، وإدارة الأسواق والأقسام من لوحة الإدارة.</div><span class="pill todo">مخطط</span></div>
+  <div class="phase"><b>المرحلة 5<br>الزبائن</b><div>تقييمات ومراجعات من زبائن تواصلوا فعلاً، ومزامنة المفضلة مع الحساب.</div><span class="pill todo">مخطط</span></div>
+  <div class="phase"><b>المرحلة 6<br>الدفع</b><div>باقات التجار والإعلانات المميزة عبر بوابة دفع مرخّصة، وفواتير وسجل مدفوعات.</div><span class="pill todo">مخطط</span></div>
+  <div class="phase"><b>المرحلة 7<br>البحث الذكي</b><div>بحث بالمعنى باللهجة السورية («شي يشحن الموبايل بلا كهربا») بنموذج مفتوح المصدر يعمل على خوادمنا دون تكلفة.</div><span class="pill todo">مخطط</span></div>
+  <div class="phase"><b>المرحلة 8–9<br>التشغيل</b><div>تحسينات الواجهات، بيئة تجريبية وإنتاج، مراقبة ونسخ احتياطي، والإطلاق الرسمي.</div><span class="pill todo">مخطط</span></div>
+</section>
+
+<!-- ============ 14. LAUNCH REQUIREMENTS ============ -->
+<section class="page-break">
+  <span class="section-no">14</span>
+  <h2>متطلبات الإطلاق الرسمي</h2>
+
+  <table>
+    <thead><tr><th style="width:8mm">#</th><th style="width:52mm">المتطلب</th><th>الغرض</th></tr></thead>
+    <tbody>
+      <tr><td>1</td><td><strong>سجل تجاري للشركة المشغّلة</strong></td><td>الأساس القانوني للتشغيل والتعاقدات.</td></tr>
+      <tr><td>2</td><td><strong>ترخيص الهيئة الناظمة للاتصالات والبريد</strong></td><td>الإذن الرسمي بتشغيل التطبيق بعد الاختبار الفني.</td></tr>
+      <tr><td>3</td><td><strong>مزوّد رسائل SMS</strong></td><td>إرسال رموز التحقق للزبائن والتجار.</td></tr>
+      <tr><td>4</td><td><strong>حساب تاجر لدى بوابة دفع مرخّصة</strong></td><td>تحصيل اشتراكات التجار والإعلانات المميزة.</td></tr>
+      <tr><td>5</td><td><strong>نطاق (دومين) واستضافة وشهادات HTTPS</strong></td><td>النشر بنطاقات منفصلة للواجهات الثلاث.</td></tr>
+      <tr><td>6</td><td><strong>مراجعة قانونية</strong></td><td>اعتماد الصيغة النهائية للشروط والأحكام وسياسة الخصوصية.</td></tr>
+      <tr><td>7</td><td><strong>فريق تشغيل</strong></td><td>مشرفو محتوى ومندوبون ميدانيون لتوثيق محلات دمشق.</td></tr>
+    </tbody>
+  </table>
+
+  <div class="card" style="margin-top:8mm;background:var(--brand-soft);border-color:#efd3a6">
+    <h4>للتواصل والعرض المباشر</h4>
+    <p>يمكن تقديم عرض حي للمنصة بواجهاتها الثلاث باستخدام حسابات تجريبية، والإجابة عن الأسئلة التقنية والأمنية بالتفصيل.</p>
+  </div>
+
+  <p class="footer-note">
+    تُجّار ماركت — الملف التعريفي، الإصدار 1.0، أيلول 2026. جميع لقطات الشاشة من النسخة العاملة للمنصة،
+    والبيانات الظاهرة فيها تجريبية. المعلومات المتعلقة بالتراخيص للتخطيط، ويجب تأكيدها مع الجهات المختصة.
+  </p>
+</section>
+
+</body>
+</html>
