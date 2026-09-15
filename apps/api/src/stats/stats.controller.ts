@@ -1,5 +1,5 @@
 import { Body, Controller, Get, HttpCode, Post, Query, Req } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle } from '../common/throttle';
 import type { Request } from 'express';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 import { Auth } from '../auth/guards';

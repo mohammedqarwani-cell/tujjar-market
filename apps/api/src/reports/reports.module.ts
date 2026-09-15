@@ -11,7 +11,7 @@ import {
   Post,
   Req,
 } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle } from '../common/throttle';
 import type { Request } from 'express';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';

@@ -3,13 +3,14 @@ import {
   ExecutionContext,
   ForbiddenException,
   Injectable,
+  Optional,
   SetMetadata,
   UnauthorizedException,
   UseGuards,
   applyDecorators,
 } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
-import { AuthGuard } from '@nestjs/passport';
+import { AuthGuard, AuthModuleOptions } from '@nestjs/passport';
 import type { Role } from '@prisma/client';
 import type { AuthUser } from './current-user.decorator';
 
@@ -21,6 +22,11 @@ export const AllowWithoutMfa = () => SetMetadata(ALLOW_WITHOUT_MFA, true);
 
 @Injectable()
 export class JwtAuthGuard extends AuthGuard('jwt') {
+  // NestJS 12 no longer inherits @Optional() from the passport mixin, so it is redeclared here
+  constructor(@Optional() options?: AuthModuleOptions) {
+    super(options);
+  }
+
   handleRequest<T>(err: unknown, user: T): T {
     if (err || !user) throw err instanceof Error ? err : new UnauthorizedException('سجّل الدخول للمتابعة');
     return user;

@@ -594,7 +594,7 @@
       <tr><td>خوارزميات المصادقة الثنائية والتشفير (مقارنة بالمعايير الدولية RFC 4226 وRFC 6238)</td><td class="ok">11 / 11 ناجح</td></tr>
       <tr><td>اختبار أمني شامل: الترويسات، منع التزوير، رموز SMS، الكوكيز، فصل الواجهات، الجلسات، البلاغات، الرفع، المصادقة الثنائية، سجل التدقيق، حدود الطلبات</td><td class="ok">40 / 40 ناجح</td></tr>
       <tr><td>قفل الحساب بعد المحاولات الفاشلة</td><td class="ok">8 / 8 ناجح</td></tr>
-      <tr><td>فحص ثغرات مكتبات الواجهة</td><td class="ok">0 ثغرات</td></tr>
+      <tr><td>فحص ثغرات المكتبات (الواجهة والخادم)</td><td class="ok">0 ثغرات</td></tr>
     </tbody>
   </table>
   <div class="note">الوثيقة التقنية التفصيلية لكل ضابط أمان ومكان تطبيقه في الكود متوفرة ضمن المشروع (SECURITY.md)، وتُقدَّم مع ملف الترخيص.</div>
@@ -628,7 +628,7 @@
     <thead><tr><th style="width:32mm">المكوّن</th><th>التقنية</th><th style="width:60mm">سبب الاختيار</th></tr></thead>
     <tbody>
       <tr><td>الواجهات</td><td class="ltr" style="text-align:right">Next.js 16 · React 19 · Tailwind CSS</td><td>سرعة عالية، دعم كامل للعربية، صفحات قابلة للأرشفة في محركات البحث</td></tr>
-      <tr><td>خادم التطبيق</td><td class="ltr" style="text-align:right">NestJS 11 · TypeScript</td><td>بنية منظمة ومعيارية مناسبة للأنظمة الكبيرة</td></tr>
+      <tr><td>خادم التطبيق</td><td class="ltr" style="text-align:right">NestJS 12 · TypeScript</td><td>بنية منظمة ومعيارية مناسبة للأنظمة الكبيرة</td></tr>
       <tr><td>قاعدة البيانات</td><td class="ltr" style="text-align:right">PostgreSQL 16 · Prisma</td><td>موثوقية عالية واستعلامات آمنة من الحقن</td></tr>
       <tr><td>الصور</td><td class="ltr" style="text-align:right">S3-compatible storage · sharp (WebP)</td><td>صور خفيفة وآمنة ومتوافقة مع التخزين السحابي</td></tr>
       <tr><td>التشغيل</td><td class="ltr" style="text-align:right">Docker</td><td>نشر موحّد وسهل النقل بين الخوادم</td></tr>
@@ -718,7 +718,7 @@
 
   <div class="phase"><b>النواة</b><div>واجهة الزبائن كاملة، بوابة التجار، لوحة الإدارة، البحث العربي، الإحصائيات، البيانات الجغرافية.</div><span class="pill ok">مكتمل</span></div>
   <div class="phase"><b>المرحلة 1<br>الأمان</b><div>التحقق برمز SMS، الجلسات المحمية، المصادقة الثنائية، سجل التدقيق، الشروط والخصوصية، ترويسات الأمان، الاختبارات الأمنية.</div><span class="pill ok">مكتمل</span></div>
-  <div class="phase"><b>تحديثات أمنية</b><div>ترقية إطار خادم التطبيق للإصدار الأحدث لإغلاق الثغرات المتبقية في المكتبات قبل التقديم للهيئة.</div><span class="pill wip">التالي</span></div>
+  <div class="phase"><b>تحديثات أمنية</b><div>ترقية خادم التطبيق إلى NestJS 12 وتحديث كل المكتبات، مع فحص بلا أي ثغرة معروفة في الواجهة والخادم.</div><span class="pill ok">مكتمل</span></div>
   <div class="phase"><b>المرحلة 2<br>فصل الواجهات</b><div>تشغيل كل واجهة كتطبيق مستقل على نطاق فرعي خاص.</div><span class="pill todo">مخطط</span></div>
   <div class="phase"><b>المرحلة 3<br>توثيق التجار</b><div>رفع الهوية والسجل التجاري أو رخصة المحل، صورة الواجهة بموقع GPS ومطابقتها بحدود السوق، طابور توثيق ومندوب ميداني.</div><span class="pill todo">مخطط</span></div>
   <div class="phase"><b>المرحلة 4<br>دمشق</b><div>إدخال كل أسواق دمشق بإحداثياتها، وإدارة الأسواق والأقسام من لوحة الإدارة.</div><span class="pill todo">مخطط</span></div>

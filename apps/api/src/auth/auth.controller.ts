@@ -1,5 +1,5 @@
 import { BadRequestException, Body, Controller, Get, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
-import { Throttle } from '@nestjs/throttler';
+import { Throttle } from '../common/throttle';
 import type { Request, Response } from 'express';
 import { clientIp, readAudience, requestMeta, type Audience } from '../common/request';
 import { AuthService } from './auth.service';

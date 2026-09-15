@@ -39,7 +39,9 @@ Check "Account is locked for about 15 minutes" ($locked.Trim() -eq "t") "lockedU
 
 $correct = Login "Buyer@2026"
 Check "Correct password is refused while locked" ($correct.Code -eq 429) "got $($correct.Code)"
-Check "Refusal is the lockout, not the IP rate limit" (-not ($correct.Body -match "ThrottlerException")) ($correct.Body.Length.ToString() + " bytes")
+# The lockout message states the 15-minute duration; the generic rate-limit message has no digits
+$message = try { [string]($correct.Body | ConvertFrom-Json).message } catch { "" }
+Check "Refusal is the lockout, not the IP rate limit" ($message -match "15") "message mentions the lockout duration: $($message -match '15')"
 
 $audit = Sql 'SELECT count(*) FROM "AuditLog" a JOIN "User" u ON u.id = a."actorId" WHERE u.phone = ''963900000200'' AND a.action = ''auth.account_locked'';'
 Check "Lockout is written to the audit log" ([int]$audit.Trim() -ge 1) "entries=$($audit.Trim())"
