@@ -6,16 +6,14 @@ import {
   PutObjectCommand,
   S3Client,
 } from '@aws-sdk/client-s3';
+import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 import { env } from '../env';
 
-export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024;
-
-const EXT: Record<string, string> = {
-  'image/jpeg': 'jpg',
-  'image/png': 'png',
-  'image/webp': 'webp',
-};
+export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+const MAX_INPUT_PIXELS = 40_000_000;
+const MAX_SIDE = 1600;
+const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp', 'heif', 'avif']);
 
 @Injectable()
 export class MediaService implements OnModuleInit {
@@ -47,25 +45,41 @@ export class MediaService implements OnModuleInit {
         );
         this.log.log(`Created public bucket "${Bucket}"`);
       } catch (e) {
-        // The API still works without uploads (e.g. MinIO not running)
         this.log.warn(`Media storage unavailable: ${(e as Error).message}`);
       }
     }
   }
 
-  async uploadImage(userId: string, file: { buffer: Buffer; mimetype: string; size: number }) {
-    const ext = EXT[file.mimetype];
-    if (!ext) throw new BadRequestException('الصيغ المسموحة: JPG أو PNG أو WEBP');
-    if (file.size > MAX_UPLOAD_BYTES) throw new BadRequestException('حجم الصورة أكبر من 5 ميغابايت');
+  /**
+   * The file's real content decides whether it's an image (the client's MIME type is ignored).
+   * Every upload is re-encoded: this drops embedded payloads and all metadata, including the
+   * GPS location phones write into photos.
+   */
+  async uploadImage(userId: string, file: { buffer: Buffer; size: number }) {
+    if (file.size > MAX_UPLOAD_BYTES) throw new BadRequestException('حجم الصورة أكبر من 8 ميغابايت');
 
-    const key = `uploads/${userId}/${randomUUID()}.${ext}`;
+    let output: Buffer;
+    try {
+      const input = sharp(file.buffer, { limitInputPixels: MAX_INPUT_PIXELS, failOn: 'error' });
+      const { format } = await input.metadata();
+      if (!format || !ACCEPTED_FORMATS.has(format)) throw new Error('unsupported');
+      output = await input
+        .rotate()
+        .resize({ width: MAX_SIDE, height: MAX_SIDE, fit: 'inside', withoutEnlargement: true })
+        .webp({ quality: 82 })
+        .toBuffer();
+    } catch {
+      throw new BadRequestException('الملف ليس صورة صالحة. الصيغ المسموحة: JPG أو PNG أو WEBP أو HEIC');
+    }
+
+    const key = `uploads/${userId}/${randomUUID()}.webp`;
     try {
       await this.s3.send(
         new PutObjectCommand({
           Bucket: env.minio.bucket,
           Key: key,
-          Body: file.buffer,
-          ContentType: file.mimetype,
+          Body: output,
+          ContentType: 'image/webp',
           CacheControl: 'public, max-age=31536000, immutable',
         }),
       );

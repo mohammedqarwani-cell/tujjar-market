@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { apiGet } from "@lib/api";
-import { authFetch, updateSessionUser } from "@lib/session";
+import { merchantFetch, setMerchantUser } from "@lib/session";
 import { localPhone, normalizeSyrianMobile } from "@lib/input";
 import { uploadImage } from "@lib/image";
 import { useAuthData, type MerchantStore } from "@lib/merchant";
@@ -93,7 +93,7 @@ function StoreForm({
     if (!normalizeSyrianMobile(form.whatsapp)) return setError("رقم الواتساب غير صحيح، مثال: 0912345678");
     setPending(true);
     try {
-      await authFetch("/merchant/store", {
+      await merchantFetch("/merchant/store", {
         method: "PATCH",
         body: {
           ...form,
@@ -105,8 +105,8 @@ function StoreForm({
           coverUrl: form.coverUrl || undefined,
         },
       });
-      const me = await authFetch<SessionUser>("/auth/me");
-      updateSessionUser(me);
+      const me = await merchantFetch<SessionUser>("/auth/me");
+      setMerchantUser(me);
       setSaved(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر الحفظ");

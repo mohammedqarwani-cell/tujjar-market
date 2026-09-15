@@ -10,13 +10,17 @@ export class ApiError extends Error {
   }
 }
 
-export async function readError(res: Response): Promise<string> {
+export async function readErrorBody(res: Response): Promise<{ message: string; code?: string }> {
   try {
     const body = await res.json();
     const msg = Array.isArray(body?.message) ? body.message[0] : body?.message;
-    if (typeof msg === "string" && msg) return msg;
+    if (typeof msg === "string" && msg) return { message: msg, code: typeof body?.code === "string" ? body.code : undefined };
   } catch {}
-  return res.status >= 500 ? "حدث خطأ في الخادم، حاول لاحقاً" : "تعذّر تنفيذ الطلب";
+  return { message: res.status >= 500 ? "حدث خطأ في الخادم، حاول لاحقاً" : "تعذّر تنفيذ الطلب" };
+}
+
+export async function readError(res: Response): Promise<string> {
+  return (await readErrorBody(res)).message;
 }
 
 /** Public GET used by server components; responses are cached briefly. */

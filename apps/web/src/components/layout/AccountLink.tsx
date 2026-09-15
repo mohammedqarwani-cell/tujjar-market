@@ -2,29 +2,35 @@
 
 import Link from "next/link";
 import { useSession } from "@lib/session";
-import { StoreIcon } from "@components/ui/icons";
+import { StoreIcon, UserIcon } from "@components/ui/icons";
 
 export function AccountLink() {
-  const session = useSession();
+  const merchant = useSession("merchant", { lazy: true });
+  const buyer = useSession("web", { lazy: true });
 
-  if (session) {
-    const href = session.role === "ADMIN" ? "/admin" : "/dashboard";
+  if (merchant.user) {
     return (
       <Link
-        href={href}
+        href="/dashboard"
         className="hidden h-10 items-center gap-2 rounded-full bg-ink px-4 text-sm font-medium text-canvas transition hover:bg-brand-900 sm:flex"
       >
         <StoreIcon size={17} />
-        {session.role === "ADMIN" ? "لوحة الإدارة" : "متجري"}
+        متجري
       </Link>
     );
   }
 
   return (
     <div className="hidden items-center gap-1 sm:flex">
-      <Link href="/login" className="rounded-full px-3 py-2 text-sm font-medium hover:bg-sand">
-        دخول
-      </Link>
+      {buyer.user ? (
+        <Link href="/account" className="flex items-center gap-1.5 rounded-full px-3 py-2 text-sm font-medium hover:bg-sand">
+          <UserIcon size={17} /> {buyer.user.name.split(" ")[0]}
+        </Link>
+      ) : (
+        <Link href="/account/login" className="rounded-full px-3 py-2 text-sm font-medium hover:bg-sand">
+          دخول
+        </Link>
+      )}
       <Link
         href="/join"
         className="flex h-10 items-center rounded-full bg-brand-600 px-4 text-sm font-bold text-white shadow-sm transition hover:bg-brand-700"

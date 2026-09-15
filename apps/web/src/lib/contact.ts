@@ -10,7 +10,7 @@ function post(path: string, body: unknown) {
   // Fire-and-forget: tracking must never block the buyer from contacting the store
   fetch(`${PUBLIC_API}${path}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: { "Content-Type": "application/json", "X-Client": "web" },
     body: JSON.stringify(body),
     keepalive: true,
   }).catch(() => {});

@@ -1,11 +1,18 @@
-import { Body, Controller, Get, Param, Patch, Query } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Query, Req } from '@nestjs/common';
+import type { Request } from 'express';
 import { IsBoolean, IsIn, IsOptional } from 'class-validator';
 import { Auth } from '../auth/guards';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { AuthUser } from '../auth/current-user.decorator';
+import { clientIp } from '../common/request';
 import { AdminService } from './admin.service';
 
-class UpdateStoreAdminDto {
-  @IsOptional() @IsBoolean() isVerified?: boolean;
-  @IsOptional() @IsIn(['ACTIVE', 'SUSPENDED']) status?: 'ACTIVE' | 'SUSPENDED';
+class VerifyStoreDto {
+  @IsBoolean() isVerified!: boolean;
+}
+
+class StoreStatusDto {
+  @IsIn(['ACTIVE', 'SUSPENDED']) status!: 'ACTIVE' | 'SUSPENDED';
 }
 
 class UpdateProductAdminDto {
@@ -18,7 +25,7 @@ class UpdateReportDto {
 }
 
 @Controller('admin')
-@Auth('ADMIN')
+@Auth('ADMIN', 'MODERATOR')
 export class AdminController {
   constructor(private admin: AdminService) {}
 
@@ -32,9 +39,16 @@ export class AdminController {
     return this.admin.stores(query);
   }
 
-  @Patch('stores/:id')
-  updateStore(@Param('id') id: string, @Body() dto: UpdateStoreAdminDto) {
-    return this.admin.updateStore(id, dto);
+  @Patch('stores/:id/verification')
+  verifyStore(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: VerifyStoreDto, @Req() req: Request) {
+    return this.admin.verifyStore(actor.id, id, dto.isVerified, clientIp(req));
+  }
+
+  /** Suspending a store hides it and all its products, so only full admins may do it. */
+  @Patch('stores/:id/status')
+  @Auth('ADMIN')
+  setStoreStatus(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: StoreStatusDto, @Req() req: Request) {
+    return this.admin.setStoreStatus(actor.id, id, dto.status, clientIp(req));
   }
 
   @Get('products')
@@ -43,8 +57,8 @@ export class AdminController {
   }
 
   @Patch('products/:id')
-  updateProduct(@Param('id') id: string, @Body() dto: UpdateProductAdminDto) {
-    return this.admin.updateProduct(id, dto);
+  updateProduct(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: UpdateProductAdminDto, @Req() req: Request) {
+    return this.admin.updateProduct(actor.id, id, dto, clientIp(req));
   }
 
   @Get('reports')
@@ -53,7 +67,13 @@ export class AdminController {
   }
 
   @Patch('reports/:id')
-  updateReport(@Param('id') id: string, @Body() dto: UpdateReportDto) {
-    return this.admin.updateReport(id, dto.status);
+  updateReport(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: UpdateReportDto, @Req() req: Request) {
+    return this.admin.updateReport(actor.id, id, dto.status, clientIp(req));
+  }
+
+  @Get('audit-logs')
+  @Auth('ADMIN')
+  auditLogs(@Query() query: Record<string, string>) {
+    return this.admin.auditLogs(query);
   }
 }

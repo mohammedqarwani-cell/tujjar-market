@@ -10,6 +10,12 @@ export function normalizeSyrianMobile(raw: string): string | null {
   return /^9\d{8}$/.test(d) ? `963${d}` : null;
 }
 
+/** Mirrors the API password policy. */
+export const PASSWORD_HINT = "8 أحرف على الأقل، وتحتوي حروفاً وأرقاماً";
+export function isStrongPassword(value: string): boolean {
+  return /^(?=.*[A-Za-zء-ي])(?=.*\d).{8,72}$/.test(value);
+}
+
 /** "1,250,000" or "١٢٥٠٠٠٠" -> 1250000 */
 export function parseAmount(raw: string): number | null {
   const digits = toLatin(raw).replace(/[^\d]/g, "");
@@ -24,4 +30,8 @@ export function groupDigits(raw: string): string {
 /** e164 -> 09xxxxxxxx for editing */
 export function localPhone(e164: string | null | undefined): string {
   return e164?.startsWith("963") ? `0${e164.slice(3)}` : (e164 ?? "");
+}
+
+export function onlyDigits(raw: string, max: number): string {
+  return toLatin(raw).replace(/\D/g, "").slice(0, max);
 }

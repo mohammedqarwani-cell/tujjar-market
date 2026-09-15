@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import { authFetch } from "./session";
+import { merchantFetch } from "./session";
 import type { Currency, Condition, PriceType, ProductCardData, ProductStatus, Ref, CategoryRef } from "./types";
 
 export type MerchantProduct = ProductCardData & {
@@ -70,7 +70,7 @@ export function useAuthData<T>(path: string | null) {
     setLoading(true);
     setError("");
     try {
-      setData(await authFetch<T>(path));
+      setData(await merchantFetch<T>(path));
     } catch (e) {
       setError(e instanceof Error ? e.message : "تعذّر التحميل");
     } finally {

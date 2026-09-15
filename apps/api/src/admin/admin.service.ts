@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { Prisma, ProductStatus, ReportStatus, StoreStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { AuditService } from '../audit/audit.module';
 import { normalizeArabic } from '../common/text/arabic';
 import { pageResult, paging } from '../common/pagination';
 
@@ -9,10 +10,13 @@ const searchTerms = (q?: string) =>
 
 @Injectable()
 export class AdminService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
   async overview() {
-    const [stores, suspended, unverified, products, underReview, openReports, merchants] = await Promise.all([
+    const [stores, suspended, unverified, products, underReview, openReports, merchants, buyers] = await Promise.all([
       this.prisma.store.count(),
       this.prisma.store.count({ where: { status: 'SUSPENDED' } }),
       this.prisma.store.count({ where: { isVerified: false, status: 'ACTIVE' } }),
@@ -20,8 +24,9 @@ export class AdminService {
       this.prisma.product.count({ where: { status: 'UNDER_REVIEW' } }),
       this.prisma.report.count({ where: { status: 'OPEN' } }),
       this.prisma.user.count({ where: { role: 'MERCHANT' } }),
+      this.prisma.user.count({ where: { role: 'BUYER' } }),
     ]);
-    return { stores, suspended, unverified, products, underReview, openReports, merchants };
+    return { stores, suspended, unverified, products, underReview, openReports, merchants, buyers };
   }
 
   async stores(query: Record<string, string>) {
@@ -58,12 +63,16 @@ export class AdminService {
     return pageResult(items, total, page, pageSize);
   }
 
-  updateStore(id: string, data: { isVerified?: boolean; status?: StoreStatus }) {
-    return this.prisma.store.update({
-      where: { id },
-      data,
-      select: { id: true, isVerified: true, status: true },
-    });
+  async verifyStore(actorId: string, id: string, isVerified: boolean, ip: string) {
+    const store = await this.prisma.store.update({ where: { id }, data: { isVerified }, select: { id: true, isVerified: true, status: true } });
+    await this.audit.log({ actorId, action: isVerified ? 'store.verify' : 'store.unverify', entityType: 'store', entityId: id, ip });
+    return store;
+  }
+
+  async setStoreStatus(actorId: string, id: string, status: StoreStatus, ip: string) {
+    const store = await this.prisma.store.update({ where: { id }, data: { status }, select: { id: true, isVerified: true, status: true } });
+    await this.audit.log({ actorId, action: status === 'SUSPENDED' ? 'store.suspend' : 'store.reactivate', entityType: 'store', entityId: id, ip });
+    return store;
   }
 
   async products(query: Record<string, string>) {
@@ -99,12 +108,14 @@ export class AdminService {
     return pageResult(items, total, page, pageSize);
   }
 
-  updateProduct(id: string, data: { isFeatured?: boolean; status?: ProductStatus }) {
-    return this.prisma.product.update({
+  async updateProduct(actorId: string, id: string, data: { isFeatured?: boolean; status?: ProductStatus }, ip: string) {
+    const product = await this.prisma.product.update({
       where: { id },
       data,
       select: { id: true, isFeatured: true, status: true },
     });
+    await this.audit.log({ actorId, action: 'product.moderate', entityType: 'product', entityId: id, meta: data, ip });
+    return product;
   }
 
   async reports(query: Record<string, string>) {
@@ -115,6 +126,7 @@ export class AdminService {
       this.prisma.report.findMany({
         where,
         include: {
+          reporter: { select: { id: true, name: true, phone: true } },
           store: { select: { slug: true, name: true } },
           product: { select: { id: true, title: true } },
         },
@@ -127,7 +139,28 @@ export class AdminService {
     return pageResult(items, total, page, pageSize);
   }
 
-  updateReport(id: string, status: ReportStatus) {
-    return this.prisma.report.update({ where: { id }, data: { status }, select: { id: true, status: true } });
+  async updateReport(actorId: string, id: string, status: ReportStatus, ip: string) {
+    const report = await this.prisma.report.update({ where: { id }, data: { status }, select: { id: true, status: true } });
+    await this.audit.log({ actorId, action: `report.${status.toLowerCase()}`, entityType: 'report', entityId: id, ip });
+    return report;
+  }
+
+  async auditLogs(query: Record<string, string>) {
+    const { page, pageSize, skip, take } = paging(query.page, query.pageSize, 100);
+    const where: Prisma.AuditLogWhereInput = {};
+    if (query.entityType) where.entityType = query.entityType;
+    if (query.entityId) where.entityId = query.entityId;
+    if (query.actorId) where.actorId = query.actorId;
+    const [items, total] = await this.prisma.$transaction([
+      this.prisma.auditLog.findMany({
+        where,
+        include: { actor: { select: { name: true, role: true } } },
+        orderBy: { createdAt: 'desc' },
+        skip,
+        take,
+      }),
+      this.prisma.auditLog.count({ where }),
+    ]);
+    return pageResult(items, total, page, pageSize);
   }
 }

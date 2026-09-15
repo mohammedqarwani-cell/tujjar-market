@@ -1,13 +1,17 @@
 "use client";
 
 import { useRef, useState } from "react";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { FlagIcon, XIcon } from "@components/ui/icons";
-import { PUBLIC_API, readError } from "@lib/api";
+import { apiRequest, useSession } from "@lib/session";
 
 const REASONS = ["احتيال أو نصب", "منتج ممنوع", "معلومات مضللة", "رقم تواصل لا يعمل", "أخرى"];
 
 export function ReportButton({ storeSlug, productId }: { storeSlug?: string; productId?: string }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const pathname = usePathname();
+  const { user } = useSession("web", { lazy: true });
   const [reason, setReason] = useState(REASONS[0]);
   const [details, setDetails] = useState("");
   const [state, setState] = useState<"idle" | "sending" | "done">("idle");
@@ -18,18 +22,19 @@ export function ReportButton({ storeSlug, productId }: { storeSlug?: string; pro
     setState("sending");
     setError("");
     try {
-      const res = await fetch(`${PUBLIC_API}/reports`, {
+      await apiRequest("/reports", {
+        audience: "web",
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storeSlug, productId, reason, details: details || undefined }),
+        body: { storeSlug: productId ? undefined : storeSlug, productId, reason, details: details || undefined },
       });
-      if (!res.ok) throw new Error(await readError(res));
       setState("done");
     } catch (err) {
       setError(err instanceof Error ? err.message : "تعذّر إرسال البلاغ");
       setState("idle");
     }
   }
+
+  const next = encodeURIComponent(pathname);
 
   return (
     <>
@@ -54,14 +59,28 @@ export function ReportButton({ storeSlug, productId }: { storeSlug?: string; pro
           </button>
         </div>
 
-        {state === "done" ? (
+        {!user ? (
+          <div className="px-5 py-6 text-center">
+            <p className="leading-7">للإبلاغ يلزم حساب موثّق برقم موبايل، حتى نتابع البلاغ معك ونمنع البلاغات الكيدية.</p>
+            <p className="mt-2 text-xs text-muted">اسمك ورقمك يظهران لإدارة المنصة فقط، ولا يراهما التاجر.</p>
+            <div className="mt-5 flex justify-center gap-2">
+              <Link href={`/account/login?next=${next}`} className="rounded-xl bg-brand-600 px-5 py-2.5 font-bold text-white hover:bg-brand-700">
+                تسجيل الدخول
+              </Link>
+              <Link href={`/account/register?next=${next}`} className="rounded-xl px-5 py-2.5 font-bold ring-1 ring-line hover:ring-brand-200">
+                حساب جديد
+              </Link>
+            </div>
+          </div>
+        ) : state === "done" ? (
           <div className="px-5 py-8 text-center">
             <div className="text-4xl">✅</div>
             <p className="mt-3 font-bold">وصلنا بلاغك، شكراً لك</p>
-            <p className="mt-1 text-sm text-muted">سيراجعه فريق المنصة خلال وقت قصير.</p>
+            <p className="mt-1 text-sm text-muted">سيراجعه فريق المنصة وقد نتواصل معك على رقمك.</p>
           </div>
         ) : (
           <form onSubmit={submit} className="space-y-4 px-5 py-4">
+            <p className="text-xs text-muted">يُرسل البلاغ باسم {user.name}. لا يظهر اسمك للتاجر.</p>
             <fieldset className="space-y-2">
               <legend className="mb-2 text-sm font-medium">سبب البلاغ</legend>
               {REASONS.map((r) => (

@@ -281,6 +281,9 @@ const stores: StoreSeed[] = [
 
 async function main() {
   console.log('🧹 Clearing old data...');
+  await prisma.auditLog.deleteMany();
+  await prisma.session.deleteMany();
+  await prisma.otpCode.deleteMany();
   await prisma.report.deleteMany();
   await prisma.storeDailyStat.deleteMany();
   await prisma.product.deleteMany();
@@ -318,13 +321,24 @@ async function main() {
   }
 
   console.log('👤 Users...');
-  const merchantHash = await bcrypt.hash('Tujjar@2026', 10);
+  const merchantHash = await bcrypt.hash('Tujjar@2026', 12);
+  const verified = { phoneVerifiedAt: new Date(), termsVersion: '2026-09', termsAcceptedAt: new Date() };
   await prisma.user.create({
     data: {
       name: 'مدير المنصة',
       phone: demoPhone(1),
-      passwordHash: await bcrypt.hash('Admin@2026', 10),
+      passwordHash: await bcrypt.hash('Admin@2026', 12),
       role: 'ADMIN',
+      ...verified,
+    },
+  });
+  await prisma.user.create({
+    data: {
+      name: 'زبون تجريبي',
+      phone: demoPhone(200),
+      passwordHash: await bcrypt.hash('Buyer@2026', 12),
+      role: 'BUYER',
+      ...verified,
     },
   });
 
@@ -339,7 +353,7 @@ async function main() {
     const phone = demoPhone(100 + i);
 
     const owner = await prisma.user.create({
-      data: { name: `صاحب ${s.name}`, phone, passwordHash: merchantHash, role: 'MERCHANT' },
+      data: { name: `صاحب ${s.name}`, phone, passwordHash: merchantHash, role: 'MERCHANT', ...verified },
     });
     const store = await prisma.store.create({
       data: {
@@ -408,6 +422,7 @@ async function main() {
   console.table([
     { role: 'ADMIN', phone: '0900000001', password: 'Admin@2026' },
     { role: 'MERCHANT (بروكار الشام)', phone: '0900000100', password: 'Tujjar@2026' },
+    { role: 'BUYER', phone: '0900000200', password: 'Buyer@2026' },
   ]);
 }
 

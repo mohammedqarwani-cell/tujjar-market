@@ -22,7 +22,7 @@ export class ProductsController {
 }
 
 @Controller('merchant/products')
-@Auth('MERCHANT', 'ADMIN')
+@Auth('MERCHANT')
 export class MerchantProductsController {
   constructor(private products: ProductsService) {}
 

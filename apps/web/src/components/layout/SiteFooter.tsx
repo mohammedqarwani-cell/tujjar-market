@@ -30,8 +30,10 @@ export function SiteFooter() {
           </ul>
         </div>
       </div>
-      <div className="border-t border-line/70 py-4 text-center text-xs text-muted">
-        © {new Date().getFullYear()} تُجّار ماركت · صُنع لأسواق سوريا
+      <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1 border-t border-line/70 px-4 py-4 text-xs text-muted">
+        <span>© {new Date().getFullYear()} تُجّار ماركت · صُنع لأسواق سوريا</span>
+        <Link href="/terms" className="hover:text-ink">الشروط والأحكام</Link>
+        <Link href="/privacy" className="hover:text-ink">سياسة الخصوصية</Link>
       </div>
     </footer>
   );

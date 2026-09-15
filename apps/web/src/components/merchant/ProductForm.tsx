@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiGet } from "@lib/api";
-import { authFetch } from "@lib/session";
+import { merchantFetch } from "@lib/session";
 import { groupDigits, parseAmount } from "@lib/input";
 import type { EditableProduct } from "@lib/merchant";
 import type { Category, Condition, Currency, PriceType } from "@lib/types";
@@ -66,7 +66,7 @@ export function ProductForm({ product }: Props) {
         inStock: form.inStock,
         images: form.images,
       };
-      const saved = await authFetch<{ id: string; status: string }>(
+      const saved = await merchantFetch<{ id: string; status: string }>(
         product ? `/merchant/products/${product.id}` : "/merchant/products",
         { method: product ? "PATCH" : "POST", body },
       );

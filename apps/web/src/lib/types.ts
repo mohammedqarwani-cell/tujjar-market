@@ -99,10 +99,15 @@ export type MarketDetail = Ref & {
   storesCount: number;
 };
 
+export type Role = "ADMIN" | "MODERATOR" | "FIELD_AGENT" | "MERCHANT" | "BUYER";
+
 export type SessionUser = {
   id: string;
   name: string;
   phone: string;
-  role: "ADMIN" | "MERCHANT";
+  role: Role;
   store: { id: string; slug: string; name: string; status: "ACTIVE" | "SUSPENDED" } | null;
+  /** This session passed two-factor authentication (admin interface) */
+  mfa: boolean;
+  mustSetupTotp: boolean;
 };

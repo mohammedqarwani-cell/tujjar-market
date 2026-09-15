@@ -1,6 +1,6 @@
 "use client";
 
-import { authFetch } from "./session";
+import { merchantFetch } from "./session";
 
 /**
  * Shrinks photos on the phone before upload: max 1280px, WebP.
@@ -32,6 +32,6 @@ export async function uploadImage(file: File): Promise<string> {
   const form = new FormData();
   const ext = blob.type === "image/webp" ? "webp" : blob.type === "image/png" ? "png" : "jpg";
   form.append("file", blob, `photo.${ext}`);
-  const { url } = await authFetch<{ url: string }>("/merchant/media", { method: "POST", body: form });
+  const { url } = await merchantFetch<{ url: string }>("/merchant/media", { method: "POST", body: form });
   return url;
 }

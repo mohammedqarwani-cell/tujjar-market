@@ -5,16 +5,19 @@ import { env } from '../env';
 import { AuthController } from './auth.controller';
 import { AuthService } from './auth.service';
 import { JwtStrategy } from './jwt.strategy';
+import { OtpService } from './otp.service';
+import { SessionService } from './session.service';
+import { ACCESS_TTL_SEC } from './roles';
 
 @Module({
   imports: [
     PassportModule,
     JwtModule.register({
-      secret: env.jwtSecret,
-      signOptions: { expiresIn: '30d' },
+      secret: env.jwtAccessSecret,
+      signOptions: { expiresIn: ACCESS_TTL_SEC, algorithm: 'HS256' },
     }),
   ],
-  providers: [AuthService, JwtStrategy],
+  providers: [AuthService, JwtStrategy, OtpService, SessionService],
   controllers: [AuthController],
 })
 export class AuthModule {}

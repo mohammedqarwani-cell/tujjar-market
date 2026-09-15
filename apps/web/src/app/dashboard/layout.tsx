@@ -3,7 +3,7 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { clearSession, hasToken, useSession } from "@lib/session";
+import { signOut, useSession } from "@lib/session";
 import { BoxIcon, ChartIcon, EyeIcon, LogoutIcon, PlusIcon, SlidersIcon } from "@components/ui/icons";
 
 const NAV = [
@@ -14,36 +14,28 @@ const NAV = [
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const session = useSession();
+  const { status, user } = useSession("merchant");
   const pathname = usePathname();
   const router = useRouter();
 
   useEffect(() => {
-    if (!hasToken()) router.replace(`/login?next=${encodeURIComponent(pathname)}`);
-  }, [pathname, router]);
+    if (status === "anonymous") router.replace(`/login?next=${encodeURIComponent(pathname)}`);
+  }, [status, pathname, router]);
 
-  useEffect(() => {
-    if (session?.role === "ADMIN") router.replace("/admin");
-  }, [session, router]);
-
-  if (!session || session.role !== "MERCHANT") {
+  if (!user) {
     return <div className="mx-auto h-[60vh] max-w-6xl animate-pulse px-4 py-10" aria-busy="true" />;
   }
 
-  const isActive = (href: string, exact: boolean) =>
-    exact ? pathname === href : pathname.startsWith(href);
+  const isActive = (href: string, exact: boolean) => (exact ? pathname === href : pathname.startsWith(href));
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 md:grid md:grid-cols-[14rem_1fr] md:gap-8 md:py-8">
       <aside className="md:sticky md:top-24 md:self-start">
         <div className="hidden rounded-card bg-surface p-4 ring-1 ring-line md:block">
           <div className="text-xs text-muted">متجرك</div>
-          <div className="mt-0.5 truncate font-bold">{session.store?.name ?? "—"}</div>
-          {session.store && (
-            <Link
-              href={`/stores/${session.store.slug}`}
-              className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-700"
-            >
+          <div className="mt-0.5 truncate font-bold">{user.store?.name ?? "—"}</div>
+          {user.store && (
+            <Link href={`/stores/${user.store.slug}`} className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-700">
               <EyeIcon size={14} /> عرض كما يراه الزبون
             </Link>
           )}
@@ -66,8 +58,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           })}
           <button
             type="button"
-            onClick={() => {
-              clearSession();
+            onClick={async () => {
+              await signOut("merchant");
               router.replace("/");
             }}
             className="flex shrink-0 items-center gap-2 rounded-xl bg-surface px-3 py-2.5 text-sm font-medium text-muted ring-1 ring-line hover:text-danger md:bg-transparent md:ring-0"

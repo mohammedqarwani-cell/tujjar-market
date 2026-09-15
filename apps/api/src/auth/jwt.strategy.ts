@@ -1,22 +1,51 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
+import type { Role } from '@prisma/client';
+import type { Request } from 'express';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { env } from '../env';
+import { PrismaService } from '../prisma/prisma.service';
+import { readAudience, type Audience } from '../common/request';
+import { accessCookie } from './cookies';
 import type { AuthUser } from './current-user.decorator';
+import { ROLE_AUDIENCE } from './roles';
 
-type JwtPayload = { sub: string; role: AuthUser['role'] };
+type JwtPayload = { sub: string; role: Role; aud: Audience; sid: string; mfa?: boolean };
+
+const bearer = ExtractJwt.fromAuthHeaderAsBearerToken();
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy, 'jwt') {
-  constructor() {
+  constructor(private prisma: PrismaService) {
     super({
-      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      // Cookie for browsers, Bearer for future native apps; both must name their interface
+      jwtFromRequest: (req: Request) => {
+        const aud = readAudience(req);
+        if (!aud) return null;
+        return bearer(req) ?? req.cookies?.[accessCookie(aud)] ?? null;
+      },
       ignoreExpiration: false,
-      secretOrKey: env.jwtSecret,
+      secretOrKey: env.jwtAccessSecret,
+      algorithms: ['HS256'],
+      passReqToCallback: true,
     });
   }
 
-  validate(payload: JwtPayload): AuthUser {
-    return { id: payload.sub, role: payload.role };
+  async validate(req: Request, payload: JwtPayload): Promise<AuthUser> {
+    const aud = readAudience(req);
+    if (!aud || payload.aud !== aud || !ROLE_AUDIENCE[aud].includes(payload.role)) {
+      throw new UnauthorizedException('سجّل الدخول للمتابعة');
+    }
+    // Admin sessions are checked on every request so revocation takes effect immediately
+    if (aud === 'admin') {
+      const session = await this.prisma.session.findUnique({
+        where: { id: payload.sid },
+        select: { revokedAt: true, expiresAt: true },
+      });
+      if (!session || session.revokedAt || session.expiresAt < new Date()) {
+        throw new UnauthorizedException('انتهت الجلسة، سجّل الدخول مجدداً');
+      }
+    }
+    return { id: payload.sub, role: payload.role, aud, sid: payload.sid, mfa: !!payload.mfa };
   }
 }

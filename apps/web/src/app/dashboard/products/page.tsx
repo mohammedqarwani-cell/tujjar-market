@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { toQuery } from "@lib/api";
 import { formatNumber, priceLabel } from "@lib/format";
-import { authFetch } from "@lib/session";
+import { merchantFetch } from "@lib/session";
 import { useAuthData, type MerchantProduct } from "@lib/merchant";
 import type { Page } from "@lib/types";
 import { ProductArt } from "@components/catalog/ProductArt";
@@ -143,7 +143,7 @@ export default function MerchantProductsPage() {
                       disabled={!!busy}
                       onClick={() =>
                         act(p.id, () =>
-                          authFetch(`/merchant/products/${p.id}/status`, {
+                          merchantFetch(`/merchant/products/${p.id}/status`, {
                             method: "PATCH",
                             body: { status: p.status === "ACTIVE" ? "HIDDEN" : "ACTIVE" },
                           }),
@@ -160,7 +160,7 @@ export default function MerchantProductsPage() {
                     disabled={!!busy}
                     onClick={() => {
                       if (confirm(`حذف «${p.title}» نهائياً؟`)) {
-                        act(p.id, () => authFetch(`/merchant/products/${p.id}`, { method: "DELETE" }));
+                        act(p.id, () => merchantFetch(`/merchant/products/${p.id}`, { method: "DELETE" }));
                       }
                     }}
                     className="flex h-9 w-9 items-center justify-center rounded-lg text-danger hover:bg-danger/10"

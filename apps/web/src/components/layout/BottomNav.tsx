@@ -7,8 +7,8 @@ import { useSession } from "@lib/session";
 
 export function BottomNav() {
   const pathname = usePathname();
-  const session = useSession();
-  const accountHref = session ? (session.role === "ADMIN" ? "/admin" : "/dashboard") : "/join";
+  const merchant = useSession("merchant", { lazy: true });
+  const accountHref = merchant.user ? "/dashboard" : "/account";
 
   const items = [
     { href: "/", label: "الرئيسية", Icon: HomeIcon, match: (p: string) => p === "/" },
@@ -17,9 +17,9 @@ export function BottomNav() {
     { href: "/favorites", label: "المفضلة", Icon: HeartIcon, match: (p: string) => p.startsWith("/favorites") },
     {
       href: accountHref,
-      label: session ? "متجري" : "افتح متجرك",
+      label: merchant.user ? "متجري" : "حسابي",
       Icon: UserIcon,
-      match: (p: string) => ["/dashboard", "/admin", "/join", "/login"].some((x) => p.startsWith(x)),
+      match: (p: string) => ["/account", "/join", "/login"].some((x) => p.startsWith(x)),
     },
   ];
 

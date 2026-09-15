@@ -1,29 +1,48 @@
-import { Body, Controller, HttpCode, Injectable, Module, NotFoundException, Post, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  ConflictException,
+  Controller,
+  HttpCode,
+  HttpException,
+  HttpStatus,
+  Injectable,
+  Module,
+  NotFoundException,
+  Post,
+  Req,
+} from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
 import { IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
-import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
+import { AuditService } from '../audit/audit.module';
+import { Auth } from '../auth/guards';
+import { CurrentUser } from '../auth/current-user.decorator';
+import type { AuthUser } from '../auth/current-user.decorator';
+import { clientIp } from '../common/request';
 
 export const REPORT_REASONS = ['احتيال أو نصب', 'منتج ممنوع', 'معلومات مضللة', 'رقم تواصل لا يعمل', 'أخرى'];
+const MAX_REPORTS_PER_DAY = 10;
 
 class CreateReportDto {
   @IsOptional() @IsString() storeSlug?: string;
   @IsOptional() @IsString() productId?: string;
-  @IsIn(REPORT_REASONS) reason!: string;
+  @IsIn(REPORT_REASONS, { message: 'اختر سبب البلاغ' }) reason!: string;
   @IsOptional() @IsString() @MaxLength(500) details?: string;
 }
 
 @Injectable()
 class ReportsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private audit: AuditService,
+  ) {}
 
-  async create(dto: CreateReportDto) {
-    let storeId: string | undefined;
-    let productId: string | undefined;
+  async create(reporterId: string, dto: CreateReportDto, ip: string) {
+    let storeId: string;
+    let productId: string | null = null;
     if (dto.productId) {
-      const product = await this.prisma.product.findUnique({
-        where: { id: dto.productId },
-        select: { id: true, storeId: true },
-      });
+      const product = await this.prisma.product.findUnique({ where: { id: dto.productId }, select: { id: true, storeId: true } });
       if (!product) throw new NotFoundException('المنتج غير موجود');
       productId = product.id;
       storeId = product.storeId;
@@ -34,22 +53,34 @@ class ReportsService {
     } else {
       throw new NotFoundException('حدد المتجر أو المنتج');
     }
-    await this.prisma.report.create({
-      data: { storeId, productId, reason: dto.reason, details: dto.details?.trim() || null },
+
+    const [duplicate, today] = await Promise.all([
+      this.prisma.report.findFirst({ where: { reporterId, status: 'OPEN', storeId, productId }, select: { id: true } }),
+      this.prisma.report.count({ where: { reporterId, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } } }),
+    ]);
+    if (duplicate) throw new ConflictException('سبق أن أبلغت عن هذا، وبلاغك قيد المراجعة');
+    if (today >= MAX_REPORTS_PER_DAY) {
+      throw new HttpException('وصلت للحد اليومي من البلاغات', HttpStatus.TOO_MANY_REQUESTS);
+    }
+
+    const report = await this.prisma.report.create({
+      data: { reporterId, storeId, productId, reason: dto.reason, details: dto.details?.trim() || null },
     });
+    await this.audit.log({ actorId: reporterId, action: 'report.create', entityType: 'report', entityId: report.id, ip });
   }
 }
 
 @Controller('reports')
-@UseGuards(RateLimitGuard)
 class ReportsController {
   constructor(private reports: ReportsService) {}
 
+  /** Reports require a verified buyer account, so moderators know who reported. */
   @Post()
   @HttpCode(204)
-  @RateLimit(5, 60 * 60)
-  async create(@Body() dto: CreateReportDto) {
-    await this.reports.create(dto);
+  @Auth('BUYER')
+  @Throttle({ default: { limit: 10, ttl: 3600_000 } })
+  async create(@CurrentUser() user: AuthUser, @Body() dto: CreateReportDto, @Req() req: Request) {
+    await this.reports.create(user.id, dto, clientIp(req));
   }
 }
 

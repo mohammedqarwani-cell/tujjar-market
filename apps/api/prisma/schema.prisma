@@ -9,7 +9,20 @@ datasource db {
 
 enum Role {
   ADMIN
+  MODERATOR
+  FIELD_AGENT
   MERCHANT
+  BUYER
+}
+
+enum UserStatus {
+  ACTIVE
+  SUSPENDED
+}
+
+enum OtpPurpose {
+  REGISTER
+  RESET_PASSWORD
 }
 
 enum StoreStatus {
@@ -39,11 +52,6 @@ enum ItemCondition {
   USED
 }
 
-enum ContactChannel {
-  WHATSAPP
-  CALL
-}
-
 enum ReportStatus {
   OPEN
   RESOLVED
@@ -51,15 +59,82 @@ enum ReportStatus {
 }
 
 model User {
-  id           String   @id @default(cuid())
-  name         String
+  id              String     @id @default(cuid())
+  name            String
   /// E.164 without the plus sign, e.g. 963912345678
-  phone        String   @unique
-  passwordHash String
-  role         Role     @default(MERCHANT)
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-  stores       Store[]
+  phone           String     @unique
+  passwordHash    String
+  role            Role       @default(BUYER)
+  status          UserStatus @default(ACTIVE)
+  phoneVerifiedAt DateTime?
+  failedLogins    Int        @default(0)
+  lockedUntil     DateTime?
+  lastLoginAt     DateTime?
+  /// AES-256-GCM encrypted base32 TOTP secret
+  totpSecret      String?
+  totpEnabled     Boolean    @default(false)
+  /// Last accepted TOTP time step, blocks code replay
+  totpLastStep    Int?
+  termsVersion    String?
+  termsAcceptedAt DateTime?
+  createdAt       DateTime   @default(now())
+  updatedAt       DateTime   @updatedAt
+  stores          Store[]
+  sessions        Session[]
+  reports         Report[]   @relation("ReportedBy")
+  auditLogs       AuditLog[]
+}
+
+/// One refresh-token session per signed-in device and interface
+model Session {
+  id           String    @id @default(cuid())
+  userId       String
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// web | merchant | admin
+  audience     String
+  tokenHash    String    @unique
+  /// Rotated sessions share a family so token reuse can revoke all of them
+  familyId     String
+  mfa          Boolean   @default(false)
+  expiresAt    DateTime
+  revokedAt    DateTime?
+  replacedById String?
+  ip           String?
+  userAgent    String?
+  createdAt    DateTime  @default(now())
+
+  @@index([userId])
+  @@index([familyId])
+}
+
+model OtpCode {
+  id         String     @id @default(cuid())
+  phone      String
+  purpose    OtpPurpose
+  codeHash   String
+  attempts   Int        @default(0)
+  expiresAt  DateTime
+  consumedAt DateTime?
+  ip         String?
+  createdAt  DateTime   @default(now())
+
+  @@index([phone, purpose, createdAt])
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?
+  actor      User?    @relation(fields: [actorId], references: [id], onDelete: SetNull)
+  action     String
+  entityType String
+  entityId   String?
+  meta       Json?
+  ip         String?
+  createdAt  DateTime @default(now())
+
+  @@index([entityType, entityId])
+  @@index([actorId, createdAt])
+  @@index([createdAt])
 }
 
 model Governorate {
@@ -97,19 +172,19 @@ model Category {
 }
 
 model Store {
-  id            String      @id @default(cuid())
-  slug          String      @unique
+  id            String           @id @default(cuid())
+  slug          String           @unique
   name          String
   tagline       String?
   description   String?
   ownerId       String
-  owner         User        @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  owner         User             @relation(fields: [ownerId], references: [id], onDelete: Cascade)
   governorateId String
-  governorate   Governorate @relation(fields: [governorateId], references: [id])
+  governorate   Governorate      @relation(fields: [governorateId], references: [id])
   marketId      String?
-  market        Market?     @relation(fields: [marketId], references: [id])
+  market        Market?          @relation(fields: [marketId], references: [id])
   categoryId    String?
-  category      Category?   @relation(fields: [categoryId], references: [id])
+  category      Category?        @relation(fields: [categoryId], references: [id])
   address       String?
   mapUrl        String?
   /// WhatsApp number, E.164 without plus
@@ -118,15 +193,15 @@ model Store {
   openingHours  String?
   logoUrl       String?
   coverUrl      String?
-  hasDelivery   Boolean     @default(false)
-  isVerified    Boolean     @default(false)
-  status        StoreStatus @default(ACTIVE)
+  hasDelivery   Boolean          @default(false)
+  isVerified    Boolean          @default(false)
+  status        StoreStatus      @default(ACTIVE)
   /// Normalized Arabic text used for search
-  searchText    String      @default("")
-  viewsCount    Int         @default(0)
-  contactsCount Int         @default(0)
-  createdAt     DateTime    @default(now())
-  updatedAt     DateTime    @updatedAt
+  searchText    String           @default("")
+  viewsCount    Int              @default(0)
+  contactsCount Int              @default(0)
+  createdAt     DateTime         @default(now())
+  updatedAt     DateTime         @updatedAt
   products      Product[]
   dailyStats    StoreDailyStat[]
   reports       Report[]
@@ -179,15 +254,18 @@ model StoreDailyStat {
 }
 
 model Report {
-  id        String       @id @default(cuid())
-  storeId   String?
-  store     Store?       @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  productId String?
-  product   Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
-  reason    String
-  details   String?
-  status    ReportStatus @default(OPEN)
-  createdAt DateTime     @default(now())
+  id         String       @id @default(cuid())
+  reporterId String
+  reporter   User         @relation("ReportedBy", fields: [reporterId], references: [id], onDelete: Cascade)
+  storeId    String?
+  store      Store?       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId  String?
+  product    Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  reason     String
+  details    String?
+  status     ReportStatus @default(OPEN)
+  createdAt  DateTime     @default(now())
 
   @@index([status, createdAt])
+  @@index([reporterId, createdAt])
 }

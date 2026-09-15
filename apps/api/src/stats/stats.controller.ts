@@ -1,9 +1,11 @@
-import { Body, Controller, Get, HttpCode, Post, Query, Req, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, Req } from '@nestjs/common';
+import { Throttle } from '@nestjs/throttler';
+import type { Request } from 'express';
 import { IsIn, IsOptional, IsString } from 'class-validator';
 import { Auth } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
-import { RateLimit, RateLimitGuard } from '../common/rate-limit.guard';
+import { clientIp } from '../common/request';
 import { StatsService } from './stats.service';
 
 class TrackViewDto {
@@ -17,31 +19,27 @@ class TrackContactDto {
   @IsIn(['WHATSAPP', 'CALL']) channel!: 'WHATSAPP' | 'CALL';
 }
 
-const clientIp = (req: any): string =>
-  (req.headers['x-forwarded-for']?.split(',')[0] ?? req.ip ?? 'unknown').trim();
-
 @Controller('track')
-@UseGuards(RateLimitGuard)
 export class TrackController {
   constructor(private stats: StatsService) {}
 
   @Post('view')
   @HttpCode(204)
-  @RateLimit(120, 60)
-  async view(@Body() dto: TrackViewDto, @Req() req: any) {
+  @Throttle({ default: { limit: 120, ttl: 60_000 } })
+  async view(@Body() dto: TrackViewDto, @Req() req: Request) {
     await this.stats.trackView(clientIp(req), dto);
   }
 
   @Post('contact')
   @HttpCode(204)
-  @RateLimit(30, 60)
-  async contact(@Body() dto: TrackContactDto, @Req() req: any) {
+  @Throttle({ default: { limit: 30, ttl: 60_000 } })
+  async contact(@Body() dto: TrackContactDto, @Req() req: Request) {
     await this.stats.trackContact(clientIp(req), dto);
   }
 }
 
 @Controller('merchant/stats')
-@Auth('MERCHANT', 'ADMIN')
+@Auth('MERCHANT')
 export class MerchantStatsController {
   constructor(private stats: StatsService) {}
 
