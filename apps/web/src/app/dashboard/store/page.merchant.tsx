@@ -209,6 +209,14 @@ function StoreForm({
         </Field>
       </section>
 
+      {(store.earnedLevel === "LOCATION" || store.earnedLevel === "PREMIUM") &&
+        (form.name.trim() !== store.name ||
+          form.governorateId !== store.governorateId ||
+          (form.marketId || null) !== store.marketId) && (
+          <p className="rounded-xl bg-brand-50 px-4 py-3 text-sm leading-7 text-brand-900 ring-1 ring-brand-100">
+            تنبيه: تغيير اسم المتجر أو المحافظة أو السوق يلغي شارة «محل موثّق»، وستحتاج لتصوير فيديو جديد من المحل.
+          </p>
+        )}
       <FormError message={error} />
       <div className="flex items-center gap-3">
         <SubmitButton pending={pending || !!uploading}>حفظ الإعدادات</SubmitButton>

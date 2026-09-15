@@ -83,7 +83,12 @@ function refreshTokens(aud: Audience): Promise<boolean> {
 /** Authenticated request for one interface. Refreshes an expired session once, transparently. */
 export async function apiRequest<T>(
   path: string,
-  { audience, method = "GET", body }: { audience: Audience; method?: string; body?: unknown },
+  {
+    audience,
+    method = "GET",
+    body,
+    as = "json",
+  }: { audience: Audience; method?: string; body?: unknown; as?: "json" | "blob" },
 ): Promise<T> {
   const init: RequestInit = { method };
   if (body instanceof FormData) init.body = body;
@@ -110,7 +115,7 @@ export async function apiRequest<T>(
     throw new ApiRequestError(message, res.status, code);
   }
   if (res.status === 204) return undefined as T;
-  return res.json() as Promise<T>;
+  return (as === "blob" ? res.blob() : res.json()) as Promise<T>;
 }
 
 export const merchantFetch = <T>(path: string, opts: { method?: string; body?: unknown } = {}) =>
@@ -120,6 +125,9 @@ export const setMerchantUser = (user: SessionUser) => setSessionUser("merchant",
 
 export const adminFetch =<T>(path: string, opts: { method?: string; body?: unknown } = {}) =>
   apiRequest<T>(path, { ...opts, audience: "admin" });
+
+/** Protected file (verification evidence) as a Blob, shown through a short-lived object URL. */
+export const adminBlob = (path: string) => apiRequest<Blob>(path, { audience: "admin", as: "blob" });
 
 export async function loadSession(aud: Audience) {
   setState(aud, { status: "loading", user: states[aud].user });

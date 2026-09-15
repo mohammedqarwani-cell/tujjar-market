@@ -8,12 +8,13 @@ import { PriceTag } from "@components/catalog/PriceTag";
 import { ProductCard } from "@components/catalog/ProductCard";
 import { StoreAvatar } from "@components/catalog/StoreAvatar";
 import { FavoriteButton } from "@components/catalog/FavoriteButton";
+import { VerifiedMark } from "@components/catalog/VerificationBadge";
 import { ContactButtons } from "@components/contact/ContactButtons";
 import { ShareButton } from "@components/contact/ShareButton";
 import { ReportButton } from "@components/contact/ReportButton";
 import { ViewTracker } from "@components/contact/ViewTracker";
 import { Section } from "@components/ui/Section";
-import { ClockIcon, EyeIcon, PinIcon, ShieldIcon, TruckIcon, VerifiedIcon } from "@components/ui/icons";
+import { ClockIcon, EyeIcon, PinIcon, ShieldIcon, TruckIcon } from "@components/ui/icons";
 import { ProductGallery } from "./ProductGallery";
 
 type Props = { params: Promise<{ id: string }> };
@@ -101,7 +102,7 @@ export default async function ProductPage({ params }: Props) {
               <div className="min-w-0 flex-1">
                 <div className="flex items-center gap-1.5">
                   <span className="truncate font-bold">{p.store.name}</span>
-                  {p.store.isVerified && <VerifiedIcon size={16} className="text-olive-500" />}
+                  <VerifiedMark level={p.store.verificationLevel} />
                 </div>
                 <div className="mt-1 flex flex-wrap gap-x-3 gap-y-1 text-xs text-muted">
                   <span className="flex items-center gap-1"><PinIcon size={13} />{storeLocation(p.store)}</span>

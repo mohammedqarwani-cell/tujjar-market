@@ -6,13 +6,14 @@ import { displayPhone, storeLocation } from "@lib/format";
 import type { Page, ProductCardData, StoreDetail } from "@lib/types";
 import { StoreAvatar } from "@components/catalog/StoreAvatar";
 import { ProductCard } from "@components/catalog/ProductCard";
+import { VerificationBadge } from "@components/catalog/VerificationBadge";
 import { ContactButtons } from "@components/contact/ContactButtons";
 import { ShareButton } from "@components/contact/ShareButton";
 import { ReportButton } from "@components/contact/ReportButton";
 import { ViewTracker } from "@components/contact/ViewTracker";
 import { EmptyState } from "@components/ui/Section";
 import { Pagination } from "@components/ui/Pagination";
-import { ClockIcon, PhoneIcon, PinIcon, TruckIcon, VerifiedIcon } from "@components/ui/icons";
+import { ClockIcon, PhoneIcon, PinIcon, TruckIcon } from "@components/ui/icons";
 
 type Props = {
   params: Promise<{ slug: string }>;
@@ -68,11 +69,7 @@ export default async function StorePage({ params, searchParams }: Props) {
             <div className="min-w-0">
               <div className="flex flex-wrap items-center gap-2">
                 <h1 className="text-2xl font-bold sm:text-3xl">{store.name}</h1>
-                {store.isVerified && (
-                  <span className="flex items-center gap-1 rounded-full bg-olive-50 px-2.5 py-1 text-xs font-bold text-olive-700">
-                    <VerifiedIcon size={15} className="text-olive-500" /> متجر موثّق
-                  </span>
-                )}
+                <VerificationBadge level={store.verificationLevel} marketName={store.market?.name} />
               </div>
               {store.tagline && <p className="mt-1 text-muted">{store.tagline}</p>}
               <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-ink/80">

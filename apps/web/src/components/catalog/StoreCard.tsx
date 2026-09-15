@@ -1,8 +1,10 @@
 import Link from "next/link";
 import type { StoreCardData } from "@lib/types";
 import { storeLocation } from "@lib/format";
-import { PinIcon, TruckIcon, VerifiedIcon } from "@components/ui/icons";
+import { isNewStore } from "@lib/verification";
+import { PinIcon, TruckIcon } from "@components/ui/icons";
 import { StoreAvatar } from "./StoreAvatar";
+import { VerifiedMark } from "./VerificationBadge";
 
 export function StoreCard({ store: s }: { store: StoreCardData }) {
   return (
@@ -27,7 +29,10 @@ export function StoreCard({ store: s }: { store: StoreCardData }) {
         <StoreAvatar name={s.name} logoUrl={s.logoUrl} className="-mt-8 h-16 w-16 border-4 border-surface text-xl" />
         <div className="mt-2 flex items-center gap-1.5">
           <h3 className="truncate font-bold text-ink">{s.name}</h3>
-          {s.isVerified && <VerifiedIcon size={17} className="shrink-0 text-olive-500" />}
+          <VerifiedMark level={s.verificationLevel} size={17} />
+          {s.verificationLevel === "REGISTERED" && isNewStore(s.createdAt) && (
+            <span className="shrink-0 rounded-full bg-brand-50 px-2 py-0.5 text-[10px] font-bold text-brand-700">جديد</span>
+          )}
         </div>
         {s.tagline && <p className="mt-0.5 line-clamp-1 text-sm text-muted">{s.tagline}</p>}
 

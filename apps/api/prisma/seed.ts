@@ -294,6 +294,11 @@ async function main() {
   await prisma.category.deleteMany();
 
   console.log('🗺️  Governorates & markets...');
+  // Approximate geofences for demos only; real market boundaries are surveyed in Phase 4
+  const geofences: Record<string, { lat: number; lng: number; radius: number }> = {
+    'al-hamidiyah': { lat: 33.5113, lng: 36.3035, radius: 400 },
+    'al-buzuriyah': { lat: 33.5098, lng: 36.3066, radius: 250 },
+  };
   const govBySlug = new Map<string, { id: string; name: string }>();
   const marketBySlug = new Map<string, { id: string; name: string }>();
   for (const [i, g] of governorates.entries()) {
@@ -305,7 +310,16 @@ async function main() {
         latitude: g.lat,
         longitude: g.lng,
         markets: {
-          create: g.markets.map(([slug, name, description], j) => ({ slug, name, description, sortOrder: j })),
+          create: g.markets.map(([slug, name, description], j) => {
+            const fence = geofences[slug];
+            return {
+              slug,
+              name,
+              description,
+              sortOrder: j,
+              ...(fence ? { latitude: fence.lat, longitude: fence.lng, radiusMeters: fence.radius } : {}),
+            };
+          }),
         },
       },
       include: { markets: true },
@@ -370,7 +384,10 @@ async function main() {
         whatsapp: phone,
         phone,
         hasDelivery: !!s.delivery,
-        isVerified: !!s.verified,
+        verificationLevel: s.verified ? 'LOCATION' : 'REGISTERED',
+        earnedLevel: s.verified ? 'LOCATION' : 'REGISTERED',
+        verificationExpiresAt: s.verified ? new Date(Date.now() + 365 * 86400_000) : null,
+        attestedAt: new Date(),
         viewsCount: 150 + ((i * 97) % 900),
         contactsCount: 20 + ((i * 37) % 120),
         searchText: buildSearchText(s.name, s.tagline, s.description, market.name, gov.name, cat.name),

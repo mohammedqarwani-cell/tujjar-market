@@ -1,9 +1,10 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, ForbiddenException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { buildSearchText, normalizeArabic } from '../common/text/arabic';
 import { pageResult, paging } from '../common/pagination';
 import { productCardSelect, publicProductWhere } from '../common/selects';
+import { PRODUCT_LIMITS } from '../verification/verification.levels';
 import { ProductInputDto } from './product.dto';
 
 const SORTS: Record<string, Prisma.ProductOrderByWithRelationInput[]> = {
@@ -67,7 +68,7 @@ export class ProductsService {
             name: true,
             tagline: true,
             logoUrl: true,
-            isVerified: true,
+            verificationLevel: true,
             hasDelivery: true,
             whatsapp: true,
             phone: true,
@@ -106,8 +107,10 @@ export class ProductsService {
       select: {
         id: true,
         name: true,
+        verificationLevel: true,
         governorate: { select: { name: true } },
         market: { select: { name: true } },
+        _count: { select: { products: true } },
       },
     });
     if (!store) throw new NotFoundException('لا يوجد متجر مرتبط بحسابك');
@@ -153,12 +156,24 @@ export class ProductsService {
 
   async create(userId: string, dto: ProductInputDto) {
     const store = await this.storeOf(userId);
+    this.assertBelowLimit(store);
     const data = await this.prepare(dto, store);
     const { riskScore, status } = this.assessRisk(dto);
     return this.prisma.product.create({
       data: { ...data, storeId: store.id, riskScore, status },
       select: { id: true, status: true },
     });
+  }
+
+  /** Higher verification levels unlock more listings (risk-based limits). */
+  private assertBelowLimit(store: Awaited<ReturnType<ProductsService['storeOf']>>) {
+    const limit = PRODUCT_LIMITS[store.verificationLevel];
+    if (limit === null || store._count.products < limit) return;
+    const message =
+      store.verificationLevel === 'REGISTERED'
+        ? `الحد الأقصى لمتجر غير موثّق ${limit} منتجات. وثّق هويتك من صفحة التوثيق لتضيف حتى ${PRODUCT_LIMITS.IDENTITY} منتجاً`
+        : `الحد الأقصى لمتجر موثّق الهوية ${limit} منتجاً. وثّق محلك من صفحة التوثيق لتضيف منتجات بلا حدود`;
+    throw new ForbiddenException({ statusCode: 403, message, code: 'PRODUCT_LIMIT' });
   }
 
   async update(userId: string, id: string, dto: ProductInputDto) {

@@ -10,6 +10,7 @@ import { ProductsModule } from './products/products.module';
 import { MediaModule } from './media/media.module';
 import { StatsModule } from './stats/stats.module';
 import { ReportsModule } from './reports/reports.module';
+import { VerificationModule } from './verification/verification.module';
 import { AdminModule } from './admin/admin.module';
 import { CsrfGuard } from './common/csrf.guard';
 import { ThrottleGuard } from './common/throttle';
@@ -26,6 +27,7 @@ import { ThrottleGuard } from './common/throttle';
     MediaModule,
     StatsModule,
     ReportsModule,
+    VerificationModule,
     AdminModule,
   ],
   providers: [

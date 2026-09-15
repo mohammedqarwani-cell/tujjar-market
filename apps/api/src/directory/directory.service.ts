@@ -82,7 +82,7 @@ export class DirectoryService {
       this.prisma.store.findMany({
         where: storeScope,
         select: storeCardSelect,
-        orderBy: [{ isVerified: 'desc' }, { contactsCount: 'desc' }],
+        orderBy: [{ verificationLevel: 'desc' }, { contactsCount: 'desc' }],
         take: 8,
       }),
       Promise.all([

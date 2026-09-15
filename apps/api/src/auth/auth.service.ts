@@ -112,6 +112,7 @@ export class AuthService {
             whatsapp,
             phone,
             address: dto.address?.trim() || null,
+            attestedAt: new Date(),
             searchText: buildSearchText(dto.storeName, market?.name, governorate.name, category.name),
           },
         },

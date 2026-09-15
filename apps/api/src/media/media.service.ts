@@ -1,14 +1,9 @@
 import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
-import {
-  CreateBucketCommand,
-  HeadBucketCommand,
-  PutBucketPolicyCommand,
-  PutObjectCommand,
-  S3Client,
-} from '@aws-sdk/client-s3';
+import { CreateBucketCommand, HeadBucketCommand, PutBucketPolicyCommand, PutObjectCommand } from '@aws-sdk/client-s3';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 import { env } from '../env';
+import { createS3Client } from '../common/s3';
 
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
 const MAX_INPUT_PIXELS = 40_000_000;
@@ -18,12 +13,7 @@ const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp', 'heif', 'avif']);
 @Injectable()
 export class MediaService implements OnModuleInit {
   private readonly log = new Logger(MediaService.name);
-  private readonly s3 = new S3Client({
-    region: 'us-east-1',
-    endpoint: env.minio.endpoint,
-    forcePathStyle: true,
-    credentials: { accessKeyId: env.minio.accessKey, secretAccessKey: env.minio.secretKey },
-  });
+  private readonly s3 = createS3Client();
 
   async onModuleInit() {
     const Bucket = env.minio.bucket;
