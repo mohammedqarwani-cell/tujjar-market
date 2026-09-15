@@ -8,8 +8,13 @@ if (!["web", "merchant", "admin"].includes(appInterface)) {
 }
 
 const isDev = process.env.NODE_ENV !== "production";
-const apiOrigin = new URL(process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000").origin;
+const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
+// A relative API base ("/api") means the browser talks to this site's own proxy, covered by 'self'
+const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
+const apiOrigin = apiBase.startsWith("/") ? "" : new URL(apiBase).origin;
 const mediaOrigin = new URL(process.env.NEXT_PUBLIC_MEDIA_URL ?? "http://localhost:9000").origin;
+/** When set, /api/* is proxied to this API so sessions stay first-party cookies on each interface's domain */
+const apiProxyTarget = process.env.API_PROXY_TARGET?.replace(/\/+$/, "");
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -20,7 +25,7 @@ const contentSecurityPolicy = [
   // Recorded shop videos are previewed, and reviewed by moderators, from in-memory blob URLs
   "media-src 'self' blob:",
   "font-src 'self'",
-  `connect-src 'self' ${apiOrigin}${isDev ? " ws: wss:" : ""}`,
+  `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""}${isDev ? " ws: wss:" : ""}`,
   "frame-ancestors 'none'",
   "form-action 'self'",
   "base-uri 'self'",
@@ -35,8 +40,8 @@ const securityHeaders = [
   { key: "Referrer-Policy", value: "strict-origin-when-cross-origin" },
   { key: "Permissions-Policy", value: "camera=(self), geolocation=(self), microphone=(), payment=()" },
   ...(isDev ? [] : [{ key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" }]),
-  // The merchant portal and admin console must never appear in search engines
-  ...(appInterface === "web" ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow" }]),
+  // The merchant portal, the admin console and any demo deployment must never appear in search engines
+  ...(appInterface === "web" && !demoMode ? [] : [{ key: "X-Robots-Tag", value: "noindex, nofollow" }]),
 ];
 
 const nextConfig: NextConfig = {
@@ -46,13 +51,18 @@ const nextConfig: NextConfig = {
   // Each interface builds only its own route files (page.web.tsx, page.merchant.tsx, page.admin.tsx)
   // plus shared ones, so the buyer site never ships merchant or admin screens and vice versa.
   pageExtensions: [`${appInterface}.tsx`, `${appInterface}.ts`, "shared.tsx", "shared.ts"],
-  distDir: appInterface === "web" ? ".next" : `.next-${appInterface}`,
+  // Locally the three interfaces share one folder, so each needs its own build output. A Vercel project
+  // builds a single interface and expects the default .next folder.
+  distDir: appInterface === "web" || process.env.VERCEL ? ".next" : `.next-${appInterface}`,
   // Route types are generated per interface; a shared tsconfig would type-check one interface's
   // pages against another's routes, so each build uses its own config.
   typescript: { tsconfigPath: `tsconfig.${appInterface}.json` },
   env: { NEXT_PUBLIC_APP_INTERFACE: appInterface },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
+  },
+  async rewrites() {
+    return apiProxyTarget ? [{ source: "/api/:path*", destination: `${apiProxyTarget}/:path*` }] : [];
   },
 };
 

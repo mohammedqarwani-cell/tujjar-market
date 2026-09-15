@@ -5,6 +5,9 @@ import type { Category, Governorate } from "@lib/types";
 import { ChartIcon, ImageIcon, WhatsAppIcon } from "@components/ui/icons";
 import { RegisterForm } from "./RegisterForm";
 
+// Rendered on request so a build never depends on the API being reachable (its data is still cached)
+export const dynamic = "force-dynamic";
+
 export const metadata: Metadata = {
   title: "افتح متجرك مجاناً",
   description: "اعرض منتجات محلك لزبائن محافظتك واستقبل استفساراتهم مباشرة على واتساب. مجاناً وخلال دقيقتين.",

@@ -3,8 +3,11 @@ generator client {
 }
 
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  /// Pooled connection used by the running API (Supabase transaction pooler in the demo)
+  url       = env("DATABASE_URL")
+  /// Direct session connection used by migrations; the same URL locally
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
