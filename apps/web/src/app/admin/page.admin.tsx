@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { toQuery } from "@lib/api";
+import { webUrl } from "@lib/urls";
 import { displayPhone, formatNumber, priceLabel, timeAgo } from "@lib/format";
 import { adminFetch, apiRequest, signOut, useSession } from "@lib/session";
 import type { Currency, Page, PriceType } from "@lib/types";
@@ -228,7 +229,7 @@ function StoresTab({ canSuspend }: { canSuspend: boolean }) {
         <article key={s.id} className={`flex flex-col gap-3 rounded-card bg-surface p-4 ring-1 ring-line sm:flex-row sm:items-center ${action.busy === s.id ? "opacity-50" : ""}`}>
           <div className="min-w-0 flex-1">
             <div className="flex flex-wrap items-center gap-2">
-              <Link href={`/stores/${s.slug}`} target="_blank" className="font-bold hover:text-brand-700">{s.name}</Link>
+              <Link href={webUrl(`/stores/${s.slug}`)} target="_blank" className="font-bold hover:text-brand-700">{s.name}</Link>
               {s.isVerified && <VerifiedIcon size={16} className="text-olive-500" />}
               {s.status === "SUSPENDED" && <span className="rounded-full bg-danger/10 px-2 py-0.5 text-[11px] font-bold text-danger">موقوف</span>}
               {s._count.reports > 0 && <span className="rounded-full bg-brand-50 px-2 py-0.5 text-[11px] font-bold text-brand-700">{s._count.reports} بلاغ</span>}
@@ -294,9 +295,9 @@ function ProductsTab() {
               {p.images[0] ? <img src={p.images[0]} alt="" className="h-full w-full object-cover" /> : p.category.icon}
             </div>
             <div className="min-w-0">
-              <Link href={`/products/${p.id}`} target="_blank" className="line-clamp-1 font-semibold hover:text-brand-700">{p.title}</Link>
+              <Link href={webUrl(`/products/${p.id}`)} target="_blank" className="line-clamp-1 font-semibold hover:text-brand-700">{p.title}</Link>
               <div className="mt-1 text-xs leading-6 text-muted">
-                {priceLabel(p).main} · <Link href={`/stores/${p.store.slug}`} target="_blank" className="hover:text-ink">{p.store.name}</Link> · {timeAgo(p.createdAt)}
+                {priceLabel(p).main} · <Link href={webUrl(`/stores/${p.store.slug}`)} target="_blank" className="hover:text-ink">{p.store.name}</Link> · {timeAgo(p.createdAt)}
                 {p.riskScore > 0 && <span className={`ms-2 font-bold ${p.riskScore >= 50 ? "text-danger" : "text-brand-700"}`}>مؤشر الخطورة {p.riskScore}</span>}
               </div>
             </div>
@@ -343,12 +344,12 @@ function ReportsTab() {
               <div className="font-bold text-danger">{r.reason}</div>
               <div className="mt-1 text-sm text-muted">
                 {r.product && (
-                  <Link href={`/products/${r.product.id}`} target="_blank" className="font-medium text-ink hover:text-brand-700">منتج: {r.product.title}</Link>
+                  <Link href={webUrl(`/products/${r.product.id}`)} target="_blank" className="font-medium text-ink hover:text-brand-700">منتج: {r.product.title}</Link>
                 )}
                 {r.store && (
                   <>
                     {r.product ? " · " : ""}
-                    <Link href={`/stores/${r.store.slug}`} target="_blank" className="font-medium text-ink hover:text-brand-700">متجر: {r.store.name}</Link>
+                    <Link href={webUrl(`/stores/${r.store.slug}`)} target="_blank" className="font-medium text-ink hover:text-brand-700">متجر: {r.store.name}</Link>
                   </>
                 )}
                 <span className="ms-2 text-xs">{timeAgo(r.createdAt)}</span>

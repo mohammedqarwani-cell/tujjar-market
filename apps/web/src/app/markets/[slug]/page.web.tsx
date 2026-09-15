@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApiError, apiGet, toQuery } from "@lib/api";
+import { merchantUrl } from "@lib/urls";
 import type { MarketDetail, Page, ProductCardData, StoreCardData } from "@lib/types";
 import { StoreCard } from "@components/catalog/StoreCard";
 import { ProductCard } from "@components/catalog/ProductCard";
@@ -63,7 +64,7 @@ export default async function MarketPage({ params }: Props) {
         ) : (
           <EmptyState icon="🏪" title="لا توجد محلات بعد في هذا السوق">
             عندك محل هون؟{" "}
-            <Link href="/join" className="font-medium text-brand-700 underline">افتح متجرك مجاناً</Link> وكن أول الظاهرين.
+            <Link href={merchantUrl("/join")} className="font-medium text-brand-700 underline">افتح متجرك مجاناً</Link> وكن أول الظاهرين.
           </EmptyState>
         )}
       </Section>

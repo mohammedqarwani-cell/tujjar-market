@@ -3,6 +3,7 @@ import Form from "next/form";
 import { cookies } from "next/headers";
 import { apiGet, toQuery } from "@lib/api";
 import { GOV_COOKIE } from "@lib/gov";
+import { merchantUrl } from "@lib/urls";
 import { formatNumber } from "@lib/format";
 import type { HomeData } from "@lib/types";
 import { ProductCard } from "@components/catalog/ProductCard";
@@ -196,7 +197,7 @@ export default async function HomePage() {
               </p>
             </div>
             <Link
-              href="/join"
+              href={merchantUrl("/join")}
               className="inline-flex h-12 shrink-0 items-center justify-center rounded-xl bg-brand-500 px-7 font-bold text-ink transition hover:bg-brand-200"
             >
               افتح متجرك مجاناً

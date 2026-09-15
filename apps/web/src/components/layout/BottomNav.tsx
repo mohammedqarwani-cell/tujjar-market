@@ -3,27 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HeartIcon, HomeIcon, SearchIcon, StoreIcon, UserIcon } from "@components/ui/icons";
-import { useSession } from "@lib/session";
+
+const ITEMS = [
+  { href: "/", label: "الرئيسية", Icon: HomeIcon, match: (p: string) => p === "/" },
+  { href: "/markets", label: "الأسواق", Icon: StoreIcon, match: (p: string) => p.startsWith("/markets") },
+  { href: "/search", label: "بحث", Icon: SearchIcon, match: (p: string) => p.startsWith("/search") },
+  { href: "/favorites", label: "المفضلة", Icon: HeartIcon, match: (p: string) => p.startsWith("/favorites") },
+  { href: "/account", label: "حسابي", Icon: UserIcon, match: (p: string) => p.startsWith("/account") },
+];
 
 export function BottomNav() {
   const pathname = usePathname();
-  const merchant = useSession("merchant", { lazy: true });
-  const accountHref = merchant.user ? "/dashboard" : "/account";
-
-  const items = [
-    { href: "/", label: "الرئيسية", Icon: HomeIcon, match: (p: string) => p === "/" },
-    { href: "/markets", label: "الأسواق", Icon: StoreIcon, match: (p: string) => p.startsWith("/markets") },
-    { href: "/search", label: "بحث", Icon: SearchIcon, match: (p: string) => p.startsWith("/search") },
-    { href: "/favorites", label: "المفضلة", Icon: HeartIcon, match: (p: string) => p.startsWith("/favorites") },
-    {
-      href: accountHref,
-      label: merchant.user ? "متجري" : "حسابي",
-      Icon: UserIcon,
-      match: (p: string) => ["/account", "/join", "/login"].some((x) => p.startsWith(x)),
-    },
-  ];
-
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) return null;
 
   return (
     <nav
@@ -31,7 +21,7 @@ export function BottomNav() {
       className="fixed inset-x-0 bottom-0 z-40 border-t border-line bg-surface/95 pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
     >
       <ul className="grid grid-cols-5">
-        {items.map(({ href, label, Icon, match }) => {
+        {ITEMS.map(({ href, label, Icon, match }) => {
           const active = match(pathname);
           return (
             <li key={label}>

@@ -1,0 +1,16 @@
+{
+  "extends": "./tsconfig.json",
+  "include": [
+    "next-env.d.ts",
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.mts",
+    ".next-merchant/types/**/*.ts",
+    ".next-merchant/dev/types/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    ".next",
+    ".next-admin"
+  ]
+}

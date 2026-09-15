@@ -4,6 +4,7 @@ import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "@lib/session";
+import { webUrl } from "@lib/urls";
 import { BoxIcon, ChartIcon, EyeIcon, LogoutIcon, PlusIcon, SlidersIcon } from "@components/ui/icons";
 
 const NAV = [
@@ -35,7 +36,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           <div className="text-xs text-muted">متجرك</div>
           <div className="mt-0.5 truncate font-bold">{user.store?.name ?? "—"}</div>
           {user.store && (
-            <Link href={`/stores/${user.store.slug}`} className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-700">
+            <Link href={webUrl(`/stores/${user.store.slug}`)} className="mt-2 inline-flex items-center gap-1 text-xs font-medium text-brand-700">
               <EyeIcon size={14} /> عرض كما يراه الزبون
             </Link>
           )}

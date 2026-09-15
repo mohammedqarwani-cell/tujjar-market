@@ -4,6 +4,8 @@
 $ErrorActionPreference = "Continue"
 $Api = "http://localhost:4000"
 $Web = "http://localhost:3000"
+$MerchantWeb = "http://localhost:3001"
+$Origins = @{ web = $Web; merchant = $MerchantWeb; admin = "http://localhost:3002" }
 # Built by scripts\build-totp-helper.ps1
 $Totp = Join-Path $env:TEMP "tj-totp\auth\totp.js"
 if (-not (Test-Path $Totp)) { throw "Run scripts\build-totp-helper.ps1 first" }
@@ -19,10 +21,12 @@ function Check([string]$name, [bool]$ok, [string]$detail = "") {
 
 function Req {
   param([string]$Method = "GET", [string]$Path, [string]$Client = "web", $Body = $null,
-        [string]$Jar = "", [string]$Origin = $Web, [switch]$NoClient)
+        [string]$Jar = "", [string]$Origin = "", [switch]$NoClient)
   $hdr = Join-Path $Tmp "headers.txt"; $out = Join-Path $Tmp "body.txt"
   $a = @("-s", "-X", $Method, "-D", $hdr, "-o", $out, "-w", "%{http_code}")
   if (-not $NoClient) { $a += @("-H", "X-Client: $Client") }
+  # The API only accepts each interface from its own origin
+  if (-not $PSBoundParameters.ContainsKey("Origin")) { $Origin = $Origins[$Client] }
   if ($Origin) { $a += @("-H", "Origin: $Origin") }
   if ($Jar) { $a += @("-b", $Jar, "-c", $Jar) }
   if ($null -ne $Body) {
@@ -116,11 +120,11 @@ $r = Req -Path "/merchant/stats" -Client "merchant" -Jar $merJar
 Check "Merchant reaches merchant endpoints" ($r.Code -eq 200) "got $($r.Code)"
 Add-Type -AssemblyName System.Drawing
 $png = Join-Path $Tmp "photo.png"; $bmp = New-Object Drawing.Bitmap 1200, 900; $g = [Drawing.Graphics]::FromImage($bmp); $g.Clear([Drawing.Color]::FromArgb(184, 110, 20)); $g.Dispose(); $bmp.Save($png, [Drawing.Imaging.ImageFormat]::Png); $bmp.Dispose()
-$up = curl.exe -s -H "X-Client: merchant" -H "Origin: $Web" -b $merJar -c $merJar -F "file=@$png;type=image/png" "$Api/merchant/media" | ConvertFrom-Json
+$up = curl.exe -s -H "X-Client: merchant" -H "Origin: $MerchantWeb" -b $merJar -c $merJar -F "file=@$png;type=image/png" "$Api/merchant/media" | ConvertFrom-Json
 Check "Image upload is re-encoded to WebP" ($up.url -match '\.webp$') "$($up.url)"
 if ($up.url) { $ct = curl.exe -s -o NUL -w "%{content_type}" $up.url; Check "Stored image served as image/webp" ($ct -eq "image/webp") $ct }
 $fake = Join-Path $Tmp "fake.png"; [IO.File]::WriteAllText($fake, "<script>alert(1)</script>")
-$bad = curl.exe -s -H "X-Client: merchant" -H "Origin: $Web" -b $merJar -F "file=@$fake;type=image/png" "$Api/merchant/media"
+$bad = curl.exe -s -H "X-Client: merchant" -H "Origin: $MerchantWeb" -b $merJar -F "file=@$fake;type=image/png" "$Api/merchant/media"
 Check "Non-image disguised as PNG is rejected" ($bad -match '"statusCode":400') $bad.Substring(0, [Math]::Min(80, $bad.Length))
 
 # ---------- admin two-factor ----------

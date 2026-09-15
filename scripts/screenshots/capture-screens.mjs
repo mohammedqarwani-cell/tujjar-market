@@ -11,7 +11,10 @@ const [outDir, totpModule] = process.argv.slice(2);
 const require = createRequire(import.meta.url);
 const totp = require(totpModule);
 const EDGE = "C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe";
-const WEB = "http://localhost:3000";
+const ORIGINS = { web: "http://localhost:3000", merchant: "http://localhost:3001", admin: "http://localhost:3002" };
+// Each interface runs on its own origin
+const originFor = (path) =>
+  path.startsWith("/admin") ? ORIGINS.admin : /^\/(dashboard|login|join)(\/|\?|$)/.test(path) ? ORIGINS.merchant : ORIGINS.web;
 const API = "http://localhost:4000";
 const PORT = 9333;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -71,7 +74,7 @@ async function go(path, settleMs = 5000) {
     const l = (m) => m.method === "Page.loadEventFired" && (listeners.splice(listeners.indexOf(l), 1), r());
     listeners.push(l);
   });
-  await send("Page.navigate", { url: WEB + path });
+  await send("Page.navigate", { url: originFor(path) + path });
   await Promise.race([loaded, sleep(60000)]);
   await sleep(settleMs);
 }
