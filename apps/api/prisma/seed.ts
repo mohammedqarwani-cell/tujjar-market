@@ -363,13 +363,20 @@ async function main() {
   }
 
   console.log('👤 Users...');
-  const merchantHash = await bcrypt.hash('Tujjar@2026', 12);
+  // A deployed demo must never use the development passwords published in this repository
+  const demoPassword = (name: string, devDefault: string) => {
+    const value = process.env[name];
+    if (value) return value;
+    if (process.env.NODE_ENV === 'production') throw new Error(`${name} must be set to seed a deployed database`);
+    return devDefault;
+  };
+  const merchantHash = await bcrypt.hash(demoPassword('SEED_MERCHANT_PASSWORD', 'Tujjar@2026'), 12);
   const verified = { phoneVerifiedAt: new Date(), termsVersion: '2026-09', termsAcceptedAt: new Date() };
   await prisma.user.create({
     data: {
       name: 'مدير المنصة',
       phone: demoPhone(1),
-      passwordHash: await bcrypt.hash('Admin@2026', 12),
+      passwordHash: await bcrypt.hash(demoPassword('SEED_ADMIN_PASSWORD', 'Admin@2026'), 12),
       role: 'ADMIN',
       ...verified,
     },
@@ -378,7 +385,7 @@ async function main() {
     data: {
       name: 'زبون تجريبي',
       phone: demoPhone(200),
-      passwordHash: await bcrypt.hash('Buyer@2026', 12),
+      passwordHash: await bcrypt.hash(demoPassword('SEED_BUYER_PASSWORD', 'Buyer@2026'), 12),
       role: 'BUYER',
       ...verified,
     },
@@ -464,11 +471,14 @@ async function main() {
   }
 
   console.log('✅ Done');
-  console.table([
-    { role: 'ADMIN', phone: '0900000001', password: 'Admin@2026' },
-    { role: 'MERCHANT (بروكار الشام)', phone: '0900000100', password: 'Tujjar@2026' },
-    { role: 'BUYER', phone: '0900000200', password: 'Buyer@2026' },
-  ]);
+  // Deployed passwords come from environment variables and are never written to logs
+  if (process.env.NODE_ENV !== 'production') {
+    console.table([
+      { role: 'ADMIN', phone: '0900000001', password: 'Admin@2026' },
+      { role: 'MERCHANT (بروكار الشام)', phone: '0900000100', password: 'Tujjar@2026' },
+      { role: 'BUYER', phone: '0900000200', password: 'Buyer@2026' },
+    ]);
+  }
 }
 
 main()

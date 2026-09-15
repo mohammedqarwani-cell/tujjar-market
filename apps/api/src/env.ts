@@ -6,6 +6,8 @@ const envFile = join(process.cwd(), '.env');
 if (existsSync(envFile)) process.loadEnvFile(envFile);
 
 const isProd = process.env.NODE_ENV === 'production';
+/** Public demo deployment: production hardening, but OTP codes are shown on screen instead of sent by SMS */
+const demoMode = process.env.DEMO_MODE === 'true';
 
 /** Secrets must be set explicitly in production; dev gets a clearly fake fallback. */
 function secret(name: string, minLength: number, devFallback: string): string {
@@ -29,12 +31,17 @@ const list = (value: string | undefined, fallback: string) =>
     .map((v) => v.trim())
     .filter(Boolean);
 
+/** Path the API is reached under when a frontend proxies it (e.g. "/api"); cookie paths must include it. */
+const cookiePathPrefix = (process.env.COOKIE_PATH_PREFIX ?? '').replace(/\/+$/, '');
+if (cookiePathPrefix && !cookiePathPrefix.startsWith('/')) throw new Error('COOKIE_PATH_PREFIX must start with "/"');
+
 const publicBucket = process.env.MINIO_BUCKET ?? 'public';
 const privateBucket = process.env.MINIO_PRIVATE_BUCKET ?? 'kyc';
 if (publicBucket === privateBucket) throw new Error('MINIO_PRIVATE_BUCKET must differ from the public MINIO_BUCKET');
 
 export const env = {
   isProd,
+  demoMode,
   port: Number(process.env.PORT ?? 4000),
   /** Number of reverse proxies in front of the API (for correct client IPs) */
   trustProxy: Number(process.env.TRUST_PROXY ?? (isProd ? 1 : 0)),
@@ -50,11 +57,14 @@ export const env = {
   kycKey: aesKey('KYC_ENC_KEY', 'dev-kyc-files-key-32-bytes-00000'),
   cookieSecure: process.env.COOKIE_SECURE ? process.env.COOKIE_SECURE === 'true' : isProd,
   cookieDomain: process.env.COOKIE_DOMAIN || undefined,
-  /** Dev only: return OTP codes in the API response so flows can be tested without SMS */
-  otpDevEcho: !isProd && process.env.OTP_DEV_ECHO === 'true',
+  cookiePathPrefix,
+  /** Return OTP codes in the API response so flows work without SMS: development, or an explicit demo */
+  otpDevEcho: (!isProd || demoMode) && process.env.OTP_DEV_ECHO === 'true',
   termsVersion: process.env.TERMS_VERSION ?? '2026-09',
   minio: {
     endpoint: process.env.MINIO_ENDPOINT ?? 'http://localhost:9000',
+    /** MinIO ignores it; S3-compatible providers such as Supabase Storage need the project region */
+    region: process.env.MINIO_REGION ?? 'us-east-1',
     accessKey: process.env.MINIO_ACCESS_KEY ?? '',
     secretKey: process.env.MINIO_SECRET_KEY ?? '',
     bucket: publicBucket,

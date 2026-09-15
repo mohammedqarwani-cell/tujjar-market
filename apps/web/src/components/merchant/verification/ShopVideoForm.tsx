@@ -143,8 +143,8 @@ export function ShopVideoForm({
     );
 
     const mimeType = pickMimeType();
-    // About 1 Mbit/s keeps a 30-second clip near 4 MB for slow connections
-    const recorder = new MediaRecorder(stream, { ...(mimeType ? { mimeType } : {}), videoBitsPerSecond: 1_000_000 });
+    // About 0.7 Mbit/s keeps a 30-second clip under 3 MB: quick on slow connections and within proxy upload limits
+    const recorder = new MediaRecorder(stream, { ...(mimeType ? { mimeType } : {}), videoBitsPerSecond: 700_000 });
     const chunks: Blob[] = [];
     const capturedAt = new Date().toISOString();
     recorder.ondataavailable = (e) => {

@@ -3,7 +3,7 @@ import { env } from '../env';
 
 export const createS3Client = () =>
   new S3Client({
-    region: 'us-east-1',
+    region: env.minio.region,
     endpoint: env.minio.endpoint,
     forcePathStyle: true,
     credentials: { accessKeyId: env.minio.accessKey, secretAccessKey: env.minio.secretKey },
