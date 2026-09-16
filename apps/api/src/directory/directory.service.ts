@@ -18,6 +18,8 @@ export class DirectoryService {
         slug: true,
         name: true,
         status: true,
+        latitude: true,
+        longitude: true,
         _count: { select: { stores: publicStores } },
         markets: {
           where: { isActive: true },

@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { merchantUrl } from "@lib/urls";
 import { LEVELS, LEVEL_ORDER } from "@lib/verification";
 import { VerifiedMark } from "@components/catalog/VerificationBadge";
 import { ShieldIcon } from "@components/ui/icons";
@@ -55,13 +54,6 @@ export default function VerificationInfoPage() {
           لاحظت أي مخالفة، استخدم زر «إبلاغ» في صفحة المتجر أو المنتج.
         </p>
       </section>
-
-      <p className="mt-6 text-sm text-muted">
-        تاجر؟{" "}
-        <Link href={merchantUrl("/dashboard/verification")} className="font-medium text-brand-700">
-          وثّق متجرك من بوابة التجار
-        </Link>
-      </p>
     </div>
   );
 }

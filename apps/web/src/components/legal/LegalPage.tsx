@@ -5,7 +5,7 @@ export function LegalPage({
 }: {
   title: string;
   updated: string;
-  sections: { heading: string; body: string[] }[];
+  sections: { heading: string; body: string[]; id?: string }[];
 }) {
   return (
     <article className="mx-auto max-w-3xl px-4 py-10">
@@ -16,7 +16,7 @@ export function LegalPage({
       </p>
       <div className="mt-8 space-y-8">
         {sections.map((s, i) => (
-          <section key={s.heading}>
+          <section key={s.heading} id={s.id} className="scroll-mt-24">
             <h2 className="text-lg font-bold">
               {i + 1}. {s.heading}
             </h2>

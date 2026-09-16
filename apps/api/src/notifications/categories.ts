@@ -5,7 +5,8 @@ export type PrefsMap = Partial<Record<NotificationCategory, ChannelPrefs>>;
 
 type CategoryInfo = {
   label: string;
-  description: string;
+  /** One text, or a text per role so buyers never read about merchant matters */
+  description: string | Partial<Record<Role, string>>;
   defaults: ChannelPrefs;
   /** Account notices always stay in the app so nobody misses a decision about their account */
   inAppLocked?: boolean;
@@ -16,7 +17,13 @@ type CategoryInfo = {
 export const CATEGORY_INFO: Record<NotificationCategory, CategoryInfo> = {
   ACCOUNT: {
     label: 'حسابي',
-    description: 'قرارات التوثيق، حالة المتجر والمنتجات، الردود على تقييماتك، ونتائج بلاغاتك',
+    description: {
+      BUYER: 'ردود التجار على تقييماتك، نتائج بلاغاتك، وما يخص حسابك',
+      MERCHANT: 'قرارات التوثيق، حالة متجرك ومنتجاتك، وما يخص حسابك',
+      ADMIN: 'ما يخص حسابك في لوحة الإدارة',
+      MODERATOR: 'ما يخص حسابك في لوحة الإدارة',
+      FIELD_AGENT: 'ما يخص حسابك',
+    },
     defaults: { inApp: true, push: true },
     inAppLocked: true,
   },
@@ -39,13 +46,19 @@ export const CATEGORY_INFO: Record<NotificationCategory, CategoryInfo> = {
   },
   PROMOTIONS: {
     label: 'العروض والجديد',
-    description: 'عروض المواسم، الأسواق الجديدة، وأخبار تُجّار ماركت',
+    description: {
+      BUYER: 'عروض المواسم، الأسواق الجديدة، وأخبار تُجّار ماركت',
+      MERCHANT: 'أخبار تُجّار ماركت للتجار، والميزات والفرص الجديدة لمتجرك',
+    },
     defaults: { inApp: true, push: true },
     marketing: true,
   },
   INVITES: {
     label: 'الدعوات والتذكيرات',
-    description: 'دعوة لتقييم متجر تواصلت معه، أو لتوثيق متجرك وتجربة ميزات جديدة',
+    description: {
+      BUYER: 'دعوة لتقييم متجر تواصلت معه، وتجربة ميزات جديدة',
+      MERCHANT: 'تذكير بتوثيق متجرك، ودعوات لتجربة ميزات جديدة',
+    },
     defaults: { inApp: true, push: true },
     marketing: true,
   },
@@ -68,6 +81,11 @@ export const ROLE_CATEGORIES: Record<Role, NotificationCategory[]> = {
 export const MARKETING_PUSH_DAILY_CAP = 3;
 /** Damascus local hours (inclusive start, exclusive end) when marketing pushes are sent */
 export const MARKETING_PUSH_HOURS = { from: 9, to: 22 };
+
+export function describeCategory(category: NotificationCategory, role: Role) {
+  const d = CATEGORY_INFO[category].description;
+  return typeof d === 'string' ? d : (d[role] ?? Object.values(d)[0] ?? '');
+}
 
 export function effectivePrefs(role: Role, stored: unknown, category: NotificationCategory): ChannelPrefs {
   if (!ROLE_CATEGORIES[role].includes(category)) return { inApp: false, push: false };

@@ -12,7 +12,15 @@ export type Category = CategoryRef & { id: string; productsCount: number };
 export type MarketSummary = Ref & { id: string; storesCount: number };
 /** COMING_SOON governorates are listed but don't accept stores yet (pilot rollout) */
 export type GovernorateStatus = "ACTIVE" | "COMING_SOON";
-export type Governorate = Ref & { id: string; status: GovernorateStatus; storesCount: number; markets: MarketSummary[] };
+export type Governorate = Ref & {
+  id: string;
+  status: GovernorateStatus;
+  /** Governorate centre, used to pick the visitor's governorate from their location */
+  latitude: number | null;
+  longitude: number | null;
+  storesCount: number;
+  markets: MarketSummary[];
+};
 
 export type ProductCardData = {
   id: string;

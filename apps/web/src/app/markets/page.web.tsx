@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { apiGet } from "@lib/api";
-import { merchantUrl } from "@lib/urls";
 import type { Governorate } from "@lib/types";
 
 export const metadata: Metadata = {
@@ -66,13 +65,10 @@ export default async function MarketsPage() {
 
         {waiting.length > 0 && (
           <section className="rounded-card bg-sand/70 p-6">
-            <h2 className="font-bold">محافظات تنتظر أول محلاتها</h2>
+            <h2 className="font-bold">محلات قادمة قريباً</h2>
             <p className="mt-1 text-sm text-muted">
-              {waiting.map((g) => g.name).join("، ")} — كن أول تاجر فيها واحصل على ظهور مميز.
+              {waiting.map((g) => g.name).join("، ")}: نضيف المحلات فيها تباعاً بعد التحقق منها.
             </p>
-            <Link href={merchantUrl("/join")} className="mt-4 inline-block rounded-xl bg-brand-600 px-5 py-2.5 text-sm font-bold text-white hover:bg-brand-700">
-              افتح متجرك مجاناً
-            </Link>
           </section>
         )}
 
@@ -80,7 +76,7 @@ export default async function MarketsPage() {
           <section className="rounded-card bg-surface p-6 ring-1 ring-line">
             <h2 className="font-bold">قريباً في محافظات أخرى</h2>
             <p className="mt-1 text-sm leading-7 text-muted">
-              نفتح المحافظات تباعاً لنضمن التحقق من كل محل. تاجر في إحداها؟ سجّل اهتمامك ونتواصل معك أول ما يفتح التسجيل.
+              نفتح المحافظات تباعاً لنضمن التحقق من كل محل قبل أن يظهر لك.
             </p>
             <ul className="mt-3 flex flex-wrap gap-2">
               {soon.map((g) => (
@@ -89,9 +85,6 @@ export default async function MarketsPage() {
                 </li>
               ))}
             </ul>
-            <Link href={merchantUrl("/join")} className="mt-4 inline-block rounded-xl bg-ink px-5 py-2.5 text-sm font-bold text-canvas hover:bg-brand-900">
-              سجّل اهتمامك كتاجر
-            </Link>
           </section>
         )}
       </div>

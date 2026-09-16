@@ -11,6 +11,7 @@ import {
   PrefsMap,
   ROLE_CATEGORIES,
   damascusHour,
+  describeCategory,
   effectivePrefs,
 } from './categories';
 import { PushService, assertPushEndpoint } from './push.service';
@@ -226,7 +227,7 @@ export class NotificationsService {
       categories: ROLE_CATEGORIES[user.role].map((key) => ({
         key,
         label: CATEGORY_INFO[key].label,
-        description: CATEGORY_INFO[key].description,
+        description: describeCategory(key, user.role),
         inAppLocked: !!CATEGORY_INFO[key].inAppLocked,
         ...effectivePrefs(user.role, user.notificationPrefs, key),
       })),

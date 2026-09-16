@@ -3,7 +3,6 @@ import Form from "next/form";
 import { cookies } from "next/headers";
 import { apiGet, toQuery } from "@lib/api";
 import { GOV_COOKIE } from "@lib/gov";
-import { merchantUrl } from "@lib/urls";
 import { formatNumber } from "@lib/format";
 import type { HomeData } from "@lib/types";
 import { ProductCard } from "@components/catalog/ProductCard";
@@ -185,26 +184,6 @@ export default async function HomePage() {
         </Section>
       )}
 
-      {/* Merchant CTA */}
-      <section className="mx-auto max-w-6xl px-4">
-        <div className="relative overflow-hidden rounded-card bg-ink px-6 py-10 text-canvas sm:px-10">
-          <div className="pattern-arches absolute inset-0 opacity-30 invert" />
-          <div className="relative flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
-            <div className="max-w-xl">
-              <h2 className="text-2xl font-bold sm:text-3xl">عندك محل؟ خلّي الزبائن يلاقوك</h2>
-              <p className="mt-3 leading-8 text-canvas/75">
-                افتح متجرك مجاناً خلال دقيقتين، ارفع منتجاتك من الموبايل، واستقبل الطلبات مباشرة على واتساب.
-              </p>
-            </div>
-            <Link
-              href={merchantUrl("/join")}
-              className="inline-flex h-12 shrink-0 items-center justify-center rounded-xl bg-brand-500 px-7 font-bold text-ink transition hover:bg-brand-200"
-            >
-              افتح متجرك مجاناً
-            </Link>
-          </div>
-        </div>
-      </section>
     </div>
   );
 }
