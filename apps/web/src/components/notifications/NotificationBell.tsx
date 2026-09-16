@@ -14,6 +14,7 @@ import {
   type AppNotification,
 } from "@lib/notifications";
 import { BellIcon } from "@components/ui/icons";
+import { Portal } from "@components/ui/Portal";
 import { PushPrompt } from "./PushPrompt";
 
 export function NotificationBell({ audience, tone = "light" }: { audience: Audience; tone?: "light" | "dark" }) {
@@ -23,6 +24,7 @@ export function NotificationBell({ audience, tone = "light" }: { audience: Audie
   const [items, setItems] = useState<AppNotification[] | null>(null);
   const [error, setError] = useState("");
   const panel = useRef<HTMLDivElement>(null);
+  const dropdown = useRef<HTMLDivElement>(null);
   const router = useRouter();
 
   useEffect(() => {
@@ -36,7 +38,9 @@ export function NotificationBell({ audience, tone = "light" }: { audience: Audie
       .then((page) => setItems(page.items))
       .catch((e: Error) => setError(e.message));
     const close = (e: MouseEvent | KeyboardEvent) => {
-      if (e instanceof KeyboardEvent ? e.key === "Escape" : !panel.current?.contains(e.target as Node)) setOpen(false);
+      const target = e.target as Node;
+      const outside = !panel.current?.contains(target) && !dropdown.current?.contains(target);
+      if (e instanceof KeyboardEvent ? e.key === "Escape" : outside) setOpen(false);
     };
     document.addEventListener("mousedown", close);
     document.addEventListener("keydown", close);
@@ -76,7 +80,11 @@ export function NotificationBell({ audience, tone = "light" }: { audience: Audie
       </button>
 
       {open && (
-        <div className="absolute end-0 top-12 z-50 w-[min(22rem,calc(100vw-2rem))] overflow-hidden rounded-card bg-surface text-ink shadow-xl ring-1 ring-line">
+        <Portal>
+        <div
+          ref={dropdown}
+          className="fixed inset-x-3 top-[4.5rem] z-50 overflow-hidden rounded-card bg-surface text-ink shadow-xl ring-1 ring-line sm:inset-x-auto sm:end-[max(1rem,calc((100vw-72rem)/2+1rem))] sm:w-[22rem]"
+        >
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <span className="font-bold">الإشعارات</span>
             {unread > 0 && (
@@ -93,7 +101,7 @@ export function NotificationBell({ audience, tone = "light" }: { audience: Audie
             )}
           </div>
 
-          <div className="max-h-[60vh] overflow-y-auto">
+          <div className="max-h-[min(60vh,28rem)] overflow-y-auto overscroll-contain">
             {error && <p className="p-4 text-sm text-danger">{error}</p>}
             {!items && !error && <div className="h-40 animate-pulse" aria-busy="true" />}
             {items?.length === 0 && (
@@ -128,6 +136,7 @@ export function NotificationBell({ audience, tone = "light" }: { audience: Audie
             </Link>
           </div>
         </div>
+        </Portal>
       )}
     </div>
   );

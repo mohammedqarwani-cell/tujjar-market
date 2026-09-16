@@ -4,6 +4,8 @@ import { useCallback, useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { LOCATE_EVENT, govDecided, markGovDecided, nearestGovernorate, setGovCookie, type GovPoint } from "@lib/gov";
 import { PinIcon, XIcon } from "@components/ui/icons";
+import { Portal } from "@components/ui/Portal";
+import { PUBLIC_API } from "@lib/api";
 
 type Phase =
   | { kind: "idle" }
@@ -38,8 +40,15 @@ export function GovernorateLocator({ governorates, current }: { governorates: Go
     }
     setPhase({ kind: "locating" });
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        const nearest = nearestGovernorate(pos.coords.latitude, pos.coords.longitude, governorates);
+      async (pos) => {
+        let points = governorates;
+        // Cached pages may carry governorates without coordinates: fetch them fresh when any is missing
+        if (points.some((g) => typeof g.latitude !== "number" || typeof g.longitude !== "number")) {
+          points = await fetch(`${PUBLIC_API}/governorates`, { cache: "no-store" })
+            .then((r) => (r.ok ? (r.json() as Promise<GovPoint[]>) : governorates))
+            .catch(() => governorates);
+        }
+        const nearest = nearestGovernorate(pos.coords.latitude, pos.coords.longitude, points);
         if (!nearest) {
           setPhase({ kind: "choose", reason: "يبدو أنك خارج سوريا. اختر المحافظة التي تريد تصفّح متاجرها" });
         } else if (nearest.status === "ACTIVE") {
@@ -48,7 +57,14 @@ export function GovernorateLocator({ governorates, current }: { governorates: Go
           choose("", `${nearest.name} قريباً على تُجّار ماركت. نعرض لك متاجر كل سوريا حالياً`);
         }
       },
-      () => setPhase({ kind: "choose", reason: "لم نتمكن من تحديد موقعك. اختر محافظتك لنعرض لك المتاجر القريبة منك" }),
+      (err) =>
+        setPhase({
+          kind: "choose",
+          reason:
+            err.code === err.PERMISSION_DENIED
+              ? "لم يُسمح بتحديد الموقع. اختر محافظتك لنعرض لك المتاجر القريبة منك"
+              : "تعذّر تحديد موقعك الآن. اختر محافظتك لنعرض لك المتاجر القريبة منك",
+        }),
       { enableHighAccuracy: false, timeout: 12_000, maximumAge: 3_600_000 },
     );
   }, [governorates, choose]);
@@ -74,8 +90,9 @@ export function GovernorateLocator({ governorates, current }: { governorates: Go
 
   if (phase.kind === "locating" || phase.kind === "done") {
     return (
-      <div role="status" className="fixed inset-x-0 top-20 z-50 flex justify-center px-4">
-        <div className="flex max-w-md items-center gap-2.5 rounded-full bg-ink px-4 py-2.5 text-sm text-canvas shadow-lg">
+      <Portal>
+      <div role="status" className="pointer-events-none fixed inset-x-0 top-[4.75rem] z-50 flex justify-center px-3">
+        <div className="pointer-events-auto flex max-w-md items-center gap-2.5 rounded-2xl bg-ink px-4 py-2.5 text-sm leading-6 text-canvas shadow-lg">
           <PinIcon size={16} className={phase.kind === "locating" ? "animate-pulse text-brand-200" : "text-brand-200"} />
           <span>{phase.kind === "locating" ? "نحدد محافظتك لنعرض لك المتاجر القريبة…" : phase.message}</span>
           {phase.kind === "done" && (
@@ -85,12 +102,19 @@ export function GovernorateLocator({ governorates, current }: { governorates: Go
           )}
         </div>
       </div>
+      </Portal>
     );
   }
 
   return (
+    <Portal>
     <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/40 p-3 sm:items-center" role="presentation">
-      <div role="dialog" aria-modal="true" aria-labelledby="gov-chooser-title" className="w-full max-w-md rounded-card bg-surface p-5 shadow-2xl ring-1 ring-line">
+      <div
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="gov-chooser-title"
+        className="flex max-h-[calc(100dvh-1.5rem)] w-full max-w-md flex-col rounded-card bg-surface p-5 pb-[calc(1.25rem+env(safe-area-inset-bottom))] text-ink shadow-2xl ring-1 ring-line sm:pb-5"
+      >
         <div className="flex items-start justify-between gap-3">
           <div>
             <h2 id="gov-chooser-title" className="flex items-center gap-2 text-lg font-bold">
@@ -110,7 +134,7 @@ export function GovernorateLocator({ governorates, current }: { governorates: Go
             <XIcon size={18} />
           </button>
         </div>
-        <div className="mt-4 grid max-h-[50vh] grid-cols-2 gap-2 overflow-y-auto">
+        <div className="mt-4 grid min-h-0 grid-cols-2 gap-2 overflow-y-auto overscroll-contain">
           {active.map((g) => (
             <button
               key={g.slug}
@@ -134,5 +158,6 @@ export function GovernorateLocator({ governorates, current }: { governorates: Go
         </button>
       </div>
     </div>
+    </Portal>
   );
 }
