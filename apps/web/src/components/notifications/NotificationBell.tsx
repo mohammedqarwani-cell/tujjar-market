@@ -14,6 +14,7 @@ import {
   type AppNotification,
 } from "@lib/notifications";
 import { BellIcon } from "@components/ui/icons";
+import { PushPrompt } from "./PushPrompt";
 
 export function NotificationBell({ audience, tone = "light" }: { audience: Audience; tone?: "light" | "dark" }) {
   const { user } = useSession(audience, { lazy: audience === "web" });
@@ -53,8 +54,12 @@ export function NotificationBell({ audience, tone = "light" }: { audience: Audie
     router.push(n.url ?? "/notifications");
   };
 
+  // Admins are asked only after two-factor sign-in, which the console requires for everything else
+  const canPrompt = audience !== "admin" || user.mfa;
+
   return (
     <div ref={panel} className="relative">
+      {canPrompt && <PushPrompt audience={audience} userId={user.id} />}
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
