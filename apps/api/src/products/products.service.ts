@@ -7,6 +7,7 @@ import { productCardSelect, publicProductWhere, publicStoreWhere } from '../comm
 import { PRODUCT_LIMITS } from '../verification/verification.levels';
 import { ProductInputDto } from './product.dto';
 import { ActivityNotifier } from '../notifications/activity';
+import { SearchIndexService } from '../search/search-index.service';
 
 const SORTS: Record<string, Prisma.ProductOrderByWithRelationInput[]> = {
   newest: [{ createdAt: 'desc' }],
@@ -20,6 +21,7 @@ export class ProductsService {
   constructor(
     private prisma: PrismaService,
     private activity: ActivityNotifier,
+    private search: SearchIndexService,
   ) {}
 
   async list(query: Record<string, string>) {
@@ -41,6 +43,28 @@ export class ProductsService {
       }
     }
     if (query.offers === '1') where.oldPrice = { not: null };
+
+    const ranked = query.q?.trim() ? await this.search.rankProducts(query.q) : null;
+    if (ranked) {
+      // Smart search: the index decides what matches and how well; the database applies the filters
+      const matches = await this.prisma.product.findMany({
+        where: { ...where, id: { in: ranked.ids } },
+        select: { id: true, price: true, createdAt: true, contactsCount: true, viewsCount: true },
+      });
+      const byScore = (a: { id: string }, b: { id: string }) => ranked.scores.get(b.id)! - ranked.scores.get(a.id)!;
+      const sorters: Record<string, (a: (typeof matches)[number], b: (typeof matches)[number]) => number> = {
+        newest: (a, b) => b.createdAt.getTime() - a.createdAt.getTime(),
+        popular: (a, b) => b.contactsCount - a.contactsCount || b.viewsCount - a.viewsCount,
+        price_asc: (a, b) => (a.price ?? Infinity) - (b.price ?? Infinity),
+        price_desc: (a, b) => (b.price ?? -1) - (a.price ?? -1),
+      };
+      matches.sort(sorters[query.sort] ?? byScore);
+      const pageIds = matches.slice(skip, skip + take).map((m) => m.id);
+      const rows = await this.prisma.product.findMany({ where: { id: { in: pageIds } }, select: productCardSelect });
+      const items = pageIds.map((id) => rows.find((r) => r.id === id)!).filter(Boolean);
+      return { ...pageResult(items, matches.length, page, pageSize), search: ranked.meta };
+    }
+
     const terms = normalizeArabic(query.q).split(' ').filter((t) => t.length > 1).slice(0, 5);
     if (terms.length) where.AND = terms.map((t) => ({ searchText: { contains: t } }));
 

@@ -1,8 +1,6 @@
 import Link from "next/link";
-import Form from "next/form";
 import { cookies } from "next/headers";
 import { Logo } from "@components/brand/Logo";
-import { SearchIcon } from "@components/ui/icons";
 import { apiGet } from "@lib/api";
 import { GOV_COOKIE } from "@lib/gov";
 import type { Governorate } from "@lib/types";
@@ -10,6 +8,7 @@ import { GovernoratePicker } from "./GovernoratePicker";
 import { AccountLink } from "./AccountLink";
 import { GovernorateLocator } from "./GovernorateLocator";
 import { NotificationBell } from "@components/notifications/NotificationBell";
+import { SearchBox } from "@components/search/SearchBox";
 
 export async function SiteHeader() {
   const [governorates, current] = await Promise.all([
@@ -30,16 +29,7 @@ export async function SiteHeader() {
           <Link href="/search?offers=1" className="rounded-full px-3 py-2 hover:bg-sand">العروض</Link>
         </nav>
 
-        <Form action="/search" className="relative hidden flex-1 md:block">
-          <SearchIcon className="pointer-events-none absolute inset-y-0 start-3 my-auto text-muted" size={18} />
-          <input
-            name="q"
-            type="search"
-            placeholder="ابحث عن منتج أو متجر…"
-            aria-label="بحث"
-            className="h-11 w-full rounded-full border border-line bg-surface ps-10 pe-4 text-sm outline-none transition focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-          />
-        </Form>
+        <SearchBox variant="header" />
 
         <div className="ms-auto flex items-center gap-2 md:ms-0">
           <GovernoratePicker

@@ -15,6 +15,7 @@ import { MarketsModule } from './markets/markets.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
+import { SearchModule } from './search/search.module';
 import { EngagementModule } from './engagement/engagement';
 import { CsrfGuard } from './common/csrf.guard';
 import { ThrottleGuard } from './common/throttle';
@@ -24,6 +25,7 @@ import { ThrottleGuard } from './common/throttle';
     PrismaModule,
     AuditModule,
     NotificationsModule,
+    SearchModule,
     SmsModule,
     AuthModule,
     DirectoryModule,

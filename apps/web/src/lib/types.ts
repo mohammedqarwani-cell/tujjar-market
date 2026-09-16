@@ -63,7 +63,16 @@ export type StoreCardData = {
   _count: { products: number };
 };
 
-export type Page<T> = { items: T[]; total: number; page: number; pageSize: number; pages: number };
+export type SearchMeta = {
+  mode: "smart";
+  /** A spelling-corrected query, offered as "هل تقصد …؟" */
+  correctedQuery: string | null;
+  /** Dialect words, synonyms and needs searched alongside the shopper's words */
+  alsoSearched: string[];
+  semantic: boolean;
+};
+
+export type Page<T> = { items: T[]; total: number; page: number; pageSize: number; pages: number; search?: SearchMeta };
 
 export type HomeData = {
   categories: Category[];
