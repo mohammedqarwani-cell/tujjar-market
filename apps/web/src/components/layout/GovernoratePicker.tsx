@@ -3,8 +3,10 @@
 import { useRouter } from "next/navigation";
 import { useTransition } from "react";
 import { PinIcon } from "@components/ui/icons";
-import { setGovCookie } from "@lib/gov";
+import { LOCATE_EVENT, markGovDecided, setGovCookie } from "@lib/gov";
 import type { Ref } from "@lib/types";
+
+const LOCATE_OPTION = "__locate";
 
 export function GovernoratePicker({ governorates, current }: { governorates: Ref[]; current: string }) {
   const router = useRouter();
@@ -19,11 +21,17 @@ export function GovernoratePicker({ governorates, current }: { governorates: Ref
       <select
         value={current}
         onChange={(e) => {
+          if (e.target.value === LOCATE_OPTION) {
+            window.dispatchEvent(new Event(LOCATE_EVENT));
+            return;
+          }
+          markGovDecided();
           setGovCookie(e.target.value);
           startTransition(() => router.refresh());
         }}
         className="max-w-[7.5rem] cursor-pointer appearance-none bg-transparent pe-4 outline-none"
       >
+        <option value={LOCATE_OPTION}>📍 حسب موقعي</option>
         <option value="">كل سوريا</option>
         {governorates.map((g) => (
           <option key={g.slug} value={g.slug}>

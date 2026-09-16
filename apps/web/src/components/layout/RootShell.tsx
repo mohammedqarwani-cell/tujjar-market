@@ -1,4 +1,5 @@
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
+import { CookieNotice } from "./CookieNotice";
 
 const plex = IBM_Plex_Sans_Arabic({
   subsets: ["arabic"],
@@ -32,6 +33,7 @@ export function RootShell({
         {header}
         <main className="flex-1">{children}</main>
         {footer}
+        <CookieNotice />
       </body>
     </html>
   );

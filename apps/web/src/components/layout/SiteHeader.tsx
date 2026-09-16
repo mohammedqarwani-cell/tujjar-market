@@ -8,6 +8,7 @@ import { GOV_COOKIE } from "@lib/gov";
 import type { Governorate } from "@lib/types";
 import { GovernoratePicker } from "./GovernoratePicker";
 import { AccountLink } from "./AccountLink";
+import { GovernorateLocator } from "./GovernorateLocator";
 import { NotificationBell } from "@components/notifications/NotificationBell";
 
 export async function SiteHeader() {
@@ -43,6 +44,10 @@ export async function SiteHeader() {
         <div className="ms-auto flex items-center gap-2 md:ms-0">
           <GovernoratePicker
             governorates={governorates.filter((g) => g.status !== "COMING_SOON").map(({ slug, name }) => ({ slug, name }))}
+            current={current}
+          />
+          <GovernorateLocator
+            governorates={governorates.map(({ slug, name, status, latitude, longitude }) => ({ slug, name, status, latitude, longitude }))}
             current={current}
           />
           <NotificationBell audience="web" />
