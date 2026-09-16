@@ -26,7 +26,7 @@ export function markGovDecided() {
 /** Fired by the header picker to run location detection again */
 export const LOCATE_EVENT = "tujjar-locate";
 
-export type GovPoint = { slug: string; name: string; status: "ACTIVE" | "COMING_SOON"; latitude: number | null; longitude: number | null };
+export type GovPoint = { slug: string; name: string; status: "ACTIVE" | "COMING_SOON"; latitude?: number | null; longitude?: number | null };
 
 /** Farther than this from every governorate centre means the visitor isn't in Syria */
 const MAX_DISTANCE_KM = 120;
@@ -44,7 +44,7 @@ export function nearestGovernorate(lat: number, lng: number, governorates: GovPo
   let best: GovPoint | null = null;
   let bestKm = Infinity;
   for (const g of governorates) {
-    if (g.latitude === null || g.longitude === null) continue;
+    if (typeof g.latitude !== "number" || typeof g.longitude !== "number") continue;
     const km = distanceKm(lat, lng, g.latitude, g.longitude);
     if (km < bestKm) {
       best = g;
