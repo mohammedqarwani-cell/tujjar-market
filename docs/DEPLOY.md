@@ -26,8 +26,8 @@
    - **Session pooler** (المنفذ 5432): هذا هو `DIRECT_URL`
    - ضع كلمة مرور قاعدة البيانات مكان `[YOUR-PASSWORD]` في الرابطين
 3. من **Storage** أنشئ حاويتين:
-   - `public` وفعّل خيار **Public bucket**
-   - `kyc` واتركها **خاصة** (لا تجعلها عامة أبداً، ففيها صور الهويات)
+   - `tujjar-public` وفعّل خيار **Public bucket**
+   - `tujjar-kyc` واتركها **خاصة** (لا تجعلها عامة أبداً، ففيها صور الهويات)
 4. من **Project Settings → Storage → S3 Connection**:
    - انسخ **Endpoint** (بالشكل `https://<ref>.supabase.co/storage/v1/s3`) و**Region**
    - أنشئ **Access key** وانسخ المفتاحين
@@ -44,7 +44,9 @@
 | `MINIO_ENDPOINT` | Endpoint من Supabase |
 | `MINIO_REGION` | Region من Supabase (مثل `eu-central-1`) |
 | `MINIO_ACCESS_KEY` / `MINIO_SECRET_KEY` | مفتاحا S3 من Supabase |
-| `MEDIA_PUBLIC_URL` | `https://<ref>.supabase.co/storage/v1/object/public/public` |
+| `MINIO_BUCKET` | `tujjar-public` |
+| `MINIO_PRIVATE_BUCKET` | `tujjar-kyc` |
+| `MEDIA_PUBLIC_URL` | `https://<ref>.supabase.co/storage/v1/object/public/tujjar-public` |
 | `WEB_ORIGIN` / `MERCHANT_ORIGIN` / `ADMIN_ORIGIN` | ضع مؤقتاً `https://example.com`، وتُصحَّح في الخطوة 4 |
 
 3. اضغط **Apply**. البناء الأول يستغرق دقائق، ثم يطبّق الترحيلات ويحمّل البيانات التجريبية تلقائياً (مرة واحدة فقط، وقاعدة البيانات فارغة).
