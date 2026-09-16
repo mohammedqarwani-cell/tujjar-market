@@ -1,8 +1,8 @@
-import { Body, Controller, Get, HttpCode, Post, Query, Req } from '@nestjs/common';
+import { Body, Controller, Get, HttpCode, Post, Query, Req, UseGuards } from '@nestjs/common';
 import { Throttle } from '../common/throttle';
 import type { Request } from 'express';
 import { IsIn, IsOptional, IsString } from 'class-validator';
-import { Auth } from '../auth/guards';
+import { Auth, OptionalJwtAuthGuard } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { clientIp } from '../common/request';
@@ -30,11 +30,13 @@ export class TrackController {
     await this.stats.trackView(clientIp(req), dto);
   }
 
+  /** Anonymous visitors are counted; a signed-in buyer's contact is also remembered so they can review the store. */
   @Post('contact')
   @HttpCode(204)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  async contact(@Body() dto: TrackContactDto, @Req() req: Request) {
-    await this.stats.trackContact(clientIp(req), dto);
+  @UseGuards(OptionalJwtAuthGuard)
+  async contact(@Body() dto: TrackContactDto, @CurrentUser() user: AuthUser | null, @Req() req: Request) {
+    await this.stats.trackContact(clientIp(req), dto, user);
   }
 }
 

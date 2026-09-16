@@ -17,6 +17,7 @@ import { TotpSetup } from "./TotpSetup";
 import { VerificationsTab } from "./VerificationsTab";
 import { MarketsTab } from "./MarketsTab";
 import { CategoriesTab } from "./CategoriesTab";
+import { ReviewsTab } from "./ReviewsTab";
 
 type Overview = {
   stores: number;
@@ -28,6 +29,7 @@ type Overview = {
   openReports: number;
   merchants: number;
   buyers: number;
+  reviewsToModerate: number;
 };
 
 type AdminStore = {
@@ -69,7 +71,17 @@ type AdminReport = {
   details: string | null;
   status: "OPEN" | "RESOLVED" | "DISMISSED";
   createdAt: string;
-  reporter: { id: string; name: string; phone: string };
+  reporter: {
+    id: string;
+    name: string;
+    phone: string;
+    reportsConfirmed: number;
+    reportsDismissed: number;
+    /** Percent of decided reports that moderators confirmed (smoothed; new reporters start at 50) */
+    credibility: number;
+    trusted: boolean;
+    blocked: boolean;
+  };
   store: { slug: string; name: string } | null;
   product: { id: string; title: string } | null;
 };
@@ -89,6 +101,7 @@ const TABS = [
   { id: "products", label: "المنتجات", adminOnly: false },
   { id: "stores", label: "المتاجر", adminOnly: false },
   { id: "reports", label: "البلاغات", adminOnly: false },
+  { id: "reviews", label: "التقييمات", adminOnly: false },
   { id: "markets", label: "المحافظات والأسواق", adminOnly: false },
   { id: "categories", label: "الأقسام", adminOnly: false },
   { id: "audit", label: "سجل التدقيق", adminOnly: true },
@@ -167,6 +180,7 @@ export default function AdminPage() {
         {tab === "stores" && <StoresTab isAdmin={isAdmin} />}
         {tab === "products" && <ProductsTab />}
         {tab === "reports" && <ReportsTab />}
+        {tab === "reviews" && <ReviewsTab />}
         {tab === "markets" && <MarketsTab isAdmin={isAdmin} />}
         {tab === "categories" && <CategoriesTab isAdmin={isAdmin} />}
         {tab === "audit" && isAdmin && <AuditTab />}
@@ -181,7 +195,12 @@ function OverviewCards() {
     { label: "طلبات توثيق", value: data?.pendingVerifications, sub: "بانتظار المراجعة", alert: !!data?.pendingVerifications },
     { label: "المتاجر", value: data?.stores, sub: data ? `${data.unverified} غير موثّق` : "" },
     { label: "المنتجات", value: data?.products, sub: data ? `${data.underReview} قيد المراجعة` : "" },
-    { label: "بلاغات مفتوحة", value: data?.openReports, sub: "تحتاج متابعة", alert: !!data?.openReports },
+    {
+      label: "بلاغات مفتوحة",
+      value: data?.openReports,
+      sub: data ? `${data.reviewsToModerate} تقييم للمراجعة` : "",
+      alert: !!data?.openReports || !!data?.reviewsToModerate,
+    },
     { label: "المستخدمون", value: data ? data.merchants + data.buyers : undefined, sub: data ? `${data.merchants} تاجر · ${data.buyers} زبون` : "" },
   ];
   return (
@@ -429,6 +448,11 @@ function ReportsTab() {
                 <span className="text-muted">المُبلِّغ:</span>
                 <span className="font-bold">{r.reporter.name}</span>
                 <a href={`tel:+${r.reporter.phone}`} dir="ltr" className="font-medium text-brand-700">{displayPhone(r.reporter.phone)}</a>
+                <span className="text-muted">
+                  · مصداقية {r.reporter.credibility}٪ ({r.reporter.reportsConfirmed} مؤكد، {r.reporter.reportsDismissed} مرفوض)
+                </span>
+                {r.reporter.trusted && <span className="rounded-full bg-olive-50 px-2 py-0.5 font-bold text-olive-700">مُبلِّغ موثوق</span>}
+                {r.reporter.blocked && <span className="rounded-full bg-danger/10 px-2 py-0.5 font-bold text-danger">موقوف عن الإبلاغ</span>}
               </div>
               {r.details && <p className="mt-2 rounded-xl bg-sand px-3 py-2 text-sm leading-7">{r.details}</p>}
             </div>
@@ -477,6 +501,14 @@ const ACTION_LABELS: Record<string, string> = {
   "report.create": "بلاغ جديد",
   "report.resolved": "معالجة بلاغ",
   "report.dismissed": "رفض بلاغ",
+  "review.created": "تقييم جديد",
+  "review.updated": "تعديل تقييم",
+  "review.deleted": "حذف تقييم من كاتبه",
+  "review.replied": "رد التاجر على تقييم",
+  "review.flagged": "طلب التاجر مراجعة تقييم",
+  "review.published": "نشر تقييم",
+  "review.hidden": "إخفاء تقييم",
+  "user.reporting_blocked": "إيقاف حساب عن الإبلاغ (بلاغات غير صحيحة)",
 };
 
 function AuditTab() {

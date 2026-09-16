@@ -54,9 +54,21 @@ export class StatsService {
     }
   }
 
-  async trackContact(ip: string, dto: { storeSlug: string; productId?: string; channel: 'WHATSAPP' | 'CALL' }) {
+  async trackContact(
+    ip: string,
+    dto: { storeSlug: string; productId?: string; channel: 'WHATSAPP' | 'CALL' },
+    user?: { id: string; role: string } | null,
+  ) {
     const store = await this.prisma.store.findUnique({ where: { slug: dto.storeSlug }, select: { id: true } });
     if (!store) return;
+    // Recorded on every contact, not deduplicated: it is what allows the buyer to review the store later
+    if (user?.role === 'BUYER') {
+      await this.prisma.storeContact.upsert({
+        where: { storeId_buyerId: { storeId: store.id, buyerId: user.id } },
+        create: { storeId: store.id, buyerId: user.id },
+        update: { lastContactAt: new Date(), contacts: { increment: 1 } },
+      });
+    }
     if (!this.firstTime(`c:${ip}:${store.id}:${dto.productId ?? ''}:${dto.channel}`)) return;
 
     const productOps = dto.productId

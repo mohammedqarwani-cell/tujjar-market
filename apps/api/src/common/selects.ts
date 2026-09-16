@@ -8,6 +8,8 @@ export const storeCardSelect = {
   logoUrl: true,
   coverUrl: true,
   verificationLevel: true,
+  ratingAvg: true,
+  ratingCount: true,
   hasDelivery: true,
   createdAt: true,
   governorate: { select: { slug: true, name: true } },

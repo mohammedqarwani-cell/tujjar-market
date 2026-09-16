@@ -2,7 +2,7 @@ import Link from "next/link";
 import type { StoreCardData } from "@lib/types";
 import { storeLocation } from "@lib/format";
 import { isNewStore } from "@lib/verification";
-import { PinIcon, TruckIcon } from "@components/ui/icons";
+import { PinIcon, StarIcon, TruckIcon } from "@components/ui/icons";
 import { StoreAvatar } from "./StoreAvatar";
 import { VerifiedMark } from "./VerificationBadge";
 
@@ -37,6 +37,13 @@ export function StoreCard({ store: s }: { store: StoreCardData }) {
         {s.tagline && <p className="mt-0.5 line-clamp-1 text-sm text-muted">{s.tagline}</p>}
 
         <div className="mt-3 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted">
+          {s.ratingCount > 0 && (
+            <span className="flex items-center gap-1 font-medium text-ink/80">
+              <StarIcon size={13} className="text-brand-500" />
+              {s.ratingAvg.toFixed(1)}
+              <span className="font-normal text-muted">({s.ratingCount})</span>
+            </span>
+          )}
           <span className="flex items-center gap-1">
             <PinIcon size={14} className="text-brand-600" />
             {storeLocation(s)}

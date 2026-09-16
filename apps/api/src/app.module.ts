@@ -12,6 +12,7 @@ import { StatsModule } from './stats/stats.module';
 import { ReportsModule } from './reports/reports.module';
 import { VerificationModule } from './verification/verification.module';
 import { MarketsModule } from './markets/markets.module';
+import { ReviewsModule } from './reviews/reviews.module';
 import { AdminModule } from './admin/admin.module';
 import { CsrfGuard } from './common/csrf.guard';
 import { ThrottleGuard } from './common/throttle';
@@ -30,6 +31,7 @@ import { ThrottleGuard } from './common/throttle';
     ReportsModule,
     VerificationModule,
     MarketsModule,
+    ReviewsModule,
     AdminModule,
   ],
   providers: [

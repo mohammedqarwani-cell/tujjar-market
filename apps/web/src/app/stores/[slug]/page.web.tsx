@@ -3,13 +3,15 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ApiError, apiGet, toQuery } from "@lib/api";
 import { displayPhone, storeLocation } from "@lib/format";
-import type { Page, ProductCardData, StoreDetail } from "@lib/types";
+import type { Page, ProductCardData, ReviewPage, StoreDetail } from "@lib/types";
 import { StoreAvatar } from "@components/catalog/StoreAvatar";
 import { ProductCard } from "@components/catalog/ProductCard";
 import { VerificationBadge } from "@components/catalog/VerificationBadge";
 import { ContactButtons } from "@components/contact/ContactButtons";
 import { ShareButton } from "@components/contact/ShareButton";
 import { ReportButton } from "@components/contact/ReportButton";
+import { StoreReviews } from "@components/reviews/StoreReviews";
+import { Stars } from "@components/reviews/Stars";
 import { ViewTracker } from "@components/contact/ViewTracker";
 import { EmptyState } from "@components/ui/Section";
 import { Pagination } from "@components/ui/Pagination";
@@ -45,9 +47,10 @@ export default async function StorePage({ params, searchParams }: Props) {
   const category = typeof sp.category === "string" ? sp.category : "";
   const page = typeof sp.page === "string" ? sp.page : "";
 
-  const [store, products] = await Promise.all([
+  const [store, products, reviews] = await Promise.all([
     getStore(slug),
     apiGet<Page<ProductCardData>>(`/products${toQuery({ store: slug, category, page, pageSize: 24 })}`),
+    apiGet<ReviewPage>(`/stores/${encodeURIComponent(slug)}/reviews?pageSize=5`, 60),
   ]);
 
   return (
@@ -72,6 +75,13 @@ export default async function StorePage({ params, searchParams }: Props) {
                 <VerificationBadge level={store.verificationLevel} marketName={store.market?.name} />
               </div>
               {store.tagline && <p className="mt-1 text-muted">{store.tagline}</p>}
+              {store.ratingCount > 0 && (
+                <a href="#reviews" className="mt-1 inline-flex items-center gap-1.5 text-sm">
+                  <Stars value={store.ratingAvg} size={15} />
+                  <span className="font-bold">{store.ratingAvg.toFixed(1)}</span>
+                  <span className="text-muted">({store.ratingCount} تقييم)</span>
+                </a>
+              )}
               <ul className="mt-3 flex flex-wrap gap-x-4 gap-y-2 text-sm text-ink/80">
                 <li className="flex items-center gap-1.5">
                   <PinIcon size={16} className="text-brand-600" />
@@ -163,6 +173,8 @@ export default async function StorePage({ params, searchParams }: Props) {
           </div>
           <Pagination basePath={`/stores/${store.slug}`} params={{ category }} page={products.page} pages={products.pages} />
         </section>
+
+        <StoreReviews storeSlug={store.slug} storeName={store.name} initial={reviews} />
       </div>
 
       <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-30 border-t border-line bg-surface/95 p-3 backdrop-blur md:hidden">
