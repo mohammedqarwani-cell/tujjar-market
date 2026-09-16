@@ -54,6 +54,11 @@ class ReportsService {
       throw new NotFoundException('حدد المتجر أو المنتج');
     }
 
+    const reporter = await this.prisma.user.findUnique({ where: { id: reporterId }, select: { reportingBlockedUntil: true } });
+    if (reporter?.reportingBlockedUntil && reporter.reportingBlockedUntil > new Date()) {
+      throw new HttpException('أُوقفت إمكانية الإبلاغ من حسابك مؤقتاً لكثرة البلاغات غير الصحيحة', HttpStatus.FORBIDDEN);
+    }
+
     const [duplicate, today] = await Promise.all([
       this.prisma.report.findFirst({ where: { reporterId, status: 'OPEN', storeId, productId }, select: { id: true } }),
       this.prisma.report.count({ where: { reporterId, createdAt: { gte: new Date(Date.now() - 24 * 3600_000) } } }),

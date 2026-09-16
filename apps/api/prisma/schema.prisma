@@ -104,6 +104,13 @@ enum ReportStatus {
   DISMISSED
 }
 
+enum ReviewStatus {
+  PUBLISHED
+  /// Held automatically (links, phone numbers, prohibited goods) until a moderator decides
+  UNDER_REVIEW
+  HIDDEN
+}
+
 model User {
   id                    String                @id @default(cuid())
   name                  String
@@ -130,6 +137,14 @@ model User {
   reports               Report[]              @relation("ReportedBy")
   auditLogs             AuditLog[]
   reviewedVerifications VerificationRequest[] @relation("VerificationReviewer")
+  storeContacts         StoreContact[]        @relation("BuyerContacts")
+  reviews               Review[]              @relation("BuyerReviews")
+  moderatedReviews      Review[]              @relation("ReviewModerator")
+  /// Reporter credibility: reports moderators confirmed or dismissed
+  reportsConfirmed      Int                   @default(0)
+  reportsDismissed      Int                   @default(0)
+  /// Set after persistent false reporting; the account can't report until then
+  reportingBlockedUntil DateTime?
 }
 
 /// One refresh-token session per signed-in device and interface
@@ -274,6 +289,9 @@ model Store {
   hasDelivery           Boolean               @default(false)
   /// Public level: what buyers see, what ranks the store and which limits apply
   verificationLevel     VerificationLevel     @default(REGISTERED)
+  /// Average of published reviews (one decimal) and their number, kept in sync by the reviews service
+  ratingAvg             Float                 @default(0)
+  ratingCount           Int                   @default(0)
   /// Highest level earned; differs from verificationLevel while the badge is suspended
   earnedLevel           VerificationLevel     @default(REGISTERED)
   /// Shop verification (LOCATION and above) expires and must be renewed yearly
@@ -294,10 +312,56 @@ model Store {
   dailyStats            StoreDailyStat[]
   reports               Report[]
   verificationRequests  VerificationRequest[]
+  buyerContacts         StoreContact[]
+  reviews               Review[]
 
   @@index([status, governorateId, marketId])
   @@index([status, verificationLevel])
   @@index([categoryId])
+}
+
+/// A signed-in buyer's contact with a store from its page (WhatsApp or call); reviewing requires one
+model StoreContact {
+  id             String   @id @default(cuid())
+  storeId        String
+  store          Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  buyerId        String
+  buyer          User     @relation("BuyerContacts", fields: [buyerId], references: [id], onDelete: Cascade)
+  firstContactAt DateTime @default(now())
+  lastContactAt  DateTime @default(now())
+  contacts       Int      @default(1)
+
+  @@unique([storeId, buyerId])
+  @@index([buyerId])
+}
+
+/// One review per buyer per store; only published reviews count towards the store rating
+model Review {
+  id                String       @id @default(cuid())
+  storeId           String
+  store             Store        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  buyerId           String
+  buyer             User         @relation("BuyerReviews", fields: [buyerId], references: [id], onDelete: Cascade)
+  rating            Int
+  comment           String?
+  status            ReviewStatus @default(PUBLISHED)
+  /// Why the review is held or hidden (automatic check or moderator note); never shown publicly
+  moderationNote    String?
+  merchantReply     String?
+  merchantRepliedAt DateTime?
+  /// The merchant asked moderators to look at this review; it stays public meanwhile
+  flagOpen          Boolean      @default(false)
+  flagReason        String?
+  flaggedAt         DateTime?
+  moderatedById     String?
+  moderatedBy       User?        @relation("ReviewModerator", fields: [moderatedById], references: [id], onDelete: SetNull)
+  moderatedAt       DateTime?
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
+
+  @@unique([storeId, buyerId])
+  @@index([storeId, status, createdAt])
+  @@index([status, createdAt])
 }
 
 /// Evidence a merchant submits to reach the next verification level

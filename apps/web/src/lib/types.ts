@@ -44,6 +44,9 @@ export type StoreCardData = {
   logoUrl: string | null;
   coverUrl: string | null;
   verificationLevel: VerificationLevel;
+  /** Average of published reviews (0 when there are none) */
+  ratingAvg: number;
+  ratingCount: number;
   hasDelivery: boolean;
   createdAt: string;
   governorate: Ref;
@@ -115,3 +118,20 @@ export type SessionUser = {
   mfa: boolean;
   mustSetupTotp: boolean;
 };
+
+export type ReviewStatus = "PUBLISHED" | "UNDER_REVIEW" | "HIDDEN";
+
+/** A published review as the public sees it: first name and initial only */
+export type PublicReview = {
+  id: string;
+  rating: number;
+  comment: string | null;
+  merchantReply: string | null;
+  merchantRepliedAt: string | null;
+  createdAt: string;
+  updatedAt: string;
+  author: string;
+};
+
+export type ReviewSummary = { average: number; count: number; distribution: { rating: number; count: number }[] };
+export type ReviewPage = Page<PublicReview> & { summary: ReviewSummary };

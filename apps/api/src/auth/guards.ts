@@ -33,6 +33,18 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
   }
 }
 
+/** Reads the session when there is one, but lets anonymous requests through (for public endpoints). */
+@Injectable()
+export class OptionalJwtAuthGuard extends JwtAuthGuard {
+  constructor(@Optional() options?: AuthModuleOptions) {
+    super(options);
+  }
+
+  handleRequest<T>(_err: unknown, user: T): T {
+    return (user || null) as T;
+  }
+}
+
 @Injectable()
 export class RolesGuard implements CanActivate {
   constructor(private reflector: Reflector) {}

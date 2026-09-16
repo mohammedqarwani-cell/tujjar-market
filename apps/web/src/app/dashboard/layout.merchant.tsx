@@ -5,13 +5,14 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "@lib/session";
 import { webUrl } from "@lib/urls";
-import { BoxIcon, ChartIcon, EyeIcon, LogoutIcon, PlusIcon, ShieldIcon, SlidersIcon } from "@components/ui/icons";
+import { BoxIcon, ChartIcon, EyeIcon, LogoutIcon, PlusIcon, ShieldIcon, SlidersIcon, StarIcon } from "@components/ui/icons";
 
 const NAV = [
   { href: "/dashboard", label: "نظرة عامة", Icon: ChartIcon, exact: true },
   { href: "/dashboard/products", label: "منتجاتي", Icon: BoxIcon, exact: true },
   { href: "/dashboard/products/new", label: "إضافة منتج", Icon: PlusIcon, exact: true },
   { href: "/dashboard/verification", label: "التوثيق", Icon: ShieldIcon, exact: false },
+  { href: "/dashboard/reviews", label: "التقييمات", Icon: StarIcon, exact: false },
   { href: "/dashboard/store", label: "إعدادات المتجر", Icon: SlidersIcon, exact: false },
 ];
 

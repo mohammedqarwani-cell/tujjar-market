@@ -13,6 +13,8 @@ function post(path: string, body: unknown) {
     headers: { "Content-Type": "application/json", "X-Client": "web" },
     body: JSON.stringify(body),
     keepalive: true,
+    // A signed-in buyer's contact is remembered; it is what allows them to review the store later
+    credentials: "include",
   }).catch(() => {});
 }
 

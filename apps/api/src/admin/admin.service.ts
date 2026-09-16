@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, ProductStatus, ReportStatus, StoreStatus, VerificationLevel } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.module';
@@ -6,6 +6,14 @@ import { normalizeArabic } from '../common/text/arabic';
 import { pageResult, paging } from '../common/pagination';
 import { VerificationService } from '../verification/verification.service';
 import { LEVELS } from '../verification/verification.levels';
+import { ReviewsService } from '../reviews/reviews.service';
+import {
+  REPORT_BLOCK_DAYS,
+  REPORT_BLOCK_MIN_DISMISSED,
+  REPORT_BLOCK_SCORE,
+  isTrustedReporter,
+  reporterCredibility,
+} from '../reports/credibility';
 
 const searchTerms = (q?: string) =>
   normalizeArabic(q).split(' ').filter((t) => t.length > 1).slice(0, 5);
@@ -16,11 +24,22 @@ export class AdminService {
     private prisma: PrismaService,
     private audit: AuditService,
     private verification: VerificationService,
+    private reviews: ReviewsService,
   ) {}
 
   async overview() {
-    const [stores, suspended, unverified, pendingVerifications, products, underReview, openReports, merchants, buyers] =
-      await Promise.all([
+    const [
+      stores,
+      suspended,
+      unverified,
+      pendingVerifications,
+      products,
+      underReview,
+      openReports,
+      merchants,
+      buyers,
+      reviewsToModerate,
+    ] = await Promise.all([
         this.prisma.store.count(),
         this.prisma.store.count({ where: { status: 'SUSPENDED' } }),
         this.prisma.store.count({ where: { verificationLevel: 'REGISTERED', status: 'ACTIVE' } }),
@@ -30,8 +49,20 @@ export class AdminService {
         this.prisma.report.count({ where: { status: 'OPEN' } }),
         this.prisma.user.count({ where: { role: 'MERCHANT' } }),
         this.prisma.user.count({ where: { role: 'BUYER' } }),
+        this.reviews.pendingCount(),
       ]);
-    return { stores, suspended, unverified, pendingVerifications, products, underReview, openReports, merchants, buyers };
+    return {
+      stores,
+      suspended,
+      unverified,
+      pendingVerifications,
+      products,
+      underReview,
+      openReports,
+      merchants,
+      buyers,
+      reviewsToModerate,
+    };
   }
 
   async stores(query: Record<string, string>) {
@@ -133,7 +164,9 @@ export class AdminService {
       this.prisma.report.findMany({
         where,
         include: {
-          reporter: { select: { id: true, name: true, phone: true } },
+          reporter: {
+            select: { id: true, name: true, phone: true, reportsConfirmed: true, reportsDismissed: true, reportingBlockedUntil: true },
+          },
           store: { select: { slug: true, name: true } },
           product: { select: { id: true, title: true } },
         },
@@ -143,19 +176,67 @@ export class AdminService {
       }),
       this.prisma.report.count({ where }),
     ]);
-    return pageResult(items, total, page, pageSize);
+    // Moderators see how often each reporter was right before
+    const withCredibility = items.map((item) => {
+      const { reportsConfirmed: confirmed, reportsDismissed: dismissed, reportingBlockedUntil } = item.reporter;
+      return {
+        ...item,
+        reporter: {
+          ...item.reporter,
+          credibility: Math.round(reporterCredibility(confirmed, dismissed) * 100),
+          trusted: isTrustedReporter(confirmed, dismissed),
+          blocked: !!reportingBlockedUntil && reportingBlockedUntil > new Date(),
+        },
+      };
+    });
+    return pageResult(withCredibility, total, page, pageSize);
   }
 
   async updateReport(actorId: string, id: string, status: ReportStatus, ip: string) {
+    const before = await this.prisma.report.findUnique({ where: { id }, select: { status: true, reporterId: true } });
+    if (!before) throw new NotFoundException('البلاغ غير موجود');
     const report = await this.prisma.report.update({
       where: { id },
       data: { status },
       select: { id: true, status: true, storeId: true },
     });
     await this.audit.log({ actorId, action: `report.${status.toLowerCase()}`, entityType: 'report', entityId: id, ip });
+    if (before.status !== status) await this.updateReporterCredibility(actorId, before.reporterId, before.status, status, ip);
     // A confirmed report counts towards automatically suspending the store's verification badge
     if (status === 'RESOLVED' && report.storeId) await this.verification.applyReportThreshold(report.storeId);
     return { id: report.id, status: report.status };
+  }
+
+  /** Keeps each reporter's confirmed and dismissed tally; persistent false reporting pauses their reporting. */
+  private async updateReporterCredibility(actorId: string, reporterId: string, from: ReportStatus, to: ReportStatus, ip: string) {
+    const counter = (status: ReportStatus, step: number): Prisma.UserUpdateInput =>
+      status === 'RESOLVED'
+        ? { reportsConfirmed: { increment: step } }
+        : status === 'DISMISSED'
+          ? { reportsDismissed: { increment: step } }
+          : {};
+    const user = await this.prisma.user.update({
+      where: { id: reporterId },
+      data: { ...counter(from, -1), ...counter(to, 1) },
+      select: { reportsConfirmed: true, reportsDismissed: true, reportingBlockedUntil: true },
+    });
+    if (to !== 'DISMISSED') return;
+
+    const score = reporterCredibility(user.reportsConfirmed, user.reportsDismissed);
+    const alreadyBlocked = !!user.reportingBlockedUntil && user.reportingBlockedUntil > new Date();
+    if (user.reportsDismissed < REPORT_BLOCK_MIN_DISMISSED || score >= REPORT_BLOCK_SCORE || alreadyBlocked) return;
+    await this.prisma.user.update({
+      where: { id: reporterId },
+      data: { reportingBlockedUntil: new Date(Date.now() + REPORT_BLOCK_DAYS * 86_400_000) },
+    });
+    await this.audit.log({
+      actorId,
+      action: 'user.reporting_blocked',
+      entityType: 'user',
+      entityId: reporterId,
+      meta: { confirmed: user.reportsConfirmed, dismissed: user.reportsDismissed, score: Math.round(score * 100) },
+      ip,
+    });
   }
 
   async auditLogs(query: Record<string, string>) {
