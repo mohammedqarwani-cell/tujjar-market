@@ -15,6 +15,10 @@ export const metadata: Metadata = {
     "ابحث عن المنتجات في أسواق سوريا، قارن الأسعار، وتواصل مع التاجر مباشرة على واتساب بدون وسيط.",
   applicationName: "تُجّار ماركت",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/favicon.ico", sizes: "any" }, { url: "/brand/icon.svg", type: "image/svg+xml" }],
+    apple: "/brand/apple-touch-icon.png",
+  },
   openGraph: { locale: "ar_SY", type: "website", siteName: "تُجّار ماركت" },
 };
 

@@ -9,6 +9,10 @@ export const metadata: Metadata = {
   description: "أدر متجرك ومنتجاتك على تُجّار ماركت، واستقبل زبائنك مباشرة على واتساب.",
   applicationName: "بوابة تجار تُجّار ماركت",
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/favicon.ico", sizes: "any" }, { url: "/brand/icon.svg", type: "image/svg+xml" }],
+    apple: "/brand/apple-touch-icon.png",
+  },
   robots: { index: false, follow: false },
 };
 

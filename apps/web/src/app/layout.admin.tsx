@@ -8,6 +8,10 @@ export const metadata: Metadata = {
   title: { default: "لوحة الإدارة | تُجّار ماركت", template: "%s | لوحة الإدارة" },
   robots: { index: false, follow: false, nocache: true },
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/favicon.ico", sizes: "any" }, { url: "/brand/icon.svg", type: "image/svg+xml" }],
+    apple: "/brand/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = { themeColor: "#1f1a14", width: "device-width", initialScale: 1 };
