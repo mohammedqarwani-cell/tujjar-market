@@ -1,0 +1,526 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="utf-8">
+<title>تُجّار ماركت — تقرير الأعمال</title>
+<style>
+  @font-face { font-family: "Plex Arabic"; font-weight: 400; src: url("fonts/plex-arabic-400.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 500; src: url("fonts/plex-arabic-500.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 700; src: url("fonts/plex-arabic-700.woff2") format("woff2"); unicode-range: U+0600-06FF, U+0750-077F, U+0870-08FF, U+FB50-FDFF, U+FE70-FEFF; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 400; src: url("fonts/plex-latin-400.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 500; src: url("fonts/plex-latin-500.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC; }
+  @font-face { font-family: "Plex Arabic"; font-weight: 700; src: url("fonts/plex-latin-700.woff2") format("woff2"); unicode-range: U+0000-00FF, U+2000-206F, U+20AC; }
+
+  :root {
+    --canvas: #fbf7f1; --sand: #f4ece0; --ink: #1f1a14; --muted: #6f655a; --line: #e6dccd;
+    --brand: #b86e14; --brand-dark: #8f5410; --brand-soft: #fdf3e2; --olive: #56632a; --olive-soft: #eef2e1;
+    --wa: #178a45; --danger: #b73a28;
+  }
+  @page { size: A4; margin: 15mm 14mm 17mm; }
+  @page :first { margin: 0; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; }
+  body {
+    font-family: "Plex Arabic", "Segoe UI", Tahoma, sans-serif;
+    color: var(--ink); font-size: 10.5pt; line-height: 1.85; background: #fff;
+    -webkit-print-color-adjust: exact; print-color-adjust: exact;
+  }
+  h1, h2, h3, h4 { line-height: 1.4; margin: 0; }
+  h2, h3, h4 { break-after: avoid; }
+  p { margin: 0 0 3mm; }
+  ul { margin: 0 0 3mm; padding-inline-start: 5mm; }
+  li { margin-bottom: 1mm; }
+  strong { font-weight: 700; }
+  .ltr { direction: ltr; unicode-bidi: isolate; }
+
+  .page-break { break-before: page; }
+
+  /* Cover */
+  .cover {
+    height: 297mm; width: 210mm; position: relative; overflow: hidden;
+    background: linear-gradient(160deg, #fdf3e2 0%, #fbf7f1 55%, #eef2e1 100%);
+    padding: 26mm 22mm; display: flex; flex-direction: column;
+  }
+  .cover::after {
+    content: ""; position: absolute; inset: auto 0 0 0; height: 115mm; opacity: .5;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='56' height='64' viewBox='0 0 56 64'%3E%3Cpath d='M6 64V30a22 22 0 0 1 44 0v34' fill='none' stroke='%23b86e14' stroke-opacity='.22' stroke-width='2'/%3E%3C/svg%3E");
+    background-size: 56px 64px;
+    -webkit-mask-image: linear-gradient(to top, #000, transparent);
+  }
+  .brand { display: flex; align-items: center; gap: 4mm; }
+  .brand-name { font-size: 20pt; font-weight: 700; }
+  .brand-tag { font-size: 10pt; color: var(--muted); }
+  .cover-title { margin-top: 42mm; font-size: 34pt; font-weight: 700; line-height: 1.3; }
+  .cover-title span { color: var(--brand); }
+  .cover-sub { margin-top: 7mm; font-size: 13pt; color: var(--muted); max-width: 150mm; line-height: 1.9; }
+  .cover-meta { margin-top: auto; position: relative; z-index: 1; display: grid; grid-template-columns: repeat(3, 1fr); gap: 5mm; }
+  .cover-meta div { background: rgba(255,255,255,.75); border: 1px solid var(--line); border-radius: 4mm; padding: 4mm 5mm; }
+  .cover-meta b { display: block; font-size: 9pt; color: var(--muted); font-weight: 500; }
+  .cover-meta span { font-weight: 700; }
+
+  /* Headings */
+  .section-no { display: inline-block; font-size: 9pt; font-weight: 700; color: var(--brand); background: var(--brand-soft); border-radius: 99px; padding: .5mm 3.5mm; margin-bottom: 2mm; }
+  h2 { font-size: 20pt; font-weight: 700; margin-bottom: 4mm; }
+  h3 { font-size: 13pt; font-weight: 700; margin: 7mm 0 2.5mm; }
+  h4 { font-size: 11pt; font-weight: 700; margin: 4mm 0 1.5mm; }
+  .lead { font-size: 11.5pt; color: #3d352c; }
+
+  /* Blocks */
+  .note { background: var(--brand-soft); border-inline-start: 3px solid var(--brand); border-radius: 2mm; padding: 3mm 4.5mm; margin: 4mm 0; font-size: 10pt; break-inside: avoid; }
+  .note.olive { background: var(--olive-soft); border-color: var(--olive); }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 5mm; }
+  .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 4mm; }
+  .card { border: 1px solid var(--line); border-radius: 3.5mm; padding: 4mm 5mm; background: #fff; break-inside: avoid; }
+  .card h4 { margin-top: 0; }
+  .card p:last-child, .card ul:last-child { margin-bottom: 0; }
+  .icon { display: inline-flex; width: 9mm; height: 9mm; border-radius: 2.5mm; align-items: center; justify-content: center; background: var(--brand-soft); font-size: 13pt; margin-bottom: 2mm; }
+
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4mm; margin: 5mm 0; }
+  .stat { background: var(--sand); border-radius: 3mm; padding: 3.5mm 4mm; text-align: center; }
+  .stat b { display: block; font-size: 18pt; line-height: 1.2; color: var(--brand-dark); }
+  .stat span { font-size: 9pt; color: var(--muted); }
+
+  table { width: 100%; border-collapse: collapse; margin: 3mm 0 5mm; font-size: 9.5pt; }
+  th { background: var(--sand); text-align: right; font-weight: 700; padding: 2.2mm 3mm; border-bottom: 1px solid var(--line); }
+  td { padding: 2.2mm 3mm; border-bottom: 1px solid var(--line); vertical-align: top; }
+  tr { break-inside: avoid; }
+  .ok { color: var(--olive); font-weight: 700; }
+  .wip { color: var(--brand-dark); font-weight: 700; }
+  .todo { color: var(--muted); font-weight: 700; }
+
+  /* Denser sections that must stay on one page */
+  .compact { line-height: 1.7; }
+  .compact h3 { margin-top: 4.5mm; }
+  .compact th, .compact td { padding: 1.5mm 2.5mm; font-size: 9pt; }
+  .compact .stats { margin: 3mm 0; }
+  .compact .stat b { font-size: 15pt; }
+
+  /* Flow */
+  .flow { display: flex; align-items: stretch; gap: 2.5mm; margin: 4mm 0; break-inside: avoid; }
+  .flow .step { flex: 1; border: 1px solid var(--line); border-radius: 3mm; padding: 3mm; background: #fff; text-align: center; font-size: 9.5pt; }
+  .flow .step b { display: block; color: var(--brand-dark); font-size: 10pt; }
+  .flow .arrow { align-self: center; color: var(--brand); font-weight: 700; }
+
+  /* Screenshots */
+  figure { margin: 4mm 0 5mm; break-inside: avoid; }
+  .shot { border: 1px solid var(--line); border-radius: 3mm; overflow: hidden; background: var(--sand); box-shadow: 0 1.5mm 5mm rgba(31,26,20,.08); }
+  .shot img { display: block; width: 100%; object-fit: cover; object-position: top; }
+  .shot .bar { height: 5mm; background: #efe7da; display: flex; align-items: center; gap: 1.2mm; padding: 0 3mm; direction: ltr; }
+  .shot .bar i { width: 1.8mm; height: 1.8mm; border-radius: 50%; background: #d8cbb6; }
+  .phone { width: 52mm; border: 2.2mm solid #2a241d; border-radius: 7mm; overflow: hidden; background: #2a241d; box-shadow: 0 2mm 6mm rgba(31,26,20,.18); margin-inline: auto; }
+  .phone img { display: block; width: 100%; object-fit: cover; object-position: top; border-radius: 4.5mm; }
+  figcaption { font-size: 9pt; color: var(--muted); margin-top: 2mm; text-align: center; }
+  .side { display: grid; grid-template-columns: 1fr 58mm; gap: 7mm; align-items: start; }
+  .side figure { margin: 0; }
+
+  /* Architecture */
+  .arch { display: grid; grid-template-columns: 1fr; gap: 2.5mm; margin: 3mm 0; }
+  .arch .row { display: grid; gap: 3mm; }
+  .arch .box { border: 1px solid var(--line); border-radius: 3mm; padding: 2.5mm 3mm; text-align: center; background: #fff; font-size: 9.5pt; }
+  .arch .box b { display: block; font-size: 10.5pt; }
+  .arch .box.accent { background: var(--brand-soft); border-color: #efd3a6; }
+  .arch .box.olive { background: var(--olive-soft); border-color: #d5dcbd; }
+  .arch .down { text-align: center; color: var(--brand); font-size: 11pt; line-height: 1; }
+
+  .toc li { display: flex; justify-content: space-between; border-bottom: 1px dotted var(--line); padding: 1.5mm 0; list-style: none; }
+  .toc { padding: 0; }
+
+  .phase { display: grid; grid-template-columns: 30mm 1fr 26mm; gap: 4mm; padding: 3mm 0; border-bottom: 1px solid var(--line); break-inside: avoid; }
+  .phase b { font-size: 10pt; }
+  .pill { display: inline-block; border-radius: 99px; padding: 0 3mm; font-size: 8.5pt; font-weight: 700; text-align: center; }
+  .pill.ok { background: var(--olive-soft); }
+  .pill.wip { background: var(--brand-soft); }
+  .pill.todo { background: var(--sand); }
+
+  .footer-note { margin-top: 8mm; font-size: 8.5pt; color: var(--muted); border-top: 1px solid var(--line); padding-top: 3mm; }
+  .tl { position: relative; margin: 4mm 0; padding-inline-start: 7mm; }
+  .tl::before { content: ""; position: absolute; inset-inline-start: 2mm; top: 1mm; bottom: 1mm; width: 2px; background: var(--line); }
+  .tl .it { position: relative; margin-bottom: 3.2mm; break-inside: avoid; }
+  .tl .it::before { content: ""; position: absolute; inset-inline-start: -6.4mm; top: 2.2mm; width: 3mm; height: 3mm; border-radius: 50%; background: var(--brand); border: 2px solid #fff; box-shadow: 0 0 0 1px var(--brand); }
+  .tl .it.pending::before { background: #fff; }
+  .tl .d { font-size: 8.5pt; color: var(--muted); }
+  .chip { display: inline-block; font-size: 8.5pt; font-weight: 700; border-radius: 99px; padding: 0 2.5mm; }
+  .chip.ok { background: var(--olive-soft); color: var(--olive); }
+  .chip.wip { background: var(--brand-soft); color: var(--brand-dark); }
+  .chip.todo { background: var(--sand); color: var(--muted); }
+  .icons-row { display: flex; gap: 6mm; align-items: flex-end; margin: 4mm 0; }
+  .icons-row figure { margin: 0; text-align: center; font-size: 8.5pt; color: var(--muted); }
+  .icons-row img { display: block; margin: 0 auto 1.5mm; }
+  code, .mono { font-family: Consolas, "Courier New", monospace; font-size: 9pt; direction: ltr; unicode-bidi: isolate; }
+</style>
+</head>
+<body>
+
+<!-- ============ الغلاف ============ -->
+<section class="cover">
+  <div class="brand">
+    <svg width="52" height="52" viewBox="0 0 40 40" aria-hidden="true">
+      <rect width="40" height="40" rx="11" fill="#b86e14"/>
+      <path d="M11 31V18.5a9 9 0 0 1 18 0V31" fill="none" stroke="#fdf6ea" stroke-width="3.2" stroke-linecap="round"/>
+      <path d="M16 31v-9.5a4 4 0 0 1 8 0V31" fill="#6b7a36"/>
+      <circle cx="20" cy="11.5" r="1.8" fill="#f2cc8f"/>
+    </svg>
+    <div>
+      <div class="brand-name">تُجّار ماركت</div>
+      <div class="brand-tag">أسواق سوريا بين يديك</div>
+    </div>
+  </div>
+
+  <h1 class="cover-title">تقرير الأعمال<br><span>الشامل</span></h1>
+  <p class="cover-sub">
+    كل ما أُنجز في المنصة حتى الآن: إعادة البناء، الأمان، فصل الواجهات، توثيق التجار، أسواق دمشق،
+    نشر نسخة العرض، التقييمات ومصداقية المُبلِّغين، والهوية البصرية، مع نتائج الاختبارات وما تبقّى.
+  </p>
+
+  <div class="cover-meta">
+    <div><b>تاريخ التقرير</b><span>16 أيلول 2026</span></div>
+    <div><b>المراحل المنجزة</b><span>4 من 9 + النشر التجريبي</span></div>
+    <div><b>الحالة</b><span>نسخة عرض منشورة وتعمل</span></div>
+  </div>
+</section>
+
+<!-- ============ الملخص ============ -->
+<section class="page-break compact">
+  <span class="section-no">الملخص التنفيذي</span>
+  <h2>أين وصل المشروع</h2>
+  <p class="lead">
+    أُعيد بناء «تُجّار ماركت» بالكامل ليناسب السوق السوري: منصة تجمع متاجر الأسواق التقليدية والحديثة، يتصفح فيها
+    الزبون المنتجات ويتواصل مع التاجر مباشرة عبر واتساب أو الاتصال، دون وسيط ودون أن تمسك المنصة أي أموال.
+    صُمّمت المنصة من اليوم الأول لتجتاز الاختبار الفني للهيئة الناظمة للاتصالات والبريد.
+  </p>
+
+  <div class="stats">
+    <div class="stat"><b>3</b><span>واجهات منفصلة</span></div>
+    <div class="stat"><b>80+</b><span>نقطة API</span></div>
+    <div class="stat"><b>17</b><span>جدول في قاعدة البيانات</span></div>
+    <div class="stat"><b>190</b><span>فحصاً آلياً ناجحاً</span></div>
+  </div>
+  <div class="stats">
+    <div class="stat"><b>15,000+</b><span>سطر برمجي</span></div>
+    <div class="stat"><b>27</b><span>صفحة</span></div>
+    <div class="stat"><b>16</b><span>سوقاً في دمشق</span></div>
+    <div class="stat"><b>0</b><span>ثغرات في المكتبات</span></div>
+  </div>
+
+  <h3>ما أُنجز باختصار</h3>
+  <table>
+    <tr><th style="width:34%">المحور</th><th>النتيجة</th><th style="width:16%">الحالة</th></tr>
+    <tr><td>إعادة البناء للسوق السوري</td><td>محافظات وأسواق، تواصل واتساب، أسعار بالليرة والدولار، واجهة عربية كاملة</td><td><span class="chip ok">منجز</span></td></tr>
+    <tr><td>المرحلة 1 — الأمان</td><td>12 طبقة حماية، مصادقة ثنائية للمشرفين، سجل تدقيق، صفر ثغرات</td><td><span class="chip ok">منجز</span></td></tr>
+    <tr><td>المرحلة 2 — فصل الواجهات</td><td>تطبيق الزبائن، بوابة التجار، لوحة الإدارة: كل منها يُبنى وحده بجلسات مستقلة</td><td><span class="chip ok">منجز</span></td></tr>
+    <tr><td>المرحلة 3 — توثيق التجار</td><td>توثيق متدرّج بأربعة مستويات، هوية، فيديو المحل مع GPS، مخزن خاص مشفّر</td><td><span class="chip ok">منجز</span></td></tr>
+    <tr><td>المرحلة 4 — دمشق تجربةً</td><td>16 سوقاً، حالة لكل محافظة، أدوات تحديد الحدود، «أبلغوني عند الافتتاح»</td><td><span class="chip ok">منجز</span></td></tr>
+    <tr><td>نسخة العرض التجريبية</td><td>الواجهات الثلاث والخادم وقاعدة البيانات منشورة على الإنترنت</td><td><span class="chip ok">منشورة</span></td></tr>
+    <tr><td>الهوية البصرية</td><td>شعار القوس أيقونةً للتطبيق في المتصفح والهاتف والتثبيت</td><td><span class="chip ok">منجز</span></td></tr>
+    <tr><td>المرحلة 5 — التقييمات والمصداقية</td><td>الكود مكتمل ويُبنى بلا أخطاء، والاختبارات الآلية قيد التشغيل</td><td><span class="chip wip">قيد الاختبار</span></td></tr>
+    <tr><td>المراحل 6–9</td><td>الدفع الإلكتروني، البحث الذكي، نواقص الواجهات، التشغيل الإنتاجي</td><td><span class="chip todo">لاحقاً</span></td></tr>
+  </table>
+</section>
+
+<!-- ============ المعمارية ============ -->
+<section class="page-break compact">
+  <span class="section-no">القسم 1</span>
+  <h2>المعمارية والتقنيات</h2>
+
+  <div class="flow">
+    <div class="step"><b>واجهة الزبائن</b>التصفح والبحث والتواصل</div>
+    <div class="step"><b>بوابة التجار</b>المتجر والمنتجات والتوثيق</div>
+    <div class="step"><b>لوحة الإدارة</b>المراجعة والبلاغات والأسواق</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>خادم API</b>منطق العمل والصلاحيات</div>
+    <div class="arrow">←</div>
+    <div class="step"><b>قاعدة البيانات + التخزين</b>بيانات ووسائط ووثائق خاصة</div>
+  </div>
+
+  <div class="grid-2">
+    <div class="card">
+      <h4>الواجهات</h4>
+      <ul>
+        <li><strong>Next.js 16 + React</strong> مع TypeScript وTailwind</li>
+        <li>كود واحد يُبنى ثلاث مرات؛ كل نسخة لا تحتوي صفحات غيرها</li>
+        <li>تصميم عربي من اليمين لليسار، متجاوب مع الهاتف أولاً، وقابل للتثبيت كتطبيق</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>الخادم</h4>
+      <ul>
+        <li><strong>NestJS 12</strong> مع Prisma وPostgreSQL</li>
+        <li>تخزين متوافق مع S3: مخزن عام للصور ومخزن خاص لوثائق التوثيق</li>
+        <li>تحقق صارم من كل المدخلات، وحدود للطلبات، وسجل تدقيق</li>
+      </ul>
+    </div>
+  </div>
+
+  <h3>حجم العمل البرمجي</h3>
+  <table>
+    <tr><th>الجزء</th><th>الحجم</th></tr>
+    <tr><td>خادم الـ API</td><td>~5,500 سطر، 72 نقطة قبل المرحلة 5 (+10 نقاط للتقييمات)</td></tr>
+    <tr><td>الواجهات الثلاث</td><td>~8,500 سطر؛ الزبائن 11 صفحة، التجار 10، الإدارة 3، ومشتركة 3</td></tr>
+    <tr><td>قاعدة البيانات</td><td>15 جدولاً و6 ترحيلات قبل المرحلة 5 (+2 جدول وترحيل واحد)</td></tr>
+    <tr><td>أدوات الاختبار والتوثيق</td><td>~1,050 سطراً من سكربتات الفحص الآلي، و4 وثائق تقنية + الملف التعريفي</td></tr>
+  </table>
+
+  <h3>التسلسل الزمني</h3>
+  <div class="tl">
+    <div class="it"><b>لقطة أساس</b> للنسخة الأولى قبل إعادة البناء <span class="d">— 15 أيلول</span></div>
+    <div class="it"><b>إعادة البناء للسوق السوري</b> وخارطة الطريق للمستوى الاحترافي <span class="d">— 15 أيلول</span></div>
+    <div class="it"><b>أساس الأمان</b>، الملف التعريفي، والترقية إلى NestJS 12 مع إغلاق كل الثغرات <span class="d">— 15 أيلول</span></div>
+    <div class="it"><b>المرحلة 2</b>: فصل الواجهات الثلاث <span class="d">— 15 أيلول</span></div>
+    <div class="it"><b>المرحلة 3</b>: التوثيق المتدرّج للتجار <span class="d">— 15 أيلول</span></div>
+    <div class="it"><b>المرحلة 4</b>: دمشق تجربةً مع إدارة الأسواق <span class="d">— 15 أيلول</span></div>
+    <div class="it"><b>نشر نسخة العرض</b> وحل مشاكل النشر الأول وتوثيقها <span class="d">— 15–16 أيلول</span></div>
+    <div class="it"><b>أيقونة التطبيق</b> من شعار المنصة على الواجهات الثلاث <span class="d">— 16 أيلول</span></div>
+    <div class="it pending"><b>المرحلة 5</b>: التقييمات ومصداقية المُبلِّغين (الكود مكتمل، الاختبار جارٍ) <span class="d">— 16 أيلول</span></div>
+  </div>
+</section>
+
+<!-- ============ الأمان ============ -->
+<section class="page-break compact">
+  <span class="section-no">القسم 2</span>
+  <h2>المرحلة 1 — الأمان والامتثال</h2>
+  <p class="lead">الهدف اجتياز الاختبار الفني للهيئة، لذلك بُني الأمان طبقاتٍ متتالية لا تعتمد إحداها على الأخرى.</p>
+
+  <table>
+    <tr><th style="width:22%">الطبقة</th><th>ما طُبّق</th></tr>
+    <tr><td>الجلسات</td><td>كوكيز httpOnly وSecure وSameSite، رمز وصول لمدة 15 دقيقة، ورمز تجديد يتبدّل مع كل استخدام ويُكشف إعادة استخدامه فتُلغى الجلسة كلها</td></tr>
+    <tr><td>الهوية</td><td>رمز SMS عند التسجيل، سياسة كلمات مرور، قفل مؤقت بعد المحاولات الفاشلة، استعادة كلمة المرور</td></tr>
+    <tr><td>الإدارة</td><td>مصادقة ثنائية TOTP إلزامية للمشرفين، ولوحة إدارة على نطاق مستقل</td></tr>
+    <tr><td>الصلاحيات</td><td>خمسة أدوار (زبون، تاجر، مشرف، مندوب ميداني، مدير)، وفحص الملكية في كل طلب، ورفض أي دور لا يخص الواجهة</td></tr>
+    <tr><td>المدخلات</td><td>تحقق صارم من كل حقل ورفض الحقول غير المعروفة، وحماية من الحقن</td></tr>
+    <tr><td>الملفات</td><td>فحص النوع الحقيقي للملف، إعادة ترميز الصور وحذف بيانات EXIF، ووثائق التجار بروابط مؤقتة فقط</td></tr>
+    <tr><td>ترويسات المتصفح</td><td>CSP وHSTS وX-Frame-Options وReferrer-Policy وPermissions-Policy</td></tr>
+    <tr><td>الحد من الإساءة</td><td>حدود طلبات لكل مستخدم وعنوان IP على التسجيل والدخول والبلاغات</td></tr>
+    <tr><td>التدقيق</td><td>سجل لكل عملية إدارية أو توثيق، دون تسجيل بيانات حساسة</td></tr>
+    <tr><td>البيانات الحساسة</td><td>تشفير الحقول الحساسة، والأسرار في متغيرات البيئة فقط، وقاعدة البيانات غير مكشوفة</td></tr>
+    <tr><td>المكتبات</td><td>Next.js 16.3.5 وNestJS 12، و<code>npm audit</code> بلا أي ثغرة في الطرفين</td></tr>
+    <tr><td>الخصوصية</td><td>سياسة خصوصية، شروط وأحكام، موافقة صريحة عند التسجيل</td></tr>
+  </table>
+
+  <div class="note olive">
+    <strong>الوثائق المرافقة:</strong> <code>docs/SECURITY.md</code> يشرح كل ضابط وكيف طُبّق مع نتائج الاختبارات،
+    و<code>docs/ROADMAP.md</code> يحدد المراحل والقرارات المعتمدة، وهما أساس ملف التقديم للهيئة.
+  </div>
+</section>
+
+<!-- ============ الواجهات والتوثيق ============ -->
+<section class="page-break">
+  <span class="section-no">القسم 3</span>
+  <h2>المرحلة 2 — ثلاث واجهات منفصلة</h2>
+  <div class="grid-3">
+    <div class="card">
+      <div class="icon">🛍️</div>
+      <h4>واجهة الزبائن</h4>
+      <p>الرئيسية، البحث، الأقسام، المحافظات والأسواق، صفحة المتجر والمنتج، المفضلة، الحساب، البلاغات، وأزرار واتساب والاتصال.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🏪</div>
+      <h4>بوابة التجار</h4>
+      <p>التسجيل برمز SMS، إدارة المنتجات والصور، إحصائيات المشاهدات والتواصل، إعدادات المتجر، والتوثيق.</p>
+    </div>
+    <div class="card">
+      <div class="icon">🛡️</div>
+      <h4>لوحة الإدارة</h4>
+      <p>نظرة عامة، مراجعة المنتجات، البلاغات، طابور التوثيق، الأسواق والأقسام، وسجل التدقيق.</p>
+    </div>
+  </div>
+  <ul>
+    <li>كل واجهة تعمل على نطاق مستقل ولها كوكيز جلسة خاصة؛ جلسة التاجر لا تعمل في لوحة الإدارة والعكس</li>
+    <li>بوابة التجار ولوحة الإدارة مخفيتان عن محركات البحث</li>
+    <li>استعادة كلمة المرور تحدد نوع الحساب من الواجهة نفسها، وهي غير متاحة في لوحة الإدارة</li>
+  </ul>
+
+  <span class="section-no" style="margin-top:6mm">القسم 4</span>
+  <h2>المرحلة 3 — التوثيق المتدرّج للتجار</h2>
+  <p>نموذج مبني على مرجعيات عالمية (قانون الخدمات الرقمية الأوروبي، قانون INFORM الأمريكي، توصيات FATF، وتوثيق Google Business Profile):
+  تحقق رخيص وتلقائي من الجميع، وتحقق أعمق لمن يحصل على صلاحيات أكبر.</p>
+  <table>
+    <tr><th style="width:22%">المستوى</th><th>المطلوب</th><th>الصلاحيات</th></tr>
+    <tr><td>0 — تسجيل</td><td>رقم موثّق برمز، موافقة على الشروط، تعهّد بصحة المعلومات</td><td>شارة «جديد»، حتى 10 منتجات</td></tr>
+    <tr><td>1 — هوية موثّقة</td><td>صورة الهوية بالوجهين وسيلفي مع الهوية</td><td>حتى 50 منتجاً</td></tr>
+    <tr><td>2 — محل موثّق</td><td>فيديو من داخل التطبيق (الشارع ← الواجهة ← الداخل) مع GPS ووقت التسجيل</td><td>ظهور أعلى، منتجات غير محدودة</td></tr>
+    <tr><td>3 — تاجر مميز</td><td>زيارة ميدانية من مندوب</td><td>الإعلانات المميزة (مع الاشتراك)</td></tr>
+  </table>
+  <ul>
+    <li>الوثائق والفيديو في مخزن خاص مشفّر، تُعرض للمشرف بروابط مؤقتة، وكل اطلاع مسجّل</li>
+    <li>الرفض يذكر السبب ويمكن إعادة التقديم، وإلغاء التوثيق تلقائياً عند نقل المتجر</li>
+    <li>إيقاف الشارة بعد البلاغات المؤكدة، وانتهاء التوثيق سنوياً، وصفحة عامة تشرح المستويات للزبائن</li>
+  </ul>
+</section>
+
+<!-- ============ دمشق ============ -->
+<section class="page-break">
+  <span class="section-no">القسم 5</span>
+  <h2>المرحلة 4 — دمشق تجربةً أولى</h2>
+  <div class="grid-2">
+    <div class="card">
+      <h4>الإطلاق التدريجي</h4>
+      <ul>
+        <li>حالة لكل محافظة: «مفتوحة» أو «قريباً»</li>
+        <li>متاجر المحافظة المُعادة إلى «قريباً» تختفي عن الزبائن</li>
+        <li>نموذج «أبلغوني عند الافتتاح» للتجار، وقائمة متابعة لهم في لوحة الإدارة</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h4>الأسواق</h4>
+      <ul>
+        <li>16 سوقاً في دمشق القديمة والحديثة</li>
+        <li>إضافة وتعديل وتعطيل وحذف الأسواق والأقسام من لوحة الإدارة</li>
+        <li>إعادة فهرسة البحث تلقائياً عند تغيير الأسماء</li>
+      </ul>
+    </div>
+  </div>
+  <h3>حدود الأسواق الجغرافية</h3>
+  <ul>
+    <li><strong>حدود مبدئية</strong> ترشد المراجع ولا ترفض أحداً، و<strong>حدود مؤكدة</strong> يعتمدها المدير بعد المسح الميداني، وعندها يُرفض فيديو المحل المصوَّر خارجها</li>
+    <li>أدوات مجانية لتحديد الحدود: «استخدم موقعي الحالي» من منتصف السوق، و«اقتراح من المتاجر الموثّقة» اعتماداً على مواقع 3 متاجر موثّقة على الأقل</li>
+  </ul>
+
+</section>
+
+<section class="page-break">
+  <span class="section-no">القسم 6</span>
+  <h2>نسخة العرض التجريبية على الإنترنت</h2>
+  <p>نُشرت المنصة كاملة نسخةَ عرض واضحة العلامة («نسخة عرض تجريبية» في أعلى كل صفحة، ومخفية عن محركات البحث)،
+  لعرضها على الشركاء والتجار قبل الإطلاق الفعلي.</p>
+  <table>
+    <tr><th style="width:26%">المكوّن</th><th>العنوان</th></tr>
+    <tr><td>واجهة الزبائن</td><td class="mono">tujjar-market.vercel.app</td></tr>
+    <tr><td>بوابة التجار</td><td class="mono">tujjar-merchant.vercel.app</td></tr>
+    <tr><td>لوحة الإدارة</td><td class="mono">tujjar-admin.vercel.app</td></tr>
+    <tr><td>خادم الـ API</td><td class="mono">tujjar-api.onrender.com</td></tr>
+  </table>
+  <ul>
+    <li>الواجهات على Vercel، والخادم على Render (فرانكفورت)، وقاعدة البيانات والتخزين على Supabase</li>
+    <li>كل واجهة تمرّر طلبات <code>/api</code> إلى الخادم، فتبقى الكوكيز على نطاق الواجهة نفسها</li>
+    <li>ترحيل قاعدة البيانات وتعبئة بيانات العرض يحدثان تلقائياً مع كل نشر، وكلمات مرور حسابات العرض محفوظة في إعدادات الخادم فقط</li>
+    <li>كل رفع إلى الفرع الرئيسي يعيد نشر الواجهات والخادم تلقائياً</li>
+  </ul>
+  <div class="note">
+    <strong>مشاكل حُلّت أثناء النشر الأول:</strong> مكتبات البناء لا تُثبَّت في بيئة الإنتاج، وصيغة رابط قاعدة البيانات،
+    وأسماء مخازن الملفات المحجوزة، ورفض الدخول بسبب إعدادات النطاقات المسموحة. كلها موثّقة مع حلولها في <code>docs/DEPLOY.md</code>.
+  </div>
+  <div class="note olive">
+    <strong>مهم:</strong> هذه النسخة للعرض فقط. الخطة المجانية تجعل الخادم «ينام» بعد فترة خمول فيتأخر أول طلب نحو دقيقة،
+    والبيانات مستضافة خارج سوريا. الإطلاق الفعلي يكون على بيئة إنتاج حسب متطلبات الهيئة بخصوص مكان استضافة البيانات.
+  </div>
+</section>
+
+<!-- ============ المرحلة 5 ============ -->
+<section class="page-break compact">
+  <span class="section-no">القسم 7</span>
+  <h2>المرحلة 5 — التقييمات ومصداقية المُبلِّغين</h2>
+  <p class="lead">تقييمات حقيقية لا يمكن تزويرها بسهولة: فقط من تواصل فعلاً مع المتجر يستطيع تقييمه.</p>
+
+  <h3>شروط التقييم</h3>
+  <ul>
+    <li>زبون مسجّل الدخول ضغط زر واتساب أو الاتصال في المتجر، فيُسجَّل التواصل في حسابه</li>
+    <li>يُفتح التقييم بعد 30 دقيقة من أول تواصل، ويبقى متاحاً 180 يوماً من آخر تواصل</li>
+    <li>تقييم واحد لكل زبون في كل متجر، ويمكنه تعديله أو حذفه</li>
+    <li>لا يستطيع صاحب متجر تقييم متجره (مقارنة رقم الزبون بأرقام المتجر ومالكه)</li>
+    <li>التعليق الذي يحتوي روابط أو أرقام هواتف أو كلمات مسيئة يُحجز للمراجعة قبل النشر</li>
+    <li>اسم الزبون يظهر مختصراً للعامة (الاسم الأول والحرف الأول من الكنية)</li>
+  </ul>
+
+  <div class="grid-3">
+    <div class="card">
+      <h4>للزبون</h4>
+      <p>نجوم من 1 إلى 5 وتعليق، ملخص التقييمات وتوزيعها في صفحة المتجر، وعرض التقييم على بطاقات المتاجر.</p>
+    </div>
+    <div class="card">
+      <h4>للتاجر</h4>
+      <p>صفحة «التقييمات» في البوابة: رد علني على كل تقييم، والإبلاغ عن تقييم غير عادل مع بقائه ظاهراً حتى قرار الإدارة.</p>
+    </div>
+    <div class="card">
+      <h4>للإدارة</h4>
+      <p>تبويب مراجعة التقييمات مع دليل التواصل الفعلي، نشر أو إخفاء مع سبب إلزامي، وتسجيل كل قرار في سجل التدقيق.</p>
+    </div>
+  </div>
+
+  <h3>مصداقية المُبلِّغ</h3>
+  <table>
+    <tr><th style="width:30%">القاعدة</th><th>التفاصيل</th></tr>
+    <tr><td>درجة المصداقية</td><td>تُحسب من نسبة البلاغات المؤكدة إلى المرفوضة، وتظهر للمشرف بجانب كل بلاغ</td></tr>
+    <tr><td>مُبلِّغ موثوق</td><td>3 بلاغات مؤكدة على الأقل ودرجة 80% فأكثر، فيُعطى بلاغه أولوية</td></tr>
+    <tr><td>إيقاف مؤقت</td><td>5 بلاغات مرفوضة ودرجة أقل من 20% توقف البلاغ 30 يوماً، مع تسجيل ذلك في سجل التدقيق</td></tr>
+    <tr><td>البيانات القديمة</td><td>احتُسبت العدّادات من البلاغات السابقة عند الترحيل، فلا يبدأ أحد من الصفر</td></tr>
+  </table>
+
+  <div class="note">
+    <strong>الحالة:</strong> الكود مكتمل (الخادم، الواجهات الثلاث، ترحيل قاعدة البيانات)، ويُبنى بلا أخطاء.
+    كُتب اختبار آلي شامل للمرحلة (التواصل والمهلة، النشر، الإخفاء، التعديل، الحجز، رد التاجر وإبلاغه، قرارات الإدارة، منع تقييم المتجر الذاتي،
+    وإيقاف المُبلِّغ)، ويجري تشغيله مع اختبارات المراحل السابقة قبل دمج المرحلة ونشرها.
+  </div>
+</section>
+
+<!-- ============ الهوية والاختبارات ============ -->
+<section class="page-break">
+  <span class="section-no">القسم 8</span>
+  <h2>الهوية البصرية — شعار التطبيق</h2>
+  <p>اعتُمد شعار «القوس» (قوس السوق الدمشقي مع باب المحل والقنديل) بألوان المنصة أيقونةً رسمية على الواجهات الثلاث،
+  بدل الأيقونة الافتراضية لإطار العمل.</p>
+  <div class="icons-row">
+    <figure><img src="../../apps/web/public/brand/icon-512.png" width="96" height="96" alt="">أيقونة التطبيق</figure>
+    <figure><img src="../../apps/web/public/brand/icon-maskable-512.png" width="96" height="96" alt="" style="border-radius:50%">أيقونة أندرويد</figure>
+    <figure><img src="../../apps/web/public/brand/apple-touch-icon.png" width="72" height="72" alt="" style="border-radius:16px">آيفون</figure>
+    <figure><img src="../../apps/web/public/brand/icon.svg" width="32" height="32" alt="">تبويب المتصفح</figure>
+  </div>
+  <ul>
+    <li>أيقونة المتصفح بعدة مقاسات، ونسخة متجهة (SVG) حادة على كل الشاشات</li>
+    <li>أيقونة الشاشة الرئيسية للآيفون، وأيقونات تثبيت التطبيق 192 و512 بكسل، وأيقونة متكيّفة لأندرويد</li>
+    <li>لكل واجهة اسمها الخاص عند التثبيت: «تُجّار»، «تُجّار للتجار»، «إدارة تُجّار»</li>
+  </ul>
+  <div class="note">إذا كان لديكم تصميم شعار نهائي مختلف، يُستبدل في ملف واحد وتُولَّد منه كل المقاسات.</div>
+
+  <span class="section-no" style="margin-top:6mm">القسم 9</span>
+  <h2>نتائج الاختبارات الآلية</h2>
+  <table>
+    <tr><th>مجموعة الاختبار</th><th>النتيجة</th><th>ملاحظة</th></tr>
+    <tr><td>التشفير</td><td class="ok">11 / 11</td><td></td></tr>
+    <tr><td>الأمان العام (الجلسات، الصلاحيات، المدخلات، الترويسات)</td><td class="ok">40 / 41</td><td>حالة معروفة: ترتيب حد الطلبات قبل التحقق، ليست ثغرة</td></tr>
+    <tr><td>قفل الحساب بعد المحاولات الفاشلة</td><td class="ok">8 / 8</td><td></td></tr>
+    <tr><td>مصفوفة المسارات بين الواجهات الثلاث</td><td class="ok">54 / 54</td><td></td></tr>
+    <tr><td>توثيق التجار</td><td class="ok">45 / 45</td><td></td></tr>
+    <tr><td>الأسواق والإطلاق التدريجي</td><td class="ok">32 / 32</td><td></td></tr>
+    <tr><td>نسخة العرض المنشورة (دخول، تسجيل، تجديد جلسة، فصل الواجهات، خروج)</td><td class="ok">ناجح</td><td>فحص يدوي كامل عبر الإنترنت</td></tr>
+    <tr><td>التقييمات ومصداقية المُبلِّغين</td><td class="wip">قيد التشغيل</td><td>مكتوب ويُشغَّل قبل الدمج</td></tr>
+  </table>
+</section>
+
+<!-- ============ المتبقي ============ -->
+<section class="page-break compact">
+  <span class="section-no">القسم 10</span>
+  <h2>ما تبقّى</h2>
+
+  <h3>برمجياً</h3>
+  <table>
+    <tr><th style="width:30%">المرحلة</th><th>المحتوى</th></tr>
+    <tr><td>إكمال المرحلة 5</td><td>تشغيل الاختبارات، ثم الدمج والنشر على نسخة العرض والتحقق منها</td></tr>
+    <tr><td>6 — الدفع الإلكتروني</td><td>باقات التجار والإعلانات المميزة عبر ecash بتأكيد موقّع من الخادم، فواتير وسجل مدفوعات، ودفع يدوي احتياطي عبر سيريتل كاش أو شام كاش</td></tr>
+    <tr><td>7 — البحث الذكي المجاني</td><td>نموذج مفتوح المصدر على خادمنا، بحث بالمعنى، ومرادفات باللهجة السورية وتصحيح الأخطاء الإملائية</td></tr>
+    <tr><td>8 — نواقص الواجهات</td><td>«مفتوح الآن»، خريطة السوق، رمز QR للمحل، إشعارات، إدارة المستخدمين، إحصائيات المنصة، تطبيق المندوب الميداني</td></tr>
+    <tr><td>9 — التشغيل الإنتاجي</td><td>بيئة إنتاج منفصلة، مراقبة وتنبيهات، نسخ احتياطي واختبار استرجاع، فحص تلقائي للمكتبات، تقرير فحص OWASP ZAP</td></tr>
+  </table>
+
+  <h3>ميدانياً</h3>
+  <ul>
+    <li>مسح حدود كل سوق في دمشق وتأكيدها من لوحة الإدارة</li>
+    <li>مراجعة أسماء الأسواق وأوصافها مع تجار محليين</li>
+  </ul>
+
+  <h3>مطلوب من صاحب المشروع</h3>
+  <ol>
+    <li>سجل تجاري للشركة المشغّلة</li>
+    <li>حساب مزوّد رسائل SMS (سيريتل أو MTN) لرموز التحقق</li>
+    <li>حساب تاجر لدى ecash</li>
+    <li>تقديم طلب الترخيص للهيئة الناظمة (نحو 45 يوماً مع الاختبار الفني)</li>
+    <li>مراجعة قانونية للشروط والأحكام وسياسة الخصوصية</li>
+    <li>نطاق (دومين) واستضافة الإنتاج</li>
+  </ol>
+
+  <p class="footer-note">
+    تُجّار ماركت — تقرير الأعمال، 16 أيلول 2026. المتطلبات القانونية والتراخيص الواردة للتخطيط فقط، وتُؤكَّد مع الهيئة ومحامٍ قبل الإطلاق.
+  </p>
+</section>
+
+</body>
+</html>
