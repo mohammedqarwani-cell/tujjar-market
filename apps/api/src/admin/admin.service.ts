@@ -7,6 +7,7 @@ import { pageResult, paging } from '../common/pagination';
 import { VerificationService } from '../verification/verification.service';
 import { LEVELS } from '../verification/verification.levels';
 import { ReviewsService } from '../reviews/reviews.service';
+import { NotificationsService } from '../notifications/notifications.service';
 import {
   REPORT_BLOCK_DAYS,
   REPORT_BLOCK_MIN_DISMISSED,
@@ -25,6 +26,7 @@ export class AdminService {
     private audit: AuditService,
     private verification: VerificationService,
     private reviews: ReviewsService,
+    private notifications: NotificationsService,
   ) {}
 
   async overview() {
@@ -104,12 +106,27 @@ export class AdminService {
   }
 
   async setStoreStatus(actorId: string, id: string, status: StoreStatus, ip: string) {
-    const store = await this.prisma.store.update({
+    const before = await this.prisma.store.findUnique({ where: { id }, select: { status: true } });
+    if (!before) throw new NotFoundException('المتجر غير موجود');
+    const { ownerId, ...store } = await this.prisma.store.update({
       where: { id },
       data: { status },
-      select: { id: true, verificationLevel: true, status: true },
+      select: { id: true, verificationLevel: true, status: true, ownerId: true },
     });
     await this.audit.log({ actorId, action: status === 'SUSPENDED' ? 'store.suspend' : 'store.reactivate', entityType: 'store', entityId: id, ip });
+    if (before.status !== status) {
+      this.notifications.notify(ownerId, {
+        category: 'ACCOUNT',
+        type: status === 'SUSPENDED' ? 'store.suspended' : 'store.reactivated',
+        title: status === 'SUSPENDED' ? 'أُوقف متجرك مؤقتاً' : 'أُعيد تفعيل متجرك ✓',
+        body:
+          status === 'SUSPENDED'
+            ? 'متجرك ومنتجاتك مخفية عن الزبائن حالياً. تواصل مع الإدارة لمعرفة السبب'
+            : 'متجرك ومنتجاتك ظاهرة للزبائن من جديد',
+        url: '/dashboard',
+        urgent: true,
+      });
+    }
     return store;
   }
 
@@ -147,12 +164,25 @@ export class AdminService {
   }
 
   async updateProduct(actorId: string, id: string, data: { isFeatured?: boolean; status?: ProductStatus }, ip: string) {
-    const product = await this.prisma.product.update({
+    const before = await this.prisma.product.findUnique({ where: { id }, select: { status: true } });
+    if (!before) throw new NotFoundException('المنتج غير موجود');
+    const { title, store, ...product } = await this.prisma.product.update({
       where: { id },
       data,
-      select: { id: true, isFeatured: true, status: true },
+      select: { id: true, isFeatured: true, status: true, title: true, store: { select: { ownerId: true } } },
     });
     await this.audit.log({ actorId, action: 'product.moderate', entityType: 'product', entityId: id, meta: data, ip });
+    if (data.status && data.status !== before.status && data.status !== 'UNDER_REVIEW') {
+      const hidden = data.status === 'HIDDEN';
+      this.notifications.notify(store.ownerId, {
+        category: 'ACCOUNT',
+        type: hidden ? 'product.hidden' : 'product.approved',
+        title: hidden ? 'أُخفي أحد منتجاتك' : 'نُشر منتجك بعد المراجعة ✓',
+        body: hidden ? `«${title}» مخالف لشروط النشر وأُخفي عن الزبائن` : `«${title}» ظاهر الآن للزبائن`,
+        url: `/dashboard/products/${id}`,
+        urgent: hidden,
+      });
+    }
     return product;
   }
 
@@ -201,6 +231,18 @@ export class AdminService {
       select: { id: true, status: true, storeId: true },
     });
     await this.audit.log({ actorId, action: `report.${status.toLowerCase()}`, entityType: 'report', entityId: id, ip });
+    if (before.status === 'OPEN' && status !== 'OPEN') {
+      this.notifications.notify(before.reporterId, {
+        category: 'ACCOUNT',
+        type: status === 'RESOLVED' ? 'report.resolved' : 'report.dismissed',
+        title: status === 'RESOLVED' ? 'شكراً لبلاغك ✓' : 'راجعنا بلاغك',
+        body:
+          status === 'RESOLVED'
+            ? 'تحققنا من بلاغك واتخذنا الإجراء المناسب. بلاغاتك تساعد في حماية الجميع'
+            : 'لم نجد مخالفة تستدعي إجراءً في هذا البلاغ',
+        url: '/notifications',
+      });
+    }
     if (before.status !== status) await this.updateReporterCredibility(actorId, before.reporterId, before.status, status, ip);
     // A confirmed report counts towards automatically suspending the store's verification badge
     if (status === 'RESOLVED' && report.storeId) await this.verification.applyReportThreshold(report.storeId);
@@ -236,6 +278,14 @@ export class AdminService {
       entityId: reporterId,
       meta: { confirmed: user.reportsConfirmed, dismissed: user.reportsDismissed, score: Math.round(score * 100) },
       ip,
+    });
+    this.notifications.notify(reporterId, {
+      category: 'ACCOUNT',
+      type: 'user.reporting_blocked',
+      title: 'أُوقفت البلاغات من حسابك مؤقتاً',
+      body: `تكررت البلاغات غير الصحيحة، فلا يمكنك الإبلاغ لمدة ${REPORT_BLOCK_DAYS} يوماً`,
+      url: '/notifications',
+      urgent: true,
     });
   }
 

@@ -18,6 +18,7 @@ import { VerificationsTab } from "./VerificationsTab";
 import { MarketsTab } from "./MarketsTab";
 import { CategoriesTab } from "./CategoriesTab";
 import { ReviewsTab } from "./ReviewsTab";
+import { CampaignsTab } from "./CampaignsTab";
 
 type Overview = {
   stores: number;
@@ -104,6 +105,7 @@ const TABS = [
   { id: "reviews", label: "التقييمات", adminOnly: false },
   { id: "markets", label: "المحافظات والأسواق", adminOnly: false },
   { id: "categories", label: "الأقسام", adminOnly: false },
+  { id: "campaigns", label: "الإشعارات والحملات", adminOnly: true },
   { id: "audit", label: "سجل التدقيق", adminOnly: true },
 ] as const;
 
@@ -131,6 +133,12 @@ export default function AdminPage() {
   const { status, user } = useSession("admin");
   const router = useRouter();
   const [tab, setTab] = useState<Tab>("verifications");
+
+  // Notifications link straight to a queue, e.g. /admin?tab=reports
+  useEffect(() => {
+    const requested = new URLSearchParams(window.location.search).get("tab");
+    if (TABS.some((t) => t.id === requested)) setTab(requested as Tab);
+  }, []);
 
   useEffect(() => {
     if (status === "anonymous") router.replace("/admin/login");
@@ -184,6 +192,7 @@ export default function AdminPage() {
         {tab === "markets" && <MarketsTab isAdmin={isAdmin} />}
         {tab === "categories" && <CategoriesTab isAdmin={isAdmin} />}
         {tab === "audit" && isAdmin && <AuditTab />}
+        {tab === "campaigns" && isAdmin && <CampaignsTab />}
       </div>
     </div>
   );
@@ -475,6 +484,7 @@ function ReportsTab() {
 
 const ACTION_LABELS: Record<string, string> = {
   "auth.login": "تسجيل دخول",
+  "campaign.created": "إرسال حملة إشعارات",
   "auth.login_failed": "محاولة دخول فاشلة",
   "auth.account_locked": "قفل الحساب",
   "auth.totp_enabled": "تفعيل المصادقة الثنائية",

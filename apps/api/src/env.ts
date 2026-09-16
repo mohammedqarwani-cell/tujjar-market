@@ -61,6 +61,13 @@ export const env = {
   /** Return OTP codes in the API response so flows work without SMS: development, or an explicit demo */
   otpDevEcho: (!isProd || demoMode) && process.env.OTP_DEV_ECHO === 'true',
   termsVersion: process.env.TERMS_VERSION ?? '2026-09',
+  vapid: {
+    /** Optional: without them the API generates a key pair once and stores it encrypted in the database */
+    publicKey: process.env.VAPID_PUBLIC_KEY ?? '',
+    privateKey: process.env.VAPID_PRIVATE_KEY ?? '',
+    /** Contact push services can reach about this sender */
+    subject: process.env.VAPID_SUBJECT ?? `mailto:${process.env.VAPID_CONTACT_EMAIL ?? 'support@tujjar.market'}`,
+  },
   minio: {
     endpoint: process.env.MINIO_ENDPOINT ?? 'http://localhost:9000',
     /** MinIO ignores it; S3-compatible providers such as Supabase Storage need the project region */

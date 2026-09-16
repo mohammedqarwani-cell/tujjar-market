@@ -6,6 +6,8 @@ import { pageResult, paging } from '../common/pagination';
 import { publicStoreWhere } from '../common/selects';
 import { normalizeArabic, toLatinDigits } from '../common/text/arabic';
 import { ModerateReviewDto, ReviewInputDto } from './reviews.dto';
+import { NotificationsService } from '../notifications/notifications.service';
+import { damascusDay } from '../common/pagination';
 
 /** A review needs a contact made from the store page, and not in the same minutes as that contact */
 export const REVIEW_CONTACT_COOLDOWN_MS = 30 * 60_000;
@@ -52,6 +54,7 @@ export class ReviewsService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private notifications: NotificationsService,
   ) {}
 
   private async publicStore(slug: string): Promise<PublicStore> {
@@ -172,7 +175,36 @@ export class ReviewsService {
       meta: { storeId: store.id, rating: dto.rating, status },
       ip,
     });
+    if (status === 'PUBLISHED' && !existing) this.announceReview(store.id, dto.rating);
+    if (status === 'UNDER_REVIEW') {
+      this.notifications.notifyStaff({
+        category: 'MODERATION',
+        type: 'review.held',
+        title: 'تقييم محجوز ينتظر المراجعة',
+        body: moderationNote ?? 'تقييم يحتاج مراجعة',
+        url: '/admin?tab=reviews',
+        groupKey: `queue-reviews:${damascusDay().toISOString().slice(0, 10)}`,
+        grouped: (count) => ({ title: 'تقييمات تنتظر المراجعة', body: `${count} تقييمات محجوزة اليوم` }),
+      });
+    }
     return review;
+  }
+
+  /** Tells the merchant about a new published review, grouped per day. */
+  private announceReview(storeId: string, rating: number) {
+    void this.prisma.store
+      .findUnique({ where: { id: storeId }, select: { ownerId: true } })
+      .then((store) =>
+        this.notifications.notify(store?.ownerId, {
+          category: 'REVIEWS',
+          type: 'review.new',
+          title: `تقييم جديد لمتجرك: ${'★'.repeat(rating)}`,
+          body: 'اطّلع على التقييم وردّ على الزبون',
+          url: '/dashboard/reviews',
+          groupKey: `reviews:${storeId}:${damascusDay().toISOString().slice(0, 10)}`,
+          grouped: (count) => ({ title: 'تقييمات جديدة لمتجرك', body: `وصلك ${count} تقييمات جديدة اليوم` }),
+        }),
+      );
   }
 
   async removeMine(buyerId: string, slug: string, ip: string) {
@@ -263,6 +295,19 @@ export class ReviewsService {
       select: { id: true, merchantReply: true, merchantRepliedAt: true },
     });
     await this.audit.log({ actorId: userId, action: 'review.replied', entityType: 'review', entityId: id, ip });
+    void this.prisma.review
+      .findUnique({ where: { id }, select: { buyerId: true, store: { select: { name: true, slug: true } } } })
+      .then((r) =>
+        r &&
+        this.notifications.notify(r.buyerId, {
+          category: 'ACCOUNT',
+          type: 'review.replied',
+          title: `ردّ ${r.store.name} على تقييمك`,
+          body: reply.trim().slice(0, 120),
+          url: `/stores/${r.store.slug}#reviews`,
+          groupKey: `review-reply:${id}`,
+        }),
+      );
     return updated;
   }
 
@@ -281,6 +326,15 @@ export class ReviewsService {
       entityId: id,
       meta: { reason: reason.trim() },
       ip,
+    });
+    this.notifications.notifyStaff({
+      category: 'MODERATION',
+      type: 'review.flagged',
+      title: 'تاجر يطلب مراجعة تقييم',
+      body: reason.trim().slice(0, 120),
+      url: '/admin?tab=reviews',
+      groupKey: `queue-reviews:${damascusDay().toISOString().slice(0, 10)}`,
+      grouped: (count) => ({ title: 'تقييمات تنتظر المراجعة', body: `${count} تقييمات بانتظار قرار اليوم` }),
     });
     return { id, flagOpen: true };
   }
@@ -340,7 +394,10 @@ export class ReviewsService {
   }
 
   async moderate(actorId: string, id: string, dto: ModerateReviewDto, ip: string) {
-    const review = await this.prisma.review.findUnique({ where: { id }, select: { storeId: true } });
+    const review = await this.prisma.review.findUnique({
+      where: { id },
+      select: { storeId: true, status: true, flagOpen: true, buyerId: true, store: { select: { ownerId: true, name: true, slug: true } } },
+    });
     if (!review) throw new NotFoundException('التقييم غير موجود');
     const note = dto.note?.trim() || null;
     if (dto.status === 'HIDDEN' && (!note || note.length < 5)) {
@@ -360,6 +417,28 @@ export class ReviewsService {
       meta: { note },
       ip,
     });
+    if (review.status !== dto.status) {
+      this.notifications.notify(review.buyerId, {
+        category: 'ACCOUNT',
+        type: dto.status === 'HIDDEN' ? 'review.hidden' : 'review.published',
+        title: dto.status === 'HIDDEN' ? 'أُخفي تقييمك' : 'نُشر تقييمك',
+        body:
+          dto.status === 'HIDDEN'
+            ? `راجعت الإدارة تقييمك على ${review.store.name} ولم يُنشر لمخالفته إرشادات التقييم`
+            : `تقييمك على ${review.store.name} ظاهر الآن للجميع`,
+        url: `/stores/${review.store.slug}#reviews`,
+      });
+    }
+    if (review.flagOpen) {
+      this.notifications.notify(review.store.ownerId, {
+        category: 'ACCOUNT',
+        type: 'review.flag_decided',
+        title: 'قرار الإدارة على التقييم الذي طلبت مراجعته',
+        body: dto.status === 'HIDDEN' ? 'أُخفي التقييم بعد المراجعة' : 'بقي التقييم منشوراً بعد المراجعة',
+        url: '/dashboard/reviews',
+        urgent: true,
+      });
+    }
     return updated;
   }
 

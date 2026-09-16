@@ -23,6 +23,7 @@ import { OtpService } from './otp.service';
 import { ROLE_AUDIENCE } from './roles';
 import { SessionService } from './session.service';
 import { base32Decode, base32Encode, matchTotp, otpauthUrl } from './totp';
+import { NotificationsService } from '../notifications/notifications.service';
 
 const MAX_FAILED_LOGINS = 5;
 const LOCK_MS = 15 * 60_000;
@@ -37,6 +38,7 @@ export class AuthService {
     private sessions: SessionService,
     private otp: OtpService,
     private audit: AuditService,
+    private notifications: NotificationsService,
   ) {}
 
   private phoneOrThrow(raw: string) {
@@ -68,6 +70,13 @@ export class AuthService {
       },
     });
     await this.audit.log({ actorId: user.id, action: 'user.register', entityType: 'user', entityId: user.id, ip: meta.ip });
+    this.notifications.notify(user.id, {
+      category: 'ACCOUNT',
+      type: 'welcome',
+      title: `أهلاً ${user.name.split(' ')[0]} في تُجّار ماركت`,
+      body: 'تابع متاجرك المفضلة واحفظ المنتجات لتصلك العروض وانخفاض الأسعار أولاً بأول',
+      url: '/notifications/settings',
+    });
     return this.startSession(user, 'web', meta, false);
   }
 
@@ -123,6 +132,13 @@ export class AuthService {
       },
     });
     await this.audit.log({ actorId: user.id, action: 'merchant.register', entityType: 'user', entityId: user.id, ip: meta.ip });
+    this.notifications.notify(user.id, {
+      category: 'ACCOUNT',
+      type: 'welcome',
+      title: 'متجرك صار على تُجّار ماركت',
+      body: 'أضف منتجاتك، ثم وثّق هويتك ومحلك لتظهر شارة التوثيق ويزيد ظهورك في البحث',
+      url: '/dashboard/verification',
+    });
     return this.startSession(user, 'merchant', meta, false);
   }
 

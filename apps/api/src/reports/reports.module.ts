@@ -20,6 +20,8 @@ import { Auth } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { clientIp } from '../common/request';
+import { NotificationsService } from '../notifications/notifications.service';
+import { damascusDay } from '../common/pagination';
 
 export const REPORT_REASONS = ['احتيال أو نصب', 'منتج ممنوع', 'معلومات مضللة', 'رقم تواصل لا يعمل', 'أخرى'];
 const MAX_REPORTS_PER_DAY = 10;
@@ -36,6 +38,7 @@ class ReportsService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private notifications: NotificationsService,
   ) {}
 
   async create(reporterId: string, dto: CreateReportDto, ip: string) {
@@ -72,6 +75,15 @@ class ReportsService {
       data: { reporterId, storeId, productId, reason: dto.reason, details: dto.details?.trim() || null },
     });
     await this.audit.log({ actorId: reporterId, action: 'report.create', entityType: 'report', entityId: report.id, ip });
+    this.notifications.notifyStaff({
+      category: 'MODERATION',
+      type: 'report.created',
+      title: 'بلاغ جديد',
+      body: dto.reason,
+      url: '/admin?tab=reports',
+      groupKey: `queue-reports:${damascusDay().toISOString().slice(0, 10)}`,
+      grouped: (count) => ({ title: 'بلاغات جديدة', body: `${count} بلاغات جديدة اليوم` }),
+    });
   }
 }
 
