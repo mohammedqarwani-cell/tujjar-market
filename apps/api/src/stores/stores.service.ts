@@ -8,12 +8,14 @@ import { pageResult, paging } from '../common/pagination';
 import { publicStoreWhere, storeCardSelect } from '../common/selects';
 import { atLeast } from '../verification/verification.levels';
 import { UpdateStoreDto } from './store.dto';
+import { SearchIndexService } from '../search/search-index.service';
 
 @Injectable()
 export class StoresService {
   constructor(
     private prisma: PrismaService,
     private audit: AuditService,
+    private search: SearchIndexService,
   ) {}
 
   async list(query: Record<string, string>) {
@@ -22,6 +24,17 @@ export class StoresService {
     if (query.gov) where.governorate = { status: 'ACTIVE', slug: query.gov };
     if (query.market) where.market = { slug: query.market };
     if (query.category) where.category = { slug: query.category };
+
+    const ranked = query.q?.trim() ? this.search.rankStores(query.q) : null;
+    if (ranked) {
+      const matches = await this.prisma.store.findMany({ where: { ...where, id: { in: ranked.ids } }, select: { id: true } });
+      matches.sort((a, b) => ranked.scores.get(b.id)! - ranked.scores.get(a.id)!);
+      const pageIds = matches.slice(skip, skip + take).map((m) => m.id);
+      const rows = await this.prisma.store.findMany({ where: { id: { in: pageIds } }, select: storeCardSelect });
+      const items = pageIds.map((id) => rows.find((r) => r.id === id)!).filter(Boolean);
+      return { ...pageResult(items, matches.length, page, pageSize), search: ranked.meta };
+    }
+
     const terms = normalizeArabic(query.q).split(' ').filter((t) => t.length > 1).slice(0, 5);
     if (terms.length) where.AND = terms.map((t) => ({ searchText: { contains: t } }));
 

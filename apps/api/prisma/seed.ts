@@ -1,6 +1,7 @@
 import { PrismaClient, PriceType, Currency, ItemCondition } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 import { buildSearchText } from '../src/common/text/arabic';
+import { applyDemoPhotos } from './demo-photos';
 
 const prisma = new PrismaClient();
 
@@ -472,6 +473,8 @@ async function main() {
 
   console.log('✅ Done');
   // Deployed passwords come from environment variables and are never written to logs
+  await applyDemoPhotos(prisma).catch((e) => console.warn('Demo photos skipped:', (e as Error).message));
+
   if (process.env.NODE_ENV !== 'production') {
     console.table([
       { role: 'ADMIN', phone: '0900000001', password: 'Admin@2026' },

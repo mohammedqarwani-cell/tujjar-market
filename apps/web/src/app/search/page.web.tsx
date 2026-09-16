@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import Form from "next/form";
 import { cookies } from "next/headers";
 import { apiGet, toQuery } from "@lib/api";
 import { GOV_COOKIE } from "@lib/gov";
@@ -12,6 +11,7 @@ import { EmptyState } from "@components/ui/Section";
 import { Pagination } from "@components/ui/Pagination";
 import { SearchIcon } from "@components/ui/icons";
 import { SearchControls } from "./SearchControls";
+import { SearchBox } from "@components/search/SearchBox";
 
 type SP = Record<string, string | string[] | undefined>;
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v) ?? "";
@@ -65,18 +65,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
 
   return (
     <div className="mx-auto max-w-6xl px-4 py-6 sm:py-8">
-      <Form action="/search" className="relative mb-5 md:hidden">
-        <SearchIcon className="pointer-events-none absolute inset-y-0 start-3 my-auto text-muted" />
-        <input
-          name="q"
-          type="search"
-          defaultValue={params.q}
-          placeholder="ابحث عن منتج أو متجر…"
-          aria-label="بحث"
-          className="h-12 w-full rounded-2xl border border-line bg-surface ps-11 pe-4 outline-none focus:border-brand-500 focus:ring-4 focus:ring-brand-100"
-        />
-        {isStores && <input type="hidden" name="type" value="stores" />}
-      </Form>
+      <SearchBox key={params.q} variant="page" defaultValue={params.q} hidden={isStores ? { type: "stores" } : {}} />
 
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
@@ -113,6 +102,26 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
           </Link>
         ))}
       </div>
+
+      {results.search && (results.search.correctedQuery || results.search.alsoSearched.length > 0) && (
+        <div className="mt-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-2xl bg-brand-50 px-4 py-3 text-sm ring-1 ring-brand-100">
+          <SearchIcon size={16} className="shrink-0 text-brand-700" />
+          {results.search.correctedQuery && (
+            <span>
+              هل تقصد{" "}
+              <Link href={`/search${toQuery({ ...params, q: results.search.correctedQuery, page: undefined })}`} className="font-bold text-brand-700 underline">
+                {results.search.correctedQuery}
+              </Link>
+              ؟ عرضنا لك نتائجها.
+            </span>
+          )}
+          {results.search.alsoSearched.length > 0 && (
+            <span className="text-ink/80">
+              بحثنا أيضاً عن: <span className="font-medium">{results.search.alsoSearched.join("، ")}</span>
+            </span>
+          )}
+        </div>
+      )}
 
       <SearchControls
         params={params}

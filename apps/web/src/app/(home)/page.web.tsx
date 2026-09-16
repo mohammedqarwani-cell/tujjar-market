@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Form from "next/form";
 import { cookies } from "next/headers";
 import { apiGet, toQuery } from "@lib/api";
 import { GOV_COOKIE } from "@lib/gov";
@@ -9,6 +8,7 @@ import { ProductCard } from "@components/catalog/ProductCard";
 import { StoreCard } from "@components/catalog/StoreCard";
 import { Section } from "@components/ui/Section";
 import { SearchIcon, ShieldIcon, WhatsAppIcon, PinIcon } from "@components/ui/icons";
+import { SearchBox } from "@components/search/SearchBox";
 
 const QUICK_SEARCHES = ["طاقة شمسية", "موبايلات", "بروكار", "صابون غار", "حلويات", "لابتوب"];
 
@@ -40,22 +40,7 @@ export default async function HomePage() {
             وبدون عمولة.
           </p>
 
-          <Form action="/search" className="mt-7 flex max-w-2xl gap-2 rounded-2xl bg-surface p-2 shadow-card ring-1 ring-line">
-            <div className="relative flex-1">
-              <SearchIcon className="pointer-events-none absolute inset-y-0 start-3 my-auto text-muted" />
-              <input
-                name="q"
-                type="search"
-                placeholder="شو بدك تشتري اليوم؟"
-                aria-label="ابحث عن منتج"
-                className="h-12 w-full rounded-xl bg-transparent ps-11 pe-3 text-base outline-none"
-              />
-            </div>
-            {gov && <input type="hidden" name="gov" value={gov} />}
-            <button className="h-12 rounded-xl bg-brand-600 px-6 font-bold text-white transition hover:bg-brand-700">
-              ابحث
-            </button>
-          </Form>
+          <SearchBox variant="hero" placeholder="شو بدك تشتري اليوم؟ جرّب: شي يشحن الموبايل بلا كهربا" hidden={gov ? { gov } : {}} />
 
           <div className="mt-4 flex flex-wrap items-center gap-2 text-sm">
             <span className="text-muted">الأكثر بحثاً:</span>

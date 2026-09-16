@@ -27,6 +27,7 @@ powershell -ExecutionPolicy Bypass -File scripts\build-totp-helper.ps1
 | `powershell -ExecutionPolicy Bypass -File scripts\security-tests\e2e-markets.ps1` | الإطلاق التدريجي: حالة المحافظات، اهتمام التجار، إدارة الأسواق والأقسام، الحدود الجغرافية، إخفاء متاجر المحافظات غير المفتوحة، سجل التدقيق | 32 |
 | `powershell -ExecutionPolicy Bypass -File scripts\security-tests\e2e-verification.ps1` | التوثيق المتدرّج: التعهد عند التسجيل، حدود المنتجات، الهوية وفيديو المحل، التشفير في المخزن الخاص، المراجعة، حدود السوق الجغرافية، إلغاء التوثيق عند نقل المتجر، إيقاف الشارة بعد البلاغات، سجل التدقيق | 45 |
 | `powershell -ExecutionPolicy Bypass -File scripts\security-tests\e2e-reviews.ps1` | التقييمات ومصداقية المُبلِّغين: شرط التواصل ومهلته، النشر والحجز، إخفاء الهوية، رد التاجر وطلب المراجعة، قرارات الإدارة، منع التقييم الذاتي، إيقاف المُبلِّغ الكيدي، سجل التدقيق | 32 |
+| `node scripts\security-tests\e2e-search.mjs` | البحث الذكي: اللهجة والمرادفات، التصحيح الإملائي، الحاجة الموصوفة، الفلاتر والترتيب والصفحات، إخفاء المنتجات قيد المراجعة، الاقتراحات، المدخلات الخبيثة | 18 |
 | `powershell -ExecutionPolicy Bypass -File scripts\security-tests\e2e-notifications.ps1` | الإشعارات: العدّاد والإعدادات، اشتراكات Web Push ورفض العناوين غير الحقيقية، المتابعة والمفضلة، المنتجات الجديدة وانخفاض السعر والتوفر، عزل الحسابات، طوابير المشرفين، الحملات | 31 |
 
 **مهم:** `e2e-security.ps1` يستهلك حد محاولات الدخول (10 كل 15 دقيقة لكل IP). **أعد تشغيل الـ API** قبل تشغيل
