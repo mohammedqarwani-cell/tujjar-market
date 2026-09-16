@@ -7,7 +7,7 @@ import { signOut, useSession } from "@lib/session";
 import { useFavorites } from "@lib/favorites";
 import { merchantUrl } from "@lib/urls";
 import { EmptyState } from "@components/ui/Section";
-import { HeartIcon, LogoutIcon, ShieldIcon, StoreIcon } from "@components/ui/icons";
+import { BellIcon, HeartIcon, LogoutIcon, ShieldIcon, StoreIcon } from "@components/ui/icons";
 
 export default function AccountPage() {
   const router = useRouter();
@@ -22,7 +22,7 @@ export default function AccountPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-12">
         <EmptyState icon="👤" title="حسابك في تُجّار ماركت">
-          سجّل الدخول لحفظ المفضلة والإبلاغ عن الإعلانات المخالفة.
+          سجّل الدخول لمتابعة المتاجر، وتصلك العروض وانخفاض أسعار مفضلتك، وللإبلاغ عن الإعلانات المخالفة.
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Link href="/account/login" className="rounded-xl bg-brand-600 px-5 py-2.5 font-bold text-white hover:bg-brand-700">تسجيل الدخول</Link>
             <Link href="/account/register" className="rounded-xl px-5 py-2.5 font-bold text-ink ring-1 ring-line hover:ring-brand-200">حساب جديد</Link>
@@ -55,6 +55,16 @@ export default function AccountPage() {
       <Link href="/favorites" className="flex items-center justify-between rounded-card bg-surface p-5 ring-1 ring-line hover:ring-brand-200">
         <span className="flex items-center gap-3 font-medium"><HeartIcon size={20} className="text-danger" /> المفضلة</span>
         <span className="text-sm text-muted">{favorites.length} منتج ←</span>
+      </Link>
+
+      <Link href="/account/following" className="flex items-center justify-between rounded-card bg-surface p-5 ring-1 ring-line hover:ring-brand-200">
+        <span className="flex items-center gap-3 font-medium"><StoreIcon size={20} className="text-brand-600" /> المتاجر التي أتابعها</span>
+        <span className="text-sm text-muted">←</span>
+      </Link>
+
+      <Link href="/notifications/settings" className="flex items-center justify-between rounded-card bg-surface p-5 ring-1 ring-line hover:ring-brand-200">
+        <span className="flex items-center gap-3 font-medium"><BellIcon size={20} className="text-olive-600" /> إعدادات الإشعارات</span>
+        <span className="text-sm text-muted">←</span>
       </Link>
 
       <button

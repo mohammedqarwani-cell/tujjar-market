@@ -111,6 +111,38 @@ enum ReviewStatus {
   HIDDEN
 }
 
+/// What a notification is about; users choose per category where it reaches them
+enum NotificationCategory {
+  /// The user's own account, store, reviews and reports (always shown in the app)
+  ACCOUNT
+  /// New reviews on the merchant's store
+  REVIEWS
+  /// Price drops and restocks on the buyer's favorite products
+  FAVORITES
+  /// New products and offers from stores the buyer follows
+  FOLLOWING
+  /// Platform news, offers and seasonal campaigns
+  PROMOTIONS
+  /// Invitations: review a store you contacted, verify your store, try a new feature
+  INVITES
+  /// Moderation queues (verification, reports, held reviews) for staff
+  MODERATION
+}
+
+enum CampaignAudience {
+  BUYERS
+  MERCHANTS
+  /// Merchants whose store is still at the REGISTERED level
+  MERCHANTS_UNVERIFIED
+  ALL
+}
+
+enum CampaignStatus {
+  SENDING
+  SENT
+  FAILED
+}
+
 model User {
   id                    String                @id @default(cuid())
   name                  String
@@ -145,6 +177,13 @@ model User {
   reportsDismissed      Int                   @default(0)
   /// Set after persistent false reporting; the account can't report until then
   reportingBlockedUntil DateTime?
+  /// Per-category channel choices: { FOLLOWING: { inApp: true, push: false }, ... }; missing keys use defaults
+  notificationPrefs     Json?
+  notifications         Notification[]
+  pushSubscriptions     PushSubscription[]
+  favorites             Favorite[]
+  follows               StoreFollow[]
+  campaigns             Campaign[]            @relation("CampaignAuthor")
 }
 
 /// One refresh-token session per signed-in device and interface
@@ -314,6 +353,7 @@ model Store {
   verificationRequests  VerificationRequest[]
   buyerContacts         StoreContact[]
   reviews               Review[]
+  followers             StoreFollow[]
 
   @@index([status, governorateId, marketId])
   @@index([status, verificationLevel])
@@ -416,6 +456,7 @@ model Product {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   reports       Report[]
+  favoritedBy   Favorite[]
 
   @@index([status, categoryId])
   @@index([storeId, status])
@@ -450,4 +491,104 @@ model Report {
 
   @@index([status, createdAt])
   @@index([reporterId, createdAt])
+}
+
+/// A buyer's saved product, kept on the server so price drops and restocks can be announced
+model Favorite {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  productId String
+  product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, productId])
+  @@index([productId])
+}
+
+/// A buyer following a store to hear about its new products and offers
+model StoreFollow {
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  storeId   String
+  store     Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@id([userId, storeId])
+  @@index([storeId])
+}
+
+/// In-app notification; also the record that decides whether a push was sent
+model Notification {
+  id         String               @id @default(cuid())
+  userId     String
+  user       User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category   NotificationCategory
+  /// Machine-readable event, e.g. verification.approved or product.price_drop
+  type       String
+  title      String
+  body       String
+  /// Path inside the recipient's interface, e.g. /dashboard/verification
+  url        String?
+  /// Related events share a key: an unread notification with the same key is updated instead of repeated
+  groupKey   String?
+  count      Int                  @default(1)
+  readAt     DateTime?
+  /// Hidden from the list (the in-app channel is off for this category) but kept for push limits and dedupe
+  silent     Boolean              @default(false)
+  pushedAt   DateTime?
+  campaignId String?
+  campaign   Campaign?            @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  createdAt  DateTime             @default(now())
+  updatedAt  DateTime             @updatedAt
+
+  @@index([userId, silent, createdAt])
+  @@index([userId, readAt])
+  @@index([userId, groupKey])
+  @@index([userId, pushedAt])
+}
+
+/// A browser or phone that accepted push notifications for one interface
+model PushSubscription {
+  id            String    @id @default(cuid())
+  userId        String
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  /// web | merchant | admin: pushes only go to the interface the recipient signs in to
+  audience      String
+  endpoint      String    @unique
+  p256dh        String
+  auth          String
+  userAgent     String?
+  failures      Int       @default(0)
+  lastSuccessAt DateTime?
+  createdAt     DateTime  @default(now())
+
+  @@index([userId, audience])
+}
+
+/// A notification an admin sends to many users (news, offers, invitations)
+model Campaign {
+  id            String               @id @default(cuid())
+  category      NotificationCategory
+  audience      CampaignAudience
+  title         String
+  body          String
+  url           String?
+  status        CampaignStatus       @default(SENDING)
+  recipients    Int                  @default(0)
+  delivered     Int                  @default(0)
+  pushed        Int                  @default(0)
+  createdById   String?
+  createdBy     User?                @relation("CampaignAuthor", fields: [createdById], references: [id], onDelete: SetNull)
+  createdAt     DateTime             @default(now())
+  finishedAt    DateTime?
+  notifications Notification[]
+
+  @@index([createdAt])
+}
+
+/// Small server-generated settings, e.g. the Web Push VAPID key pair (private key encrypted)
+model AppSetting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
 }

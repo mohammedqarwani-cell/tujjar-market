@@ -1,12 +1,26 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect } from "react";
 import { useSession } from "@lib/session";
+import { syncFavorites } from "@lib/favorites";
 import { UserIcon } from "@components/ui/icons";
 import { merchantUrl } from "@lib/urls";
 
 export function AccountLink() {
   const buyer = useSession("web", { lazy: true });
+  const buyerId = buyer.user?.id;
+
+  // Once per page load after sign-in, merge this device's favorites with the account
+  useEffect(() => {
+    if (!buyerId) return;
+    const key = `tj_fav_synced_${buyerId}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {}
+    void syncFavorites().catch(() => undefined);
+  }, [buyerId]);
 
   return (
     <div className="hidden items-center gap-1 sm:flex">

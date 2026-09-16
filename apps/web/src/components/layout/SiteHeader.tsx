@@ -8,6 +8,7 @@ import { GOV_COOKIE } from "@lib/gov";
 import type { Governorate } from "@lib/types";
 import { GovernoratePicker } from "./GovernoratePicker";
 import { AccountLink } from "./AccountLink";
+import { NotificationBell } from "@components/notifications/NotificationBell";
 
 export async function SiteHeader() {
   const [governorates, current] = await Promise.all([
@@ -44,6 +45,7 @@ export async function SiteHeader() {
             governorates={governorates.filter((g) => g.status !== "COMING_SOON").map(({ slug, name }) => ({ slug, name }))}
             current={current}
           />
+          <NotificationBell audience="web" />
           <AccountLink />
         </div>
       </div>

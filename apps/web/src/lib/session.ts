@@ -164,6 +164,11 @@ export async function signIn(aud: Audience, body: { phone: string; password: str
 
 export async function signOut(aud: Audience) {
   try {
+    const reg = await navigator.serviceWorker?.getRegistration("/");
+    const sub = await reg?.pushManager?.getSubscription();
+    if (sub) await apiRequest("/notifications/push/unsubscribe", { audience: aud, method: "POST", body: { endpoint: sub.endpoint } });
+  } catch {}
+  try {
     await apiRequest("/auth/logout", { audience: aud, method: "POST" });
   } catch {}
   setState(aud, { status: "anonymous", user: null });

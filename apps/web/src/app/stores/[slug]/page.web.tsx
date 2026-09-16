@@ -10,6 +10,7 @@ import { VerificationBadge } from "@components/catalog/VerificationBadge";
 import { ContactButtons } from "@components/contact/ContactButtons";
 import { ShareButton } from "@components/contact/ShareButton";
 import { ReportButton } from "@components/contact/ReportButton";
+import { FollowButton } from "@components/contact/FollowButton";
 import { StoreReviews } from "@components/reviews/StoreReviews";
 import { Stars } from "@components/reviews/Stars";
 import { ViewTracker } from "@components/contact/ViewTracker";
@@ -108,6 +109,7 @@ export default async function StorePage({ params, searchParams }: Props) {
             <div className="hidden md:block">
               <ContactButtons store={store} />
             </div>
+            <FollowButton storeSlug={store.slug} />
             <div className="flex items-center justify-between gap-2">
               <ShareButton title={store.name} path={`/stores/${store.slug}`} />
               <ReportButton storeSlug={store.slug} />

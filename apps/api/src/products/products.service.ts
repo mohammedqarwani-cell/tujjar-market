@@ -6,6 +6,7 @@ import { pageResult, paging } from '../common/pagination';
 import { productCardSelect, publicProductWhere, publicStoreWhere } from '../common/selects';
 import { PRODUCT_LIMITS } from '../verification/verification.levels';
 import { ProductInputDto } from './product.dto';
+import { ActivityNotifier } from '../notifications/activity';
 
 const SORTS: Record<string, Prisma.ProductOrderByWithRelationInput[]> = {
   newest: [{ createdAt: 'desc' }],
@@ -16,7 +17,10 @@ const SORTS: Record<string, Prisma.ProductOrderByWithRelationInput[]> = {
 
 @Injectable()
 export class ProductsService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private activity: ActivityNotifier,
+  ) {}
 
   async list(query: Record<string, string>) {
     const { page, pageSize, skip, take } = paging(query.page, query.pageSize);
@@ -159,10 +163,12 @@ export class ProductsService {
     this.assertBelowLimit(store);
     const data = await this.prepare(dto, store);
     const { riskScore, status } = this.assessRisk(dto);
-    return this.prisma.product.create({
+    const product = await this.prisma.product.create({
       data: { ...data, storeId: store.id, riskScore, status },
       select: { id: true, status: true },
     });
+    if (product.status === 'ACTIVE') this.activity.productCreated(product.id);
+    return product;
   }
 
   /** Higher verification levels unlock more listings (risk-based limits). */
@@ -180,7 +186,7 @@ export class ProductsService {
     const store = await this.storeOf(userId);
     const existing = await this.prisma.product.findFirst({
       where: { id, storeId: store.id },
-      select: { status: true, categoryId: true },
+      select: { status: true, categoryId: true, price: true, oldPrice: true, currency: true, priceType: true, inStock: true },
     });
     if (!existing) throw new NotFoundException('المنتج غير موجود');
 
@@ -189,11 +195,13 @@ export class ProductsService {
     // Keep the merchant's hidden choice, but flag risky edits for review
     const status: ProductStatus =
       risk.status !== 'ACTIVE' ? risk.status : existing.status === 'UNDER_REVIEW' ? 'ACTIVE' : existing.status;
-    return this.prisma.product.update({
+    const updated = await this.prisma.product.update({
       where: { id },
       data: { ...data, riskScore: risk.riskScore, status },
       select: { id: true, status: true },
     });
+    if (updated.status === 'ACTIVE') this.activity.productChanged(id, existing);
+    return updated;
   }
 
   async setStatus(userId: string, id: string, status: 'ACTIVE' | 'HIDDEN') {

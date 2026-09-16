@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Logo } from "@components/brand/Logo";
 import { ShieldIcon, StoreIcon } from "@components/ui/icons";
 import { webUrl } from "@lib/urls";
+import { NotificationBell } from "@components/notifications/NotificationBell";
 
 /** Header for the merchant portal and the admin console (no buyer navigation or search). */
 export function PortalHeader({ variant }: { variant: "merchant" | "admin" }) {
@@ -20,11 +21,14 @@ export function PortalHeader({ variant }: { variant: "merchant" | "admin" }) {
             {isAdmin ? "لوحة الإدارة" : "بوابة التجار"}
           </span>
         </div>
-        {!isAdmin && (
-          <a href={webUrl("/")} className="rounded-full px-3 py-2 text-sm font-medium text-muted hover:bg-sand hover:text-ink">
-            الذهاب إلى الموقع ←
-          </a>
-        )}
+        <div className="flex items-center gap-1">
+          <NotificationBell audience={variant} tone={isAdmin ? "dark" : "light"} />
+          {!isAdmin && (
+            <a href={webUrl("/")} className="hidden rounded-full px-3 py-2 text-sm font-medium text-muted hover:bg-sand hover:text-ink sm:block">
+              الذهاب إلى الموقع ←
+            </a>
+          )}
+        </div>
       </div>
     </header>
   );

@@ -14,6 +14,8 @@ import { VerificationModule } from './verification/verification.module';
 import { MarketsModule } from './markets/markets.module';
 import { ReviewsModule } from './reviews/reviews.module';
 import { AdminModule } from './admin/admin.module';
+import { NotificationsModule } from './notifications/notifications.module';
+import { EngagementModule } from './engagement/engagement';
 import { CsrfGuard } from './common/csrf.guard';
 import { ThrottleGuard } from './common/throttle';
 
@@ -21,6 +23,7 @@ import { ThrottleGuard } from './common/throttle';
   imports: [
     PrismaModule,
     AuditModule,
+    NotificationsModule,
     SmsModule,
     AuthModule,
     DirectoryModule,
@@ -33,6 +36,7 @@ import { ThrottleGuard } from './common/throttle';
     MarketsModule,
     ReviewsModule,
     AdminModule,
+    EngagementModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottleGuard },

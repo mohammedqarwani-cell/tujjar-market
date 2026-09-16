@@ -15,6 +15,8 @@ import { AuditService } from '../audit/audit.module';
 import { distanceMeters, insideSyria } from '../common/geo';
 import { pageResult, paging } from '../common/pagination';
 import { KycStorageService } from './kyc-storage.service';
+import { NotificationsService } from '../notifications/notifications.service';
+import { damascusDay } from '../common/pagination';
 import { DecisionDto, LocationEvidenceDto, StoreLevelDto } from './verification.dto';
 import {
   BADGE_REPORT_THRESHOLD,
@@ -88,7 +90,15 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
     private prisma: PrismaService,
     private audit: AuditService,
     private storage: KycStorageService,
+    private notifications: NotificationsService,
   ) {}
+
+  /** Tells the store owner about a decision on their store. */
+  private notifyOwner(storeId: string, input: { type: string; title: string; body: string; url?: string }) {
+    void this.prisma.store
+      .findUnique({ where: { id: storeId }, select: { ownerId: true } })
+      .then((s) => this.notifications.notify(s?.ownerId, { category: 'ACCOUNT', url: '/dashboard/verification', urgent: true, ...input }));
+  }
 
   onModuleInit() {
     const run = () => void this.runMaintenance();
@@ -313,6 +323,15 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
         meta: { kind, requestId: request.id },
         ip,
       });
+      this.notifications.notifyStaff({
+        category: 'MODERATION',
+        type: 'verification.submitted',
+        title: kind === 'IDENTITY' ? 'طلب توثيق هوية جديد' : 'طلب توثيق محل جديد',
+        body: 'طلب جديد في طابور التوثيق',
+        url: '/admin?tab=verifications',
+        groupKey: `queue-verification:${damascusDay().toISOString().slice(0, 10)}`,
+        grouped: (count) => ({ title: 'طلبات توثيق جديدة', body: `${count} طلبات توثيق تنتظر المراجعة اليوم` }),
+      });
       return request;
     } catch (e) {
       await this.removeFilesQuietly(files);
@@ -434,6 +453,11 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
         meta: { kind, requestId: id, reason },
         ip,
       });
+      this.notifyOwner(store.id, {
+        type: 'verification.rejected',
+        title: kind === 'IDENTITY' ? 'لم يُقبل توثيق الهوية' : 'لم يُقبل توثيق المحل',
+        body: `السبب: ${reason}. صحّح المطلوب وأعد التقديم`,
+      });
       return { id, status: 'REJECTED' as const, level: null };
     }
 
@@ -460,6 +484,14 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       entityId: store.id,
       meta: { kind, requestId: id, level: earnedLevel },
       ip,
+    });
+    this.notifyOwner(store.id, {
+      type: 'verification.approved',
+      title: kind === 'IDENTITY' ? 'تم توثيق هويتك ✓' : 'تم توثيق محلك ✓',
+      body:
+        kind === 'IDENTITY'
+          ? 'ظهرت شارة «هوية موثّقة» على متجرك، ويمكنك الآن إضافة حتى 50 منتجاً'
+          : 'ظهرت شارة «محل موثّق» على متجرك، وصار ظهورك أعلى في البحث بلا حد للمنتجات',
     });
     return { id, status: 'APPROVED' as const, level: earnedLevel };
   }
@@ -509,6 +541,14 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       meta: { from: store.earnedLevel, to: level, note: dto.note.trim() },
       ip,
     });
+    if (level !== store.earnedLevel) {
+      const names: Record<string, string> = { IDENTITY: 'هوية موثّقة', LOCATION: 'محل موثّق', PREMIUM: 'تاجر مميز', REGISTERED: 'مسجّل' };
+      this.notifyOwner(storeId, {
+        type: 'store.level_changed',
+        title: level === 'PREMIUM' ? 'أصبح متجرك «تاجر مميز» ✓' : 'تغيّر مستوى توثيق متجرك',
+        body: `المستوى الحالي: ${names[level]}`,
+      });
+    }
     return updated;
   }
 
@@ -532,6 +572,11 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       entityId: storeId,
       meta: { note: note.trim() },
       ip,
+    });
+    this.notifyOwner(storeId, {
+      type: 'store.badge_restored',
+      title: 'أُعيدت شارة التوثيق لمتجرك',
+      body: 'راجعت الإدارة متجرك وأعادت إظهار شارة التوثيق',
     });
     return updated;
   }
@@ -563,6 +608,11 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
         entityId: storeId,
         meta: { confirmedReports: confirmed },
       });
+      this.notifyOwner(storeId, {
+        type: 'store.badge_suspended',
+        title: 'أُوقفت شارة التوثيق مؤقتاً',
+        body: 'تكررت بلاغات مؤكدة على متجرك، فأُخفيت الشارة حتى تراجعها الإدارة. تواصل معنا للتوضيح',
+      });
     }
   }
 
@@ -586,6 +636,11 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
           },
         });
         await this.audit.log({ action: 'store.verification_expired', entityType: 'store', entityId: store.id });
+        this.notifyOwner(store.id, {
+          type: 'verification.expired',
+          title: 'انتهى توثيق محلك',
+          body: 'مرّ عام على توثيق المحل. صوّر فيديو جديداً من صفحة التوثيق لاستعادة الشارة',
+        });
       }
 
       const cutoff = new Date(now.getTime() - REJECTED_FILES_RETENTION_DAYS * DAY_MS);

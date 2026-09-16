@@ -25,6 +25,9 @@ const contentSecurityPolicy = [
   // Recorded shop videos are previewed, and reviewed by moderators, from in-memory blob URLs
   "media-src 'self' blob:",
   "font-src 'self'",
+  // The push service worker (public/sw.js) is served from the same origin
+  "worker-src 'self'",
+  "manifest-src 'self'",
   `connect-src 'self'${apiOrigin ? ` ${apiOrigin}` : ""}${isDev ? " ws: wss:" : ""}`,
   "frame-ancestors 'none'",
   "form-action 'self'",
