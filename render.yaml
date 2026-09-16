@@ -7,7 +7,7 @@ services:
     region: frankfurt
     plan: free
     rootDir: apps/api
-    buildCommand: npm ci && npx prisma generate && npm run build
+    buildCommand: npm ci --include=dev && npx prisma generate && npm run build
     # Migrations run on every start; demo data is loaded only into an empty database
     startCommand: npx prisma migrate deploy && npm run db:seed-demo && node dist/src/main
     healthCheckPath: /categories
