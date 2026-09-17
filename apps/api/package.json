@@ -19,8 +19,8 @@
     "test:debug": "node --inspect-brk -r tsconfig-paths/register -r ts-node/register node_modules/.bin/jest --runInBand",
     "test:e2e": "jest --config ./test/jest-e2e.json",
     "seed": "prisma db seed",
-    "db:seed-demo": "ts-node prisma/seed-if-empty.ts",
-    "db:demo-photos": "ts-node prisma/demo-photos.ts"
+    "db:seed-demo": "ts-node --transpile-only prisma/seed-if-empty.ts",
+    "db:demo-photos": "ts-node --transpile-only prisma/demo-photos.ts"
   },
   "dependencies": {
     "@aws-sdk/client-s3": "^3.913.0",
@@ -91,7 +91,7 @@
     "testEnvironment": "node"
   },
   "prisma": {
-    "seed": "ts-node prisma/seed.ts"
+    "seed": "ts-node --transpile-only prisma/seed.ts"
   },
   "overrides": {
     "deepmerge-ts": "^8.0.2"
