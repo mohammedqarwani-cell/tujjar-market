@@ -87,7 +87,27 @@ export type HomeData = {
   latest: ProductCardData[];
   stores: StoreCardData[];
   totals: { stores: number; products: number; markets: number };
+  layout: HomeLayout;
+  banners: HomeBanner[];
+  pinnedStores: StoreCardData[];
+  /** Stores on a paid visibility package */
+  showcase: { id: string; store: StoreCardData }[];
 };
+
+/** Homepage sections the platform team can reorder, rename or hide. */
+export type HomeSectionId = "banners" | "showcase" | "stories" | "categories" | "offers" | "openNow" | "featured" | "markets" | "stores" | "howItWorks" | "recent" | "latest";
+export type BannerTone = "brand" | "olive" | "ink" | "rose";
+
+export type HomeLayout = {
+  sections: { id: HomeSectionId; enabled: boolean; title: string }[];
+  autoBanners: boolean;
+  offers: { countdown: "midnight" | "until" | "none"; until: string | null };
+  stories: { showAuto: boolean };
+  quickSearches: string[];
+  greeting: boolean;
+};
+
+export type HomeBanner = { id: string; eyebrow: string; title: string; cta: string; href: string; imageUrl: string | null; tone: BannerTone };
 
 export type StoreDetail = StoreCardData & {
   description: string | null;

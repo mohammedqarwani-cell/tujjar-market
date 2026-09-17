@@ -1,13 +1,17 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
+import { HomeContentService } from '../home/home-content';
 import { productCardSelect, publicProductWhere, publicStoreWhere, storeCardSelect } from '../common/selects';
 
 const publicStores = { where: publicStoreWhere };
 
 @Injectable()
 export class DirectoryService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private homeContent: HomeContentService,
+  ) {}
 
   /** All governorates with their status, so the site can show which ones are "coming soon". */
   async governorates() {
@@ -76,7 +80,7 @@ export class DirectoryService {
       : publicStoreWhere;
     const productScope: Prisma.ProductWhereInput = { ...publicProductWhere, store: storeScope };
 
-    const [categories, governorates, featured, latest, stores, totals] = await Promise.all([
+    const [categories, governorates, featured, latest, stores, totals, content] = await Promise.all([
       this.categories(),
       this.governorates(),
       this.prisma.product.findMany({
@@ -102,6 +106,7 @@ export class DirectoryService {
         this.prisma.product.count({ where: publicProductWhere }),
         this.prisma.market.count({ where: { isActive: true, governorate: { status: 'ACTIVE' } } }),
       ]),
+      this.homeContent.publicContent(govSlug),
     ]);
 
     return {
@@ -111,6 +116,7 @@ export class DirectoryService {
       latest,
       stores,
       totals: { stores: totals[0], products: totals[1], markets: totals[2] },
+      ...content,
     };
   }
 

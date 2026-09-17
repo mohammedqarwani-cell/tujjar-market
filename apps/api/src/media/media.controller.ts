@@ -26,3 +26,22 @@ export class MediaController {
     return this.media.uploadImage(user.id, file);
   }
 }
+
+/** Pictures the platform team uses in its own content (homepage banners). */
+@Controller('admin/media')
+@Auth('ADMIN', 'MODERATOR')
+export class AdminMediaController {
+  constructor(private media: MediaService) {}
+
+  @Post()
+  @Throttle({ default: { limit: 60, ttl: 3600_000 } })
+  @UseInterceptors(
+    FileInterceptor('file', {
+      limits: { fileSize: MAX_UPLOAD_BYTES, files: 1, fields: 2, parts: 3, fieldNameSize: 50, fieldSize: 1024, headerPairs: 50 },
+    }),
+  )
+  upload(@CurrentUser() user: AuthUser, @UploadedFile() file?: UploadedImage) {
+    if (!file) throw new BadRequestException('لم يتم إرفاق صورة');
+    return this.media.uploadImage(user.id, file);
+  }
+}
