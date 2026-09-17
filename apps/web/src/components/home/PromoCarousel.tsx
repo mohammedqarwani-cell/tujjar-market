@@ -2,10 +2,13 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { PUBLIC_API } from "@lib/api";
+import type { BannerTone } from "@lib/types";
 
-export type Promo = { href: string; eyebrow: string; title: string; cta: string; image?: string | null; tone: "brand" | "olive" | "ink" | "rose" };
+/** `id` is set for banners made by the platform team, so taps on them are counted. */
+export type Promo = { id?: string; href: string; eyebrow: string; title: string; cta: string; image?: string | null; tone: BannerTone };
 
-const TONES: Record<Promo["tone"], string> = {
+export const TONES: Record<BannerTone, string> = {
   brand: "from-brand-600 to-brand-500",
   olive: "from-olive-700 to-olive-500",
   ink: "from-ink to-[#3a3128]",
@@ -13,7 +16,12 @@ const TONES: Record<Promo["tone"], string> = {
 };
 
 /** Auto-advancing banner strip: swipe on phones, dots to jump, pauses while touched. */
-export function PromoCarousel({ promos }: { promos: Promo[] }) {
+function countClick(id?: string) {
+  if (!id) return;
+  fetch(`${PUBLIC_API}/home/banners/${id}/click`, { method: "POST", keepalive: true, credentials: "omit", headers: { "X-Client": "web" } }).catch(() => undefined);
+}
+
+export function PromoCarousel({ promos, preview = false }: { promos: Promo[]; preview?: boolean }) {
   const track = useRef<HTMLDivElement>(null);
   const [index, setIndex] = useState(0);
   const paused = useRef(false);
@@ -64,8 +72,9 @@ export function PromoCarousel({ promos }: { promos: Promo[] }) {
       <div ref={track} className="no-scrollbar -mx-4 flex snap-x snap-mandatory gap-3 overflow-x-auto scroll-smooth px-4">
         {promos.map((p, i) => (
           <Link
-            key={p.href + i}
+            key={(p.id ?? p.href) + i}
             href={p.href}
+            onClick={preview ? (e) => e.preventDefault() : () => countClick(p.id)}
             className={`press relative flex h-40 w-[86%] shrink-0 snap-center overflow-hidden rounded-3xl bg-gradient-to-l p-5 text-white shadow-card sm:h-48 md:w-[48%] ${TONES[p.tone]}`}
           >
             <div className="pattern-arches absolute inset-0 opacity-25 invert" />

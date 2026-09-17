@@ -132,8 +132,19 @@ body {
   background: conic-gradient(from 200deg, #d4861f, #c2412d, #b86e14, #6b7a36, #d4861f);
 }
 
+@keyframes showcase-in {
+  from {
+    opacity: 0;
+    transform: translateY(14px) scale(0.98);
+  }
+}
+.animate-showcase {
+  animation: showcase-in 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .reveal {
+  .reveal,
+  .animate-showcase {
     animation: none;
   }
   html {

@@ -252,6 +252,7 @@ model Governorate {
   markets   Market[]
   stores    Store[]
   interests MerchantInterest[]
+  banners   HomeBanner[]
 }
 
 model Market {
@@ -354,6 +355,7 @@ model Store {
   contactsCount         Int                   @default(0)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
+  promotions            StorePromotion[]
   products              Product[]
   dailyStats            StoreDailyStat[]
   reports               Report[]
@@ -594,6 +596,49 @@ model Campaign {
   notifications Notification[]
 
   @@index([createdAt])
+}
+
+/// Promo banner on the buyer homepage, managed by the platform team
+model HomeBanner {
+  id            String       @id @default(cuid())
+  eyebrow       String
+  title         String
+  cta           String
+  /// A path inside the buyer site only
+  href          String
+  imageUrl      String?
+  tone          String       @default("brand")
+  /// null = every governorate
+  governorateId String?
+  governorate   Governorate? @relation(fields: [governorateId], references: [id], onDelete: Cascade)
+  startsAt      DateTime?
+  endsAt        DateTime?
+  sortOrder     Int          @default(0)
+  isActive      Boolean      @default(true)
+  clicks        Int          @default(0)
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@index([isActive, sortOrder])
+}
+
+/// A store that bought a visibility package: shown by name in the homepage showcase
+model StorePromotion {
+  id        String    @id @default(cuid())
+  storeId   String
+  store     Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  /// The package the store bought, e.g. "باقة الواجهة"
+  plan      String
+  startsAt  DateTime?
+  endsAt    DateTime?
+  sortOrder Int       @default(0)
+  isActive  Boolean   @default(true)
+  clicks    Int       @default(0)
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([isActive, sortOrder])
+  @@index([storeId])
 }
 
 /// Small server-generated settings, e.g. the Web Push VAPID key pair (private key encrypted)

@@ -29,20 +29,28 @@ export function Greeting({ place }: { place: string }) {
   );
 }
 
-/** Countdown to midnight in Damascus, for today's offers. */
-export function Countdown() {
+/** Countdown for today's offers: to midnight in Damascus, or to a time the platform team set. */
+export function Countdown({ until }: { until?: string | null }) {
   const [left, setLeft] = useState<string | null>(null);
   useEffect(() => {
     const tick = () => {
-      const now = damascusNow();
-      const secs = 86400 - (now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds());
+      let secs: number;
+      if (until) {
+        secs = Math.floor((new Date(until).getTime() - Date.now()) / 1000);
+        if (secs <= 0) return setLeft(null);
+      } else {
+        const now = damascusNow();
+        secs = 86400 - (now.getUTCHours() * 3600 + now.getUTCMinutes() * 60 + now.getUTCSeconds());
+      }
       const pad = (n: number) => String(n).padStart(2, "0");
-      setLeft(`${pad(Math.floor(secs / 3600))}:${pad(Math.floor((secs % 3600) / 60))}:${pad(secs % 60)}`);
+      const days = Math.floor(secs / 86400);
+      const clock = `${pad(Math.floor((secs % 86400) / 3600))}:${pad(Math.floor((secs % 3600) / 60))}:${pad(secs % 60)}`;
+      setLeft(days ? `${days}ي ${clock}` : clock);
     };
     tick();
     const t = setInterval(tick, 1000);
     return () => clearInterval(t);
-  }, []);
+  }, [until]);
   if (!left) return null;
   return (
     <span className="inline-flex items-center gap-1.5 rounded-full bg-danger/10 px-2.5 py-1 text-xs font-bold text-danger">
@@ -52,7 +60,7 @@ export function Countdown() {
 }
 
 /** Stores open right now, with a pulsing dot. Rendered only in the browser (it depends on the clock). */
-export function OpenNowRail({ stores }: { stores: StoreCardData[] }) {
+export function OpenNowRail({ stores, title = "مفتوح الآن" }: { stores: StoreCardData[]; title?: string }) {
   const [open, setOpen] = useState<{ store: StoreCardData; label: string }[] | null>(null);
   useEffect(() => {
     setOpen(
@@ -71,7 +79,7 @@ export function OpenNowRail({ stores }: { stores: StoreCardData[] }) {
             <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-olive-500 opacity-60" />
             <span className="relative inline-flex h-2.5 w-2.5 rounded-full bg-olive-500" />
           </span>
-          مفتوح الآن
+          {title}
         </h2>
         <Link href="/search?type=stores&open=1" className="text-sm font-medium text-brand-700">الكل ←</Link>
       </div>
@@ -120,7 +128,7 @@ export function RememberViewed({ product }: { product: ProductCardData }) {
   return null;
 }
 
-export function RecentlyViewed() {
+export function RecentlyViewed({ title = "شاهدتها مؤخراً" }: { title?: string }) {
   const items = useSyncExternalStore(
     (cb) => {
       window.addEventListener(EVENT, cb);
@@ -132,7 +140,7 @@ export function RecentlyViewed() {
   if (items.length < 2) return null;
   return (
     <section className="reveal mx-auto max-w-6xl px-4">
-      <h2 className="mb-3 text-xl font-bold">شاهدتها مؤخراً</h2>
+      <h2 className="mb-3 text-xl font-bold">{title}</h2>
       <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-2">
         {items.map((p) => (
           <div key={p.id} className="w-40 shrink-0 sm:w-48">

@@ -21,6 +21,7 @@ import { ReviewsTab } from "./ReviewsTab";
 import { CampaignsTab } from "./CampaignsTab";
 import { UsersTab } from "./UsersTab";
 import { StatsTab } from "./StatsTab";
+import { HomeTab } from "./HomeTab";
 
 type Overview = {
   stores: number;
@@ -109,6 +110,7 @@ const TABS = [
   { id: "markets", label: "المحافظات والأسواق", adminOnly: false },
   { id: "categories", label: "الأقسام", adminOnly: false },
   { id: "users", label: "المستخدمون", adminOnly: false },
+  { id: "home", label: "الواجهة الرئيسية", adminOnly: false },
   { id: "campaigns", label: "الإشعارات والحملات", adminOnly: true },
   { id: "audit", label: "سجل التدقيق", adminOnly: true },
 ] as const;
@@ -197,6 +199,7 @@ export default function AdminPage() {
         {tab === "categories" && <CategoriesTab isAdmin={isAdmin} />}
         {tab === "users" && <UsersTab isAdmin={isAdmin} />}
         {tab === "stats" && <StatsTab />}
+        {tab === "home" && <HomeTab />}
         {tab === "audit" && isAdmin && <AuditTab />}
         {tab === "campaigns" && isAdmin && <CampaignsTab />}
       </div>
