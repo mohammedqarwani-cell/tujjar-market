@@ -3,7 +3,7 @@ import { cookies } from "next/headers";
 import { apiGet, toQuery } from "@lib/api";
 import { GOV_COOKIE } from "@lib/gov";
 import { formatNumber } from "@lib/format";
-import type { HomeData } from "@lib/types";
+import type { HomeData, ProductCardData } from "@lib/types";
 import { ProductCard } from "@components/catalog/ProductCard";
 import { StoreCard } from "@components/catalog/StoreCard";
 import { Section } from "@components/ui/Section";
@@ -11,6 +11,38 @@ import { SearchIcon, ShieldIcon, WhatsAppIcon, PinIcon } from "@components/ui/ic
 import { SearchBox } from "@components/search/SearchBox";
 
 const QUICK_SEARCHES = ["طاقة شمسية", "موبايلات", "بروكار", "صابون غار", "حلويات", "لابتوب"];
+
+/** Real product photos from the markets, beside the headline on wide screens. */
+function HeroCollage({ products }: { products: ProductCardData[] }) {
+  const withPhotos = products.filter((p, i, all) => p.images[0] && all.findIndex((x) => x.id === p.id) === i).slice(0, 4);
+  if (withPhotos.length < 4) return null;
+  return (
+    <div className="relative hidden lg:block" aria-hidden>
+      <div className="grid grid-cols-2 gap-4">
+        {withPhotos.map((p, i) => (
+          <Link
+            key={p.id}
+            href={`/products/${p.id}`}
+            tabIndex={-1}
+            className={`group relative overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line ${i % 2 ? "translate-y-8" : ""}`}
+          >
+            <img src={p.images[0]} alt="" className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105" />
+            <span className="absolute inset-x-2 bottom-2 truncate rounded-xl bg-surface/90 px-3 py-1.5 text-xs font-bold backdrop-blur">
+              {p.title}
+            </span>
+          </Link>
+        ))}
+      </div>
+      <div className="absolute -start-6 top-1/2 flex -translate-y-1/2 items-center gap-2 rounded-2xl bg-surface px-4 py-3 text-sm shadow-card ring-1 ring-line">
+        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-olive-50 text-olive-700">✓</span>
+        <span>
+          <b className="block">محلات موثّقة</b>
+          <span className="text-xs text-muted">تواصل مباشر بلا وسيط</span>
+        </span>
+      </div>
+    </div>
+  );
+}
 
 export default async function HomePage() {
   const gov = (await cookies()).get(GOV_COOKIE)?.value ?? "";
@@ -27,7 +59,8 @@ export default async function HomePage() {
       {/* Hero */}
       <section className="relative overflow-hidden border-b border-line bg-gradient-to-b from-brand-50 to-canvas">
         <div className="pattern-arches absolute inset-0 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
-        <div className="relative mx-auto max-w-6xl px-4 pb-10 pt-10 sm:pb-14 sm:pt-16">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-10 pt-10 sm:pb-14 sm:pt-16 lg:grid-cols-[1.15fr_1fr]">
+          <div>
           <p className="mb-4 inline-flex items-center gap-2 rounded-full bg-surface/80 px-3 py-1 text-xs font-medium text-olive-700 ring-1 ring-olive-100">
             <PinIcon size={14} /> أسواق {place} بين يديك
           </p>
@@ -68,6 +101,8 @@ export default async function HomePage() {
               </div>
             ))}
           </dl>
+          </div>
+          <HeroCollage products={[...data.featured, ...data.latest]} />
         </div>
       </section>
 

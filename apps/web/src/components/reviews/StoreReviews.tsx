@@ -44,8 +44,8 @@ export function StoreReviews({ storeSlug, storeName, initial }: { storeSlug: str
   return (
     <section id="reviews" className="mt-10 scroll-mt-24">
       <h2 className="text-xl font-bold">تقييمات الزبائن</h2>
-      <div className="mt-4 grid gap-4 lg:grid-cols-[18rem_1fr]">
-        <aside className="space-y-4">
+      <div className={`mt-4 grid items-start gap-4 ${items.length ? "lg:grid-cols-[18rem_1fr]" : "md:grid-cols-2"}`}>
+        <aside className={items.length ? "space-y-4" : "contents"}>
           <div className="rounded-card bg-surface p-5 ring-1 ring-line">
             {summary.count ? (
               <>
@@ -74,7 +74,7 @@ export function StoreReviews({ storeSlug, storeName, initial }: { storeSlug: str
           <ReviewComposer storeSlug={storeSlug} onChanged={reload} />
         </aside>
 
-        <div className="space-y-3">
+        <div className={items.length ? "space-y-3" : "hidden"}>
           {items.map((r) => (
             <article key={r.id} className="rounded-card bg-surface p-4 ring-1 ring-line">
               <div className="flex flex-wrap items-center justify-between gap-2">

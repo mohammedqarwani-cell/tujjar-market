@@ -73,7 +73,8 @@ export default async function CategoryPage({ params, searchParams }: Props) {
 
       <section className="relative overflow-hidden bg-gradient-to-l from-brand-100 via-brand-50 to-olive-50">
         <div className="pattern-arches absolute inset-0 opacity-50" />
-        <div className="relative mx-auto max-w-6xl px-4 py-10">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 lg:grid-cols-[1.3fr_1fr]">
+          <div>
           <nav className="text-sm text-muted">
             <Link href="/" className="hover:text-ink">الرئيسية</Link>
             <span className="mx-2">/</span>
@@ -97,6 +98,22 @@ export default async function CategoryPage({ params, searchParams }: Props) {
               كل محلات {category.name}
             </Link>
           </div>
+          </div>
+          {products.items.filter((p) => p.images[0]).length >= 3 && (
+            <div className="hidden grid-cols-3 gap-3 lg:grid" aria-hidden>
+              {products.items
+                .filter((p) => p.images[0])
+                .slice(0, 3)
+                .map((p, i) => (
+                  <img
+                    key={p.id}
+                    src={p.images[0]}
+                    alt=""
+                    className={`aspect-[3/4] w-full rounded-card object-cover shadow-card ring-1 ring-line ${i === 1 ? "-translate-y-4" : "translate-y-2"}`}
+                  />
+                ))}
+            </div>
+          )}
         </div>
       </section>
 
