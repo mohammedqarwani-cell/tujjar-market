@@ -77,7 +77,7 @@ export function SearchBox({
     ? [
         ...(data.correctedQuery ? [{ key: "fix", href: searchHref(data.correctedQuery), label: data.correctedQuery, hint: "هل تقصد" }] : []),
         ...data.products.map((p) => ({ key: `p${p.id}`, href: `/products/${p.id}`, label: p.title, icon: p.icon, image: p.image })),
-        ...data.categories.map((c) => ({ key: `c${c.slug}`, href: `/search?category=${c.slug}`, label: c.name, icon: c.icon, hint: "قسم" })),
+        ...data.categories.map((c) => ({ key: `c${c.slug}`, href: `/categories/${c.slug}`, label: c.name, icon: c.icon, hint: "قسم" })),
         ...data.stores.map((s) => ({ key: `s${s.slug}`, href: `/stores/${s.slug}`, label: s.name, icon: "🏪", image: s.logoUrl, hint: "متجر" })),
       ]
     : [];

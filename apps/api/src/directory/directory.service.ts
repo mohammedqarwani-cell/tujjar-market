@@ -24,7 +24,7 @@ export class DirectoryService {
         markets: {
           where: { isActive: true },
           orderBy: { sortOrder: 'asc' },
-          select: { id: true, slug: true, name: true, _count: { select: { stores: publicStores } } },
+          select: { id: true, slug: true, name: true, latitude: true, longitude: true, _count: { select: { stores: publicStores } } },
         },
       },
     });
@@ -58,6 +58,9 @@ export class DirectoryService {
         slug: true,
         name: true,
         description: true,
+        latitude: true,
+        longitude: true,
+        radiusMeters: true,
         governorate: { select: { slug: true, name: true } },
         _count: { select: { stores: publicStores } },
       },
@@ -109,5 +112,20 @@ export class DirectoryService {
       stores,
       totals: { stores: totals[0], products: totals[1], markets: totals[2] },
     };
+  }
+
+  async sitemap() {
+    const [stores, products, markets, categories] = await Promise.all([
+      this.prisma.store.findMany({ where: publicStoreWhere, select: { slug: true, updatedAt: true }, take: 20_000 }),
+      this.prisma.product.findMany({
+        where: { status: 'ACTIVE', store: publicStoreWhere },
+        select: { id: true, updatedAt: true },
+        orderBy: { updatedAt: 'desc' },
+        take: 40_000,
+      }),
+      this.prisma.market.findMany({ where: { isActive: true, governorate: { status: 'ACTIVE' } }, select: { slug: true } }),
+      this.prisma.category.findMany({ where: { isActive: true }, select: { slug: true } }),
+    ]);
+    return { stores, products, markets, categories };
   }
 }

@@ -77,7 +77,7 @@ export default async function HomePage() {
           {data.categories.map((c) => (
             <Link
               key={c.slug}
-              href={`/search${toQuery({ category: c.slug, gov })}`}
+              href={`/categories/${c.slug}`}
               className="flex w-24 shrink-0 flex-col items-center gap-2 rounded-2xl bg-surface p-3 text-center ring-1 ring-line/70 transition hover:-translate-y-0.5 hover:ring-brand-200 sm:w-auto"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-2xl" aria-hidden>

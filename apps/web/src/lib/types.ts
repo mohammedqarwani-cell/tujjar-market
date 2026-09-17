@@ -1,3 +1,5 @@
+import type { WeekSchedule } from "./hours";
+
 export type Currency = "SYP" | "USD";
 export type PriceType = "FIXED" | "NEGOTIABLE" | "ON_REQUEST";
 export type Condition = "NEW" | "USED";
@@ -56,6 +58,10 @@ export type StoreCardData = {
   ratingAvg: number;
   ratingCount: number;
   hasDelivery: boolean;
+  /** Weekly hours for "مفتوح الآن" (see lib/hours.ts) */
+  openingSchedule: WeekSchedule | null;
+  latitude: number | null;
+  longitude: number | null;
   createdAt: string;
   governorate: Ref;
   market: Ref | null;
@@ -119,6 +125,9 @@ export type ProductDetail = ProductCardData & {
 export type MarketDetail = Ref & {
   id: string;
   description: string | null;
+  latitude: number | null;
+  longitude: number | null;
+  radiusMeters: number | null;
   governorate: Ref;
   storesCount: number;
 };

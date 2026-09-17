@@ -9,6 +9,18 @@ export class RequestOtpDto {
   @IsIn(['REGISTER', 'RESET_PASSWORD']) purpose!: 'REGISTER' | 'RESET_PASSWORD';
 }
 
+export class ChangePhoneOtpDto {
+  @IsString() newPhone!: string;
+}
+
+export class ChangePhoneDto {
+  @IsString() newPhone!: string;
+  @Matches(OTP_RULE, { message: 'رمز التحقق 6 أرقام' }) otpCode!: string;
+  @IsString() @Length(1, 72) password!: string;
+  /** Merchants: also replace the store's WhatsApp and call numbers that used the old phone */
+  @IsOptional() @IsBoolean() updateStoreContacts?: boolean;
+}
+
 export class LoginDto {
   @IsString() phone!: string;
   @IsString() @Length(1, 72) password!: string;

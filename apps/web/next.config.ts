@@ -21,7 +21,8 @@ const contentSecurityPolicy = [
   // Next.js injects inline bootstrap scripts; dev mode also needs eval for fast refresh
   `script-src 'self' 'unsafe-inline'${isDev ? " 'unsafe-eval'" : ""}`,
   "style-src 'self' 'unsafe-inline'",
-  `img-src 'self' data: blob: ${mediaOrigin}`,
+  // OpenStreetMap tiles for market and store maps
+  `img-src 'self' data: blob: ${mediaOrigin} https://tile.openstreetmap.org`,
   // Recorded shop videos are previewed, and reviewed by moderators, from in-memory blob URLs
   "media-src 'self' blob:",
   "font-src 'self'",

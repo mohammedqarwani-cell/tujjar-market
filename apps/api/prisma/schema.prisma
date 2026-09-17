@@ -26,6 +26,8 @@ enum UserStatus {
 enum OtpPurpose {
   REGISTER
   RESET_PASSWORD
+  /// Confirms a new number before it replaces the account's phone
+  CHANGE_PHONE
 }
 
 enum StoreStatus {
@@ -323,6 +325,11 @@ model Store {
   whatsapp              String
   phone                 String?
   openingHours          String?
+  /// Weekly hours in Damascus time: { days: [{ closed, open: "09:00", close: "20:00" }] }, index 0 = Sunday
+  openingSchedule       Json?
+  /// Shop position for maps; set by the merchant or from an approved shop-verification video
+  latitude              Float?
+  longitude             Float?
   logoUrl               String?
   coverUrl              String?
   hasDelivery           Boolean               @default(false)

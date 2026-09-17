@@ -34,6 +34,9 @@ export class OtpService {
     if (!phone) throw new BadRequestException('رقم الموبايل غير صحيح، مثال: 0912345678');
 
     const exists = !!(await this.prisma.user.findUnique({ where: { phone }, select: { id: true } }));
+    if (purpose === 'CHANGE_PHONE' && exists) {
+      throw new ConflictException('هذا الرقم مستخدم في حساب آخر');
+    }
     if (purpose === 'REGISTER' && exists) {
       throw new ConflictException('هذا الرقم مسجّل مسبقاً، سجّل الدخول بدلاً من ذلك');
     }

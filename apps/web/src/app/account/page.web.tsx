@@ -58,6 +58,11 @@ export default function AccountPage() {
         <span className="text-sm text-muted">←</span>
       </Link>
 
+      <Link href="/account/phone" className="flex items-center justify-between rounded-card bg-surface p-5 ring-1 ring-line hover:ring-brand-200">
+        <span className="flex items-center gap-3 font-medium"><ShieldIcon size={20} className="text-brand-600" /> تغيير رقم الموبايل</span>
+        <span className="text-sm text-muted">←</span>
+      </Link>
+
       <Link href="/notifications/settings" className="flex items-center justify-between rounded-card bg-surface p-5 ring-1 ring-line hover:ring-brand-200">
         <span className="flex items-center gap-3 font-medium"><BellIcon size={20} className="text-olive-600" /> إعدادات الإشعارات</span>
         <span className="text-sm text-muted">←</span>

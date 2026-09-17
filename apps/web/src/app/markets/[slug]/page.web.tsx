@@ -7,6 +7,7 @@ import { StoreCard } from "@components/catalog/StoreCard";
 import { ProductCard } from "@components/catalog/ProductCard";
 import { EmptyState, Section } from "@components/ui/Section";
 import { PinIcon } from "@components/ui/icons";
+import { StoresMap } from "@components/map/StoresMap";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -52,6 +53,19 @@ export default async function MarketPage({ params }: Props) {
           </p>
         </div>
       </section>
+
+      {(stores.items.some((s) => s.latitude != null) || market.latitude != null) && (
+        <Section title="خريطة السوق" subtitle="اضغط على المحل لتعرف اسمه وتفتح صفحته">
+          <StoresMap
+            center={market.latitude != null && market.longitude != null ? { lat: market.latitude, lng: market.longitude } : null}
+            radius={market.radiusMeters}
+            points={stores.items
+              .filter((s) => s.latitude != null && s.longitude != null)
+              .map((s) => ({ lat: s.latitude!, lng: s.longitude!, title: s.name, subtitle: s.tagline ?? undefined, href: `/stores/${s.slug}` }))}
+            height={380}
+          />
+        </Section>
+      )}
 
       <Section title="محلات السوق">
         {stores.items.length ? (

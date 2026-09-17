@@ -10,6 +10,9 @@ import type { Category, Governorate, SessionUser } from "@lib/types";
 import { Field, FormError, SubmitButton, Toggle, inputClass, textareaClass } from "@components/forms/fields";
 import { StoreAvatar } from "@components/catalog/StoreAvatar";
 import { ImageIcon } from "@components/ui/icons";
+import { ScheduleEditor } from "@components/merchant/ScheduleEditor";
+import { LocationPicker } from "@components/map/LocationPicker";
+import type { WeekSchedule } from "@lib/hours";
 
 export default function StoreSettingsPage() {
   const { data: store, error: loadError } = useAuthData<MerchantStore>("/merchant/store");
@@ -59,6 +62,8 @@ function StoreForm({
     whatsapp: localPhone(store.whatsapp),
     phone: localPhone(store.phone),
     openingHours: store.openingHours ?? "",
+    openingSchedule: (store.openingSchedule ?? null) as WeekSchedule | null,
+    pin: store.latitude != null && store.longitude != null ? { lat: store.latitude, lng: store.longitude } : (null as { lat: number; lng: number } | null),
     hasDelivery: store.hasDelivery,
     logoUrl: store.logoUrl ?? "",
     coverUrl: store.coverUrl ?? "",
@@ -97,6 +102,10 @@ function StoreForm({
         method: "PATCH",
         body: {
           ...form,
+          pin: undefined,
+          openingSchedule: form.openingSchedule,
+          latitude: form.pin?.lat ?? null,
+          longitude: form.pin?.lng ?? null,
           marketId: form.marketId || undefined,
           categoryId: form.categoryId || undefined,
           mapUrl: form.mapUrl || undefined,
@@ -172,8 +181,11 @@ function StoreForm({
             <input value={form.phone} onChange={(e) => set("phone", e.target.value)} type="tel" dir="ltr" className={`${inputClass} text-left`} />
           </Field>
         </div>
-        <Field label="أوقات الدوام" optional>
-          <input value={form.openingHours} onChange={(e) => set("openingHours", e.target.value)} placeholder="مثال: يومياً 9 صباحاً – 8 مساءً" maxLength={80} className={inputClass} />
+        <Field label="ساعات العمل" optional hint="يظهر للزبائن «مفتوح الآن» أو «مغلق» حسب توقيت دمشق">
+          <ScheduleEditor value={form.openingSchedule} onChange={(v) => set("openingSchedule", v)} />
+        </Field>
+        <Field label="ملاحظة عن الدوام" optional>
+          <input value={form.openingHours} onChange={(e) => set("openingHours", e.target.value)} placeholder="مثال: مغلق أيام الأعياد" maxLength={80} className={inputClass} />
         </Field>
         <Toggle checked={form.hasDelivery} onChange={(v) => set("hasDelivery", v)} label="يوجد توصيل" description="يظهر شعار «توصيل» على متجرك ومنتجاتك" />
       </section>
@@ -204,6 +216,16 @@ function StoreForm({
             </select>
           </Field>
         </div>
+        <Field label="موقع المحل على الخريطة" optional hint="يظهر محلك على خريطة السوق وفي صفحة متجرك">
+          <LocationPicker
+            value={form.pin}
+            fallback={(() => {
+              const m = markets.find((x) => x.id === form.marketId) as { latitude?: number | null; longitude?: number | null } | undefined;
+              return m?.latitude != null && m?.longitude != null ? { lat: m.latitude, lng: m.longitude } : null;
+            })()}
+            onChange={(pin) => set("pin", pin)}
+          />
+        </Field>
         <Field label="العنوان التفصيلي" optional>
           <input value={form.address} onChange={(e) => set("address", e.target.value)} placeholder="مثال: سوق الحميدية، جانب محل…" maxLength={160} className={inputClass} />
         </Field>

@@ -5,7 +5,18 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "@lib/session";
 import { webUrl } from "@lib/urls";
-import { BoxIcon, ChartIcon, EyeIcon, LogoutIcon, PlusIcon, ShieldIcon, SlidersIcon, StarIcon } from "@components/ui/icons";
+import { BoxIcon, ChartIcon, EyeIcon, LogoutIcon, PlusIcon, ShieldIcon, SlidersIcon, StarIcon, UserIcon } from "@components/ui/icons";
+
+function ShareQrIcon({ size = 20 }: { size?: number }) {
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+      <rect x="3" y="3" width="7" height="7" rx="1" />
+      <rect x="14" y="3" width="7" height="7" rx="1" />
+      <rect x="3" y="14" width="7" height="7" rx="1" />
+      <path d="M14 14h3v3M21 14v.01M17 21h4v-4M14 18v3" />
+    </svg>
+  );
+}
 
 const NAV = [
   { href: "/dashboard", label: "نظرة عامة", Icon: ChartIcon, exact: true },
@@ -14,6 +25,8 @@ const NAV = [
   { href: "/dashboard/verification", label: "التوثيق", Icon: ShieldIcon, exact: false },
   { href: "/dashboard/reviews", label: "التقييمات", Icon: StarIcon, exact: false },
   { href: "/dashboard/store", label: "إعدادات المتجر", Icon: SlidersIcon, exact: false },
+  { href: "/dashboard/qr", label: "رمز QR للمحل", Icon: ShareQrIcon, exact: false },
+  { href: "/dashboard/account", label: "الحساب", Icon: UserIcon, exact: false },
 ];
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
