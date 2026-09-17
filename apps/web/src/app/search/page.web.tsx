@@ -33,6 +33,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     sort: one(sp.sort),
     condition: one(sp.condition),
     offers: one(sp.offers),
+    open: one(sp.open),
     page: one(sp.page),
   };
   const isStores = params.type === "stores";
@@ -42,7 +43,7 @@ export default async function SearchPage({ searchParams }: { searchParams: Promi
     apiGet<Governorate[]>("/governorates", 300),
     isStores
       ? apiGet<Page<StoreCardData>>(
-          `/stores${toQuery({ q: params.q, gov: params.gov, market: params.market, category: params.category, page: params.page, pageSize: 24 })}`,
+          `/stores${toQuery({ q: params.q, gov: params.gov, market: params.market, category: params.category, open: params.open, page: params.page, pageSize: 24 })}`,
         )
       : apiGet<Page<ProductCardData>>(
           `/products${toQuery({ ...params, type: undefined, pageSize: 24 })}`,

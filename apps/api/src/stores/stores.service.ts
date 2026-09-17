@@ -8,6 +8,8 @@ import { pageResult, paging } from '../common/pagination';
 import { publicStoreWhere, storeCardSelect } from '../common/selects';
 import { atLeast } from '../verification/verification.levels';
 import { UpdateStoreDto } from './store.dto';
+import { isValidSchedule, openState } from '../common/hours';
+import { insideSyria } from '../common/geo';
 import { SearchIndexService } from '../search/search-index.service';
 
 @Injectable()
@@ -37,6 +39,18 @@ export class StoresService {
 
     const terms = normalizeArabic(query.q).split(' ').filter((t) => t.length > 1).slice(0, 5);
     if (terms.length) where.AND = terms.map((t) => ({ searchText: { contains: t } }));
+
+    if (query.open === '1') {
+      // "Open now" depends on the clock, so it's filtered after loading the matching stores
+      const all = await this.prisma.store.findMany({
+        where,
+        select: storeCardSelect,
+        orderBy: [{ verificationLevel: 'desc' }, { contactsCount: 'desc' }, { createdAt: 'desc' }],
+        take: 1000,
+      });
+      const open = all.filter((s) => openState(s.openingSchedule as never)?.open);
+      return pageResult(open.slice(skip, skip + take), open.length, page, pageSize);
+    }
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.store.findMany({
@@ -106,6 +120,14 @@ export class StoresService {
     });
     if (!store) throw new NotFoundException('لا يوجد متجر مرتبط بحسابك');
 
+    if (dto.openingSchedule && !isValidSchedule(dto.openingSchedule)) {
+      throw new BadRequestException('ساعات العمل غير صحيحة، راجع أوقات الفتح والإغلاق');
+    }
+    const hasPin = typeof dto.latitude === 'number' && typeof dto.longitude === 'number';
+    if (hasPin && !insideSyria(dto.latitude!, dto.longitude!)) {
+      throw new BadRequestException('موقع المحل على الخريطة خارج سوريا');
+    }
+
     const whatsapp = normalizeSyrianMobile(dto.whatsapp);
     if (!whatsapp) throw new BadRequestException('رقم الواتساب غير صحيح، مثال: 0912345678');
     const phone = dto.phone ? normalizeSyrianPhone(dto.phone) : null;
@@ -151,6 +173,12 @@ export class StoresService {
         whatsapp,
         phone,
         openingHours: dto.openingHours?.trim() || null,
+        ...(dto.openingSchedule !== undefined
+          ? { openingSchedule: dto.openingSchedule ?? Prisma.DbNull }
+          : {}),
+        ...(dto.latitude !== undefined || dto.longitude !== undefined
+          ? { latitude: hasPin ? dto.latitude : null, longitude: hasPin ? dto.longitude : null }
+          : {}),
         logoUrl: dto.logoUrl || null,
         coverUrl: dto.coverUrl || null,
         hasDelivery: dto.hasDelivery,

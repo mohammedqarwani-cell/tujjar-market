@@ -19,6 +19,8 @@ import { MarketsTab } from "./MarketsTab";
 import { CategoriesTab } from "./CategoriesTab";
 import { ReviewsTab } from "./ReviewsTab";
 import { CampaignsTab } from "./CampaignsTab";
+import { UsersTab } from "./UsersTab";
+import { StatsTab } from "./StatsTab";
 
 type Overview = {
   stores: number;
@@ -98,6 +100,7 @@ type AuditLog = {
 };
 
 const TABS = [
+  { id: "stats", label: "الإحصائيات", adminOnly: false },
   { id: "verifications", label: "التوثيق", adminOnly: false },
   { id: "products", label: "المنتجات", adminOnly: false },
   { id: "stores", label: "المتاجر", adminOnly: false },
@@ -105,6 +108,7 @@ const TABS = [
   { id: "reviews", label: "التقييمات", adminOnly: false },
   { id: "markets", label: "المحافظات والأسواق", adminOnly: false },
   { id: "categories", label: "الأقسام", adminOnly: false },
+  { id: "users", label: "المستخدمون", adminOnly: false },
   { id: "campaigns", label: "الإشعارات والحملات", adminOnly: true },
   { id: "audit", label: "سجل التدقيق", adminOnly: true },
 ] as const;
@@ -191,6 +195,8 @@ export default function AdminPage() {
         {tab === "reviews" && <ReviewsTab />}
         {tab === "markets" && <MarketsTab isAdmin={isAdmin} />}
         {tab === "categories" && <CategoriesTab isAdmin={isAdmin} />}
+        {tab === "users" && <UsersTab isAdmin={isAdmin} />}
+        {tab === "stats" && <StatsTab />}
         {tab === "audit" && isAdmin && <AuditTab />}
         {tab === "campaigns" && isAdmin && <CampaignsTab />}
       </div>

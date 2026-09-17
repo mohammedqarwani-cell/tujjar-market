@@ -14,6 +14,12 @@ import { FollowButton } from "@components/contact/FollowButton";
 import { StoreReviews } from "@components/reviews/StoreReviews";
 import { Stars } from "@components/reviews/Stars";
 import { ViewTracker } from "@components/contact/ViewTracker";
+import { OpenBadge } from "@components/catalog/OpenBadge";
+import { StoresMap } from "@components/map/StoresMap";
+import { ScheduleTable } from "@components/merchant/ScheduleEditor";
+import { JsonLd, breadcrumbs } from "@components/seo/JsonLd";
+import { openingHoursSpecification } from "@lib/hours";
+import { webUrl } from "@lib/urls";
 import { EmptyState } from "@components/ui/Section";
 import { Pagination } from "@components/ui/Pagination";
 import { ClockIcon, PhoneIcon, PinIcon, TruckIcon } from "@components/ui/icons";
@@ -57,6 +63,37 @@ export default async function StorePage({ params, searchParams }: Props) {
   return (
     <div className="pb-24 md:pb-4">
       <ViewTracker storeSlug={store.slug} />
+      <JsonLd
+        data={[
+          breadcrumbs([
+            { name: "الرئيسية", url: webUrl("/") },
+            ...(store.market ? [{ name: store.market.name, url: webUrl(`/markets/${store.market.slug}`) }] : []),
+            { name: store.name, url: webUrl(`/stores/${store.slug}`) },
+          ]),
+          {
+            "@context": "https://schema.org",
+            "@type": "Store",
+            name: store.name,
+            description: store.tagline ?? store.description ?? undefined,
+            url: webUrl(`/stores/${store.slug}`),
+            image: store.coverUrl ?? store.logoUrl ?? undefined,
+            telephone: `+${store.phone ?? store.whatsapp}`,
+            address: {
+              "@type": "PostalAddress",
+              streetAddress: store.address ?? store.market?.name,
+              addressLocality: store.governorate.name,
+              addressCountry: "SY",
+            },
+            ...(store.latitude != null && store.longitude != null
+              ? { geo: { "@type": "GeoCoordinates", latitude: store.latitude, longitude: store.longitude } }
+              : {}),
+            openingHoursSpecification: openingHoursSpecification(store.openingSchedule),
+            ...(store.ratingCount > 0
+              ? { aggregateRating: { "@type": "AggregateRating", ratingValue: store.ratingAvg, reviewCount: store.ratingCount } }
+              : {}),
+          },
+        ]}
+      />
 
       <div className="relative h-36 overflow-hidden bg-gradient-to-l from-brand-100 via-brand-50 to-olive-100 sm:h-52">
         {store.coverUrl ? (
@@ -76,6 +113,11 @@ export default async function StorePage({ params, searchParams }: Props) {
                 <VerificationBadge level={store.verificationLevel} marketName={store.market?.name} />
               </div>
               {store.tagline && <p className="mt-1 text-muted">{store.tagline}</p>}
+              {store.openingSchedule && (
+                <div className="mt-2">
+                  <OpenBadge schedule={store.openingSchedule} />
+                </div>
+              )}
               {store.ratingCount > 0 && (
                 <a href="#reviews" className="mt-1 inline-flex items-center gap-1.5 text-sm">
                   <Stars value={store.ratingAvg} size={15} />
@@ -92,7 +134,7 @@ export default async function StorePage({ params, searchParams }: Props) {
                     storeLocation(store)
                   )}
                 </li>
-                {store.openingHours && (
+                {store.openingHours && !store.openingSchedule && (
                   <li className="flex items-center gap-1.5"><ClockIcon size={16} className="text-brand-600" />{store.openingHours}</li>
                 )}
                 {store.hasDelivery && (
@@ -117,10 +159,21 @@ export default async function StorePage({ params, searchParams }: Props) {
           </div>
         </div>
 
-        {(store.description || store.address || store.mapUrl) && (
+        {(store.description || store.address || store.mapUrl || store.openingSchedule || store.latitude != null) && (
           <div className="mt-4 grid gap-4 md:grid-cols-3">
             {store.description && (
               <p className="rounded-card bg-surface p-5 leading-8 text-ink/85 ring-1 ring-line md:col-span-2">{store.description}</p>
+            )}
+            {store.openingSchedule && (
+              <div className="rounded-card bg-surface p-5 ring-1 ring-line">
+                <h2 className="mb-2 text-sm font-bold">ساعات العمل</h2>
+                <ScheduleTable schedule={store.openingSchedule} />
+              </div>
+            )}
+            {store.latitude != null && store.longitude != null && (
+              <div className="md:col-span-2">
+                <StoresMap points={[{ lat: store.latitude, lng: store.longitude, title: store.name, subtitle: store.address ?? undefined }]} height={260} zoom={17} />
+              </div>
             )}
             {(store.address || store.mapUrl) && (
               <div className="rounded-card bg-surface p-5 ring-1 ring-line">

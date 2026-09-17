@@ -18,7 +18,8 @@ import type { Audience, RequestMeta } from '../common/request';
 import { buildSearchText } from '../common/text/arabic';
 import { normalizeSyrianMobile } from '../common/text/phone';
 import { slugify, withSuffix } from '../common/text/slug';
-import { LoginDto, RegisterBuyerDto, RegisterMerchantDto, ResetPasswordDto } from './auth.dto';
+import { ChangePhoneDto, LoginDto, RegisterBuyerDto, RegisterMerchantDto, ResetPasswordDto } from './auth.dto';
+import { SmsSender } from '../sms/sms.module';
 import { OtpService } from './otp.service';
 import { ROLE_AUDIENCE } from './roles';
 import { SessionService } from './session.service';
@@ -39,6 +40,7 @@ export class AuthService {
     private otp: OtpService,
     private audit: AuditService,
     private notifications: NotificationsService,
+    private sms: SmsSender,
   ) {}
 
   private phoneOrThrow(raw: string) {
@@ -209,6 +211,42 @@ export class AuthService {
     });
     await this.sessions.revokeAllForUser(user.id);
     await this.audit.log({ actorId: user.id, action: 'auth.password_reset', entityType: 'user', entityId: user.id, ip: meta.ip });
+  }
+
+  /** Replaces the sign-in number after confirming the password and a code sent to the new number. */
+  async changePhone(userId: string, sessionId: string, aud: Audience, dto: ChangePhoneDto, meta: RequestMeta) {
+    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { id: true, phone: true, passwordHash: true, role: true } });
+    if (!(await bcrypt.compare(dto.password, user.passwordHash))) throw new BadRequestException('كلمة المرور غير صحيحة');
+    const phone = this.phoneOrThrow(dto.newPhone);
+    if (phone === user.phone) throw new BadRequestException('هذا هو رقمك الحالي');
+    if (await this.prisma.user.findUnique({ where: { phone }, select: { id: true } })) {
+      throw new ConflictException('هذا الرقم مستخدم في حساب آخر');
+    }
+    await this.otp.verify(phone, 'CHANGE_PHONE', dto.otpCode);
+
+    const oldPhone = user.phone;
+    await this.prisma.$transaction(async (tx) => {
+      await tx.user.update({ where: { id: userId }, data: { phone, phoneVerifiedAt: new Date() } });
+      if (user.role === 'MERCHANT' && dto.updateStoreContacts) {
+        await tx.store.updateMany({ where: { ownerId: userId, whatsapp: oldPhone }, data: { whatsapp: phone } });
+        await tx.store.updateMany({ where: { ownerId: userId, phone: oldPhone }, data: { phone } });
+      }
+    });
+    // Other devices must sign in again with the new number
+    await this.sessions.revokeAllForUser(userId, sessionId);
+    await this.audit.log({
+      actorId: userId,
+      action: 'user.phone_changed',
+      entityType: 'user',
+      entityId: userId,
+      meta: { from: `…${oldPhone.slice(-3)}`, to: `…${phone.slice(-3)}` },
+      ip: meta.ip,
+    });
+    // The old number learns about it, in case someone else made the change
+    await this.sms
+      .send(oldPhone, `تم تغيير رقم حسابك في تُجّار ماركت إلى رقم ينتهي بـ ${phone.slice(-3)}. إذا لم تفعل ذلك تواصل معنا فوراً.`)
+      .catch(() => undefined);
+    return this.me(userId, aud, true);
   }
 
   async me(userId: string, aud: Audience, mfa: boolean) {

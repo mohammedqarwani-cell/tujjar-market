@@ -56,6 +56,18 @@ export function SearchControls({
         </select>
       )}
 
+      {isStores && (
+        <label className="flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-line bg-surface px-3 text-sm">
+          <input
+            type="checkbox"
+            checked={params.open === "1"}
+            onChange={(e) => update({ open: e.target.checked ? "1" : "" })}
+            className="h-4 w-4 accent-olive-600"
+          />
+          مفتوح الآن
+        </label>
+      )}
+
       {!isStores && (
         <>
           <select aria-label="الترتيب" className={selectClass} value={params.sort} onChange={(e) => update({ sort: e.target.value })}>

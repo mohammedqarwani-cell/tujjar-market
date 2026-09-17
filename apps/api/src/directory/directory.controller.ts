@@ -21,6 +21,12 @@ export class DirectoryController {
     return this.directory.categories();
   }
 
+  /** Public URLs and their last change, for the buyer site's sitemap.xml */
+  @Get('sitemap')
+  sitemap() {
+    return this.directory.sitemap();
+  }
+
   @Get('markets/:slug')
   market(@Param('slug') slug: string) {
     return this.directory.market(slug);

@@ -434,7 +434,13 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
   async decide(actorId: string, id: string, dto: DecisionDto, ip: string) {
     const request = await this.prisma.verificationRequest.findUnique({
       where: { id },
-      select: { kind: true, status: true, store: { select: { id: true, earnedLevel: true, badgeSuspendedAt: true } } },
+      select: {
+        kind: true,
+        status: true,
+        latitude: true,
+        longitude: true,
+        store: { select: { id: true, earnedLevel: true, badgeSuspendedAt: true, latitude: true } },
+      },
     });
     if (!request) throw new NotFoundException('طلب التوثيق غير موجود');
     if (request.status !== 'PENDING') throw new ConflictException('تمت مراجعة هذا الطلب مسبقاً');
@@ -474,6 +480,9 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
           // A suspended badge stays hidden until an admin restores it
           ...(store.badgeSuspendedAt ? {} : { verificationLevel: earnedLevel }),
           ...(kind === 'LOCATION' ? { verificationExpiresAt: new Date(Date.now() + VERIFICATION_VALID_DAYS * DAY_MS) } : {}),
+          ...(kind === 'LOCATION' && store.latitude === null && request.latitude !== null && request.longitude !== null
+            ? { latitude: request.latitude, longitude: request.longitude }
+            : {}),
         },
       });
     });

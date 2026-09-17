@@ -16,6 +16,8 @@ import { ViewTracker } from "@components/contact/ViewTracker";
 import { Section } from "@components/ui/Section";
 import { ClockIcon, EyeIcon, PinIcon, ShieldIcon, TruckIcon } from "@components/ui/icons";
 import { ProductGallery } from "./ProductGallery";
+import { JsonLd, breadcrumbs } from "@components/seo/JsonLd";
+import { webUrl } from "@lib/urls";
 
 type Props = { params: Promise<{ id: string }> };
 
@@ -48,12 +50,42 @@ export default async function ProductPage({ params }: Props) {
   return (
     <div className="pb-28 md:pb-4">
       <ViewTracker productId={p.id} />
+      <JsonLd
+        data={[
+          breadcrumbs([
+            { name: "الرئيسية", url: webUrl("/") },
+            { name: p.category.name, url: webUrl(`/categories/${p.category.slug}`) },
+            { name: p.title, url: webUrl(`/products/${p.id}`) },
+          ]),
+          {
+            "@context": "https://schema.org",
+            "@type": "Product",
+            name: p.title,
+            description: p.description ?? undefined,
+            image: p.images.length ? p.images : undefined,
+            category: p.category.name,
+            itemCondition: p.condition === "NEW" ? "https://schema.org/NewCondition" : "https://schema.org/UsedCondition",
+            ...(p.price != null && p.priceType !== "ON_REQUEST"
+              ? {
+                  offers: {
+                    "@type": "Offer",
+                    price: p.price,
+                    priceCurrency: p.currency,
+                    availability: p.inStock ? "https://schema.org/InStock" : "https://schema.org/OutOfStock",
+                    url: webUrl(`/products/${p.id}`),
+                    seller: { "@type": "Store", name: p.store.name, url: webUrl(`/stores/${p.store.slug}`) },
+                  },
+                }
+              : {}),
+          },
+        ]}
+      />
 
       <div className="mx-auto max-w-6xl px-4 py-5">
         <nav className="flex flex-wrap items-center gap-1.5 text-sm text-muted">
           <Link href="/" className="hover:text-ink">الرئيسية</Link>
           <span>/</span>
-          <Link href={`/search?category=${p.category.slug}`} className="hover:text-ink">{p.category.name}</Link>
+          <Link href={`/categories/${p.category.slug}`} className="hover:text-ink">{p.category.name}</Link>
           <span>/</span>
           <Link href={`/stores/${p.store.slug}`} className="hover:text-ink">{p.store.name}</Link>
         </nav>

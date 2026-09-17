@@ -3,7 +3,7 @@ import { Throttle } from '../common/throttle';
 import type { Request, Response } from 'express';
 import { clientIp, readAudience, requestMeta, type Audience } from '../common/request';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterBuyerDto, RegisterMerchantDto, RequestOtpDto, ResetPasswordDto, TotpCodeDto } from './auth.dto';
+import { ChangePhoneDto, ChangePhoneOtpDto, LoginDto, RegisterBuyerDto, RegisterMerchantDto, RequestOtpDto, ResetPasswordDto, TotpCodeDto } from './auth.dto';
 import { AllowWithoutMfa, Auth } from './guards';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthUser } from './current-user.decorator';
@@ -93,6 +93,23 @@ export class AuthController {
   async resetPassword(@Body() dto: ResetPasswordDto, @Req() req: Request) {
     audienceOf(req);
     await this.auth.resetPassword(dto, requestMeta(req));
+  }
+
+  /** Sends a code to the number the signed-in user wants to switch to. */
+  @Post('phone/otp')
+  @HttpCode(200)
+  @Auth()
+  @Throttle({ default: { limit: 5, ttl: HOUR } })
+  changePhoneOtp(@Body() dto: ChangePhoneOtpDto, @Req() req: Request) {
+    return this.otp.request(dto.newPhone, 'CHANGE_PHONE', clientIp(req));
+  }
+
+  @Post('phone')
+  @HttpCode(200)
+  @Auth()
+  @Throttle({ default: { limit: 10, ttl: HOUR } })
+  async changePhone(@CurrentUser() user: AuthUser, @Body() dto: ChangePhoneDto, @Req() req: Request) {
+    return { user: await this.auth.changePhone(user.id, user.sid, user.aud, dto, requestMeta(req)) };
   }
 
   @Get('me')

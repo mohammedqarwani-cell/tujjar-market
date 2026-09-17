@@ -5,6 +5,7 @@ import { isNewStore } from "@lib/verification";
 import { PinIcon, StarIcon, TruckIcon } from "@components/ui/icons";
 import { StoreAvatar } from "./StoreAvatar";
 import { VerifiedMark } from "./VerificationBadge";
+import { OpenBadge } from "./OpenBadge";
 
 export function StoreCard({ store: s }: { store: StoreCardData }) {
   return (
@@ -55,6 +56,11 @@ export function StoreCard({ store: s }: { store: StoreCardData }) {
             </span>
           )}
         </div>
+        {s.openingSchedule && (
+          <div className="mt-2">
+            <OpenBadge schedule={s.openingSchedule} variant="text" />
+          </div>
+        )}
         <div className="mt-auto pt-3 text-xs font-medium text-brand-700">{s._count.products} منتج ←</div>
       </div>
     </Link>

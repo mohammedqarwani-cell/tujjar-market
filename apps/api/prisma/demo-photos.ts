@@ -53,6 +53,43 @@ export async function applyDemoPhotos(prisma: PrismaClient) {
     stores++;
   }
   console.log(`Demo photos: ${products} products and ${stores} stores updated`);
+  await applyDemoStoreDetails(prisma);
+}
+
+/** Typical souk hours (Friday afternoons only) and a map pin near the store's market, for demo stores without them. */
+async function applyDemoStoreDetails(prisma: PrismaClient) {
+  const day = (open: string, close: string) => ({ closed: false, open, close });
+  const schedule = {
+    days: [day('09:00', '21:00'), day('09:00', '21:00'), day('09:00', '21:00'), day('09:00', '21:00'), day('09:00', '21:00'), day('14:00', '21:00'), day('09:00', '21:00')],
+  };
+  const stores = await prisma.store.findMany({
+    where: { owner: { phone: { startsWith: '9639000' } } },
+    select: {
+      id: true,
+      slug: true,
+      openingSchedule: true,
+      latitude: true,
+      market: { select: { latitude: true, longitude: true } },
+      governorate: { select: { latitude: true, longitude: true } },
+    },
+  });
+  let updated = 0;
+  for (const s of stores) {
+    const data: Record<string, unknown> = {};
+    if (!s.openingSchedule) data.openingSchedule = schedule;
+    const center = s.market?.latitude != null ? s.market : s.governorate;
+    if (s.latitude === null && center?.latitude != null && center.longitude != null) {
+      // Stable small offset per store so pins in one market don't overlap
+      const h = [...s.slug].reduce((a, c) => (a * 31 + c.charCodeAt(0)) >>> 0, 7);
+      data.latitude = center.latitude + (((h % 100) - 50) / 100) * 0.0016;
+      data.longitude = center.longitude + ((((h >> 7) % 100) - 50) / 100) * 0.0016;
+    }
+    if (Object.keys(data).length) {
+      await prisma.store.update({ where: { id: s.id }, data });
+      updated++;
+    }
+  }
+  console.log(`Demo store details: ${updated} stores given hours or a map pin`);
 }
 
 if (require.main === module) {

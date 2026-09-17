@@ -46,6 +46,9 @@ export type MerchantStore = {
   whatsapp: string;
   phone: string | null;
   openingHours: string | null;
+  openingSchedule: import("./hours").WeekSchedule | null;
+  latitude: number | null;
+  longitude: number | null;
   logoUrl: string | null;
   coverUrl: string | null;
   hasDelivery: boolean;
