@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { apiRequest, useSession } from "@lib/session";
 import { BellIcon } from "@components/ui/icons";
+import { haptic, toast } from "@lib/toast";
 
 type FollowState = { following: boolean; followers: number };
 
@@ -31,7 +32,10 @@ export function FollowButton({ storeSlug }: { storeSlug: string }) {
     setBusy(true);
     setError("");
     try {
-      setState(await apiRequest<FollowState>(path, { audience: "web", method: state?.following ? "DELETE" : "POST" }));
+      const next = await apiRequest<FollowState>(path, { audience: "web", method: state?.following ? "DELETE" : "POST" });
+      setState(next);
+      haptic();
+      toast(next.following ? "صرت تتابع المتجر، ستصلك منتجاته الجديدة" : "ألغيت متابعة المتجر", next.following ? "🔔" : "🔕");
     } catch (e) {
       setError(e instanceof Error ? e.message : "تعذّر تنفيذ الطلب");
     } finally {

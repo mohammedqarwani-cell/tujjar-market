@@ -4,6 +4,7 @@ import { RootShell } from "@components/layout/RootShell";
 import { SiteHeader } from "@components/layout/SiteHeader";
 import { SiteFooter } from "@components/layout/SiteFooter";
 import { BottomNav } from "@components/layout/BottomNav";
+import { InstallPrompt } from "@components/pwa/InstallPrompt";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -36,6 +37,7 @@ export default function BuyerLayout({ children }: { children: React.ReactNode })
         <>
           <SiteFooter />
           <BottomNav />
+          <InstallPrompt />
         </>
       }
       bodyClassName="pb-[calc(4.25rem+env(safe-area-inset-bottom))] md:pb-0"

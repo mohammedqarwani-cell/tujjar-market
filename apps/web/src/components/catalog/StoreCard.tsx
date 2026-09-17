@@ -11,7 +11,7 @@ export function StoreCard({ store: s }: { store: StoreCardData }) {
   return (
     <Link
       href={`/stores/${s.slug}`}
-      className="group flex flex-col overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line/60 transition duration-200 hover:-translate-y-0.5 hover:ring-brand-200"
+      className="press group flex flex-col overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line/60 transition duration-200 hover:-translate-y-0.5 hover:ring-brand-200"
     >
       <div className="relative h-24 overflow-hidden bg-gradient-to-l from-brand-100 to-olive-100">
         {s.coverUrl ? (

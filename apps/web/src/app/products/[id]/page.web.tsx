@@ -13,6 +13,7 @@ import { ContactButtons } from "@components/contact/ContactButtons";
 import { ShareButton } from "@components/contact/ShareButton";
 import { ReportButton } from "@components/contact/ReportButton";
 import { ViewTracker } from "@components/contact/ViewTracker";
+import { RememberViewed } from "@components/home/LiveBits";
 import { Section } from "@components/ui/Section";
 import { ClockIcon, EyeIcon, PinIcon, ShieldIcon, TruckIcon } from "@components/ui/icons";
 import { ProductGallery } from "./ProductGallery";
@@ -50,6 +51,7 @@ export default async function ProductPage({ params }: Props) {
   return (
     <div className="pb-28 md:pb-4">
       <ViewTracker productId={p.id} />
+      <RememberViewed product={card} />
       <JsonLd
         data={[
           breadcrumbs([

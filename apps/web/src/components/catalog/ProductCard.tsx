@@ -10,7 +10,7 @@ export function ProductCard({ product: p }: { product: ProductCardData }) {
   const discount = discountPercent(p.price, p.oldPrice);
 
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line/60 transition duration-200 hover:-translate-y-0.5 hover:ring-brand-200">
+    <article className="press group relative flex flex-col overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line/60 transition duration-200 hover:-translate-y-0.5 hover:ring-brand-200">
       <Link href={`/products/${p.id}`} className="flex flex-1 flex-col">
         <div className="relative aspect-square overflow-hidden bg-sand">
           {p.images[0] ? (

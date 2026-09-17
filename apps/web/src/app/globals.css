@@ -60,7 +60,82 @@ body {
   display: none;
 }
 
+/* ---------- Motion: the small things that make the app feel alive ---------- */
+
+/* Sections rise into view as you scroll (browsers without scroll-driven animations just show them) */
+@supports (animation-timeline: view()) {
+  .reveal {
+    animation: rise linear both;
+    animation-timeline: view();
+    animation-range: entry 0% cover 22%;
+  }
+}
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(18px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+/* Touch feedback on cards and buttons */
+.press {
+  transition: transform 0.15s ease, box-shadow 0.2s ease;
+}
+.press:active {
+  transform: scale(0.97);
+}
+
+/* Heart pop when a product is saved */
+@keyframes pop {
+  0% { transform: scale(1); }
+  35% { transform: scale(1.35); }
+  60% { transform: scale(0.9); }
+  100% { transform: scale(1); }
+}
+.animate-pop {
+  animation: pop 0.45s cubic-bezier(0.3, 1.6, 0.5, 1);
+}
+
+/* Skeleton shimmer while content loads */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: var(--color-sand);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(100%);
+  background: linear-gradient(90deg, transparent, rgb(255 255 255 / 0.55), transparent);
+  animation: shimmer 1.3s infinite;
+}
+@keyframes shimmer {
+  to { transform: translateX(-100%); }
+}
+
+/* Toasts and sheets slide up */
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(16px) scale(0.98); }
+  to { opacity: 1; transform: none; }
+}
+.animate-slide-up {
+  animation: slide-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
+}
+
+/* Gradient ring around stores with something new (like stories) */
+.story-ring {
+  background: conic-gradient(from 200deg, #d4861f, #c2412d, #b86e14, #6b7a36, #d4861f);
+}
+
 @media (prefers-reduced-motion: reduce) {
+  .reveal {
+    animation: none;
+  }
   html {
     scroll-behavior: auto;
   }

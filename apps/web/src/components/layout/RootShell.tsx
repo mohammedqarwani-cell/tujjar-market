@@ -1,5 +1,8 @@
 import { IBM_Plex_Sans_Arabic } from "next/font/google";
+import { Suspense } from "react";
 import { CookieNotice } from "./CookieNotice";
+import { Toaster } from "@components/ui/Toaster";
+import { NavProgress } from "@components/ui/NavProgress";
 
 const plex = IBM_Plex_Sans_Arabic({
   subsets: ["arabic"],
@@ -25,6 +28,9 @@ export function RootShell({
   return (
     <html lang="ar" dir="rtl" className={plex.variable}>
       <body className={`flex min-h-dvh flex-col font-sans antialiased ${bodyClassName}`}>
+        <Suspense fallback={null}>
+          <NavProgress />
+        </Suspense>
         {DEMO_MODE && (
           <div role="note" className="bg-ink px-4 py-2 text-center text-xs leading-6 text-canvas">
             نسخة تجريبية للعرض: المتاجر والمنتجات وهمية، ورمز التحقق يظهر على الشاشة بدل رسالة SMS. لا تُدخل بيانات حقيقية.
@@ -34,6 +40,7 @@ export function RootShell({
         <main className="flex-1">{children}</main>
         {footer}
         <CookieNotice />
+        <Toaster />
       </body>
     </html>
   );
