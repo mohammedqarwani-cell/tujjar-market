@@ -160,32 +160,43 @@ export default async function StorePage({ params, searchParams }: Props) {
         </div>
 
         {(store.description || store.address || store.mapUrl || store.openingSchedule || store.latitude != null) && (
-          <div className="mt-4 grid gap-4 md:grid-cols-3">
-            {store.description && (
-              <p className="rounded-card bg-surface p-5 leading-8 text-ink/85 ring-1 ring-line md:col-span-2">{store.description}</p>
-            )}
-            {store.openingSchedule && (
-              <div className="rounded-card bg-surface p-5 ring-1 ring-line">
-                <h2 className="mb-2 text-sm font-bold">ساعات العمل</h2>
-                <ScheduleTable schedule={store.openingSchedule} />
-              </div>
-            )}
-            {store.latitude != null && store.longitude != null && (
-              <div className="md:col-span-2">
-                <StoresMap points={[{ lat: store.latitude, lng: store.longitude, title: store.name, subtitle: store.address ?? undefined }]} height={260} zoom={17} />
-              </div>
-            )}
-            {(store.address || store.mapUrl) && (
-              <div className="rounded-card bg-surface p-5 ring-1 ring-line">
-                <h2 className="text-sm font-bold">العنوان</h2>
-                {store.address && <p className="mt-2 text-sm leading-7 text-muted">{store.address}</p>}
-                {store.mapUrl && (
-                  <a href={store.mapUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-700">
-                    <PinIcon size={15} /> افتح على الخريطة
-                  </a>
-                )}
-              </div>
-            )}
+          <div className="mt-4 grid items-start gap-4 md:grid-cols-3">
+            {/* Main column: about the store, then where it is */}
+            <div className="flex flex-col gap-4 md:col-span-2">
+              {store.description && (
+                <div className="rounded-card bg-surface p-5 ring-1 ring-line">
+                  <h2 className="mb-2 text-sm font-bold">عن المتجر</h2>
+                  <p className="leading-8 text-ink/85">{store.description}</p>
+                </div>
+              )}
+              {store.latitude != null && store.longitude != null && (
+                <StoresMap
+                  points={[{ lat: store.latitude, lng: store.longitude, title: store.name, subtitle: store.address ?? undefined }]}
+                  height={store.description ? 280 : 340}
+                  zoom={17}
+                />
+              )}
+            </div>
+            {/* Side column: practical details, each card only as tall as its content */}
+            <div className="flex flex-col gap-4">
+              {store.openingSchedule && (
+                <div className="rounded-card bg-surface p-5 ring-1 ring-line">
+                  <h2 className="mb-2 text-sm font-bold">ساعات العمل</h2>
+                  <ScheduleTable schedule={store.openingSchedule} />
+                </div>
+              )}
+              {(store.address || store.mapUrl) && (
+                <div className="rounded-card bg-surface p-5 ring-1 ring-line">
+                  <h2 className="text-sm font-bold">العنوان</h2>
+                  {store.address && <p className="mt-2 text-sm leading-7 text-muted">{store.address}</p>}
+                  {store.mapUrl && (
+                    <a href={store.mapUrl} target="_blank" rel="noopener noreferrer" className="mt-3 inline-flex items-center gap-1.5 text-sm font-medium text-brand-700">
+                      <PinIcon size={15} /> افتح على الخريطة
+                    </a>
+                  )}
+                </div>
+              )}
+            </div>
           </div>
         )}
 

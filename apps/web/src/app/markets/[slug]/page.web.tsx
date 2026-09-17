@@ -40,7 +40,8 @@ export default async function MarketPage({ params }: Props) {
     <div className="space-y-10 pb-4">
       <section className="relative overflow-hidden bg-olive-700 text-white">
         <div className="pattern-arches absolute inset-0 opacity-30 invert" />
-        <div className="relative mx-auto max-w-6xl px-4 py-10">
+        <div className="relative mx-auto grid max-w-6xl items-center gap-8 px-4 py-10 lg:grid-cols-2">
+          <div>
           <nav className="text-sm text-olive-100">
             <Link href="/markets" className="hover:text-white">الأسواق</Link>
             <span className="mx-2">/</span>
@@ -51,21 +52,19 @@ export default async function MarketPage({ params }: Props) {
           <p className="mt-4 flex items-center gap-1.5 text-sm">
             <PinIcon size={16} /> {market.governorate.name} · {market.storesCount} متجر
           </p>
+          </div>
+          {(stores.items.some((s) => s.latitude != null) || market.latitude != null) && (
+            <StoresMap
+              center={market.latitude != null && market.longitude != null ? { lat: market.latitude, lng: market.longitude } : null}
+              radius={market.radiusMeters}
+              points={stores.items
+                .filter((s) => s.latitude != null && s.longitude != null)
+                .map((s) => ({ lat: s.latitude!, lng: s.longitude!, title: s.name, subtitle: s.tagline ?? undefined, href: `/stores/${s.slug}` }))}
+              height={300}
+            />
+          )}
         </div>
       </section>
-
-      {(stores.items.some((s) => s.latitude != null) || market.latitude != null) && (
-        <Section title="خريطة السوق" subtitle="اضغط على المحل لتعرف اسمه وتفتح صفحته">
-          <StoresMap
-            center={market.latitude != null && market.longitude != null ? { lat: market.latitude, lng: market.longitude } : null}
-            radius={market.radiusMeters}
-            points={stores.items
-              .filter((s) => s.latitude != null && s.longitude != null)
-              .map((s) => ({ lat: s.latitude!, lng: s.longitude!, title: s.name, subtitle: s.tagline ?? undefined, href: `/stores/${s.slug}` }))}
-            height={380}
-          />
-        </Section>
-      )}
 
       <Section title="محلات السوق">
         {stores.items.length ? (

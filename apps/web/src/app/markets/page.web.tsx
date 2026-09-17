@@ -34,16 +34,17 @@ export default async function MarketsPage() {
         ))}
       </nav>
 
-      <div className="mt-8 space-y-10">
+      {/* Governorates with only a market or two sit side by side instead of leaving half a row empty */}
+      <div className="mt-8 grid gap-10 lg:grid-cols-2">
         {withStores.map((g) => (
-          <section key={g.slug} id={g.slug} className="scroll-mt-24">
+          <section key={g.slug} id={g.slug} className={`scroll-mt-24 ${g.markets.length > 2 ? "lg:col-span-2" : ""}`}>
             <div className="mb-3 flex items-baseline justify-between">
               <h2 className="text-xl font-bold">{g.name}</h2>
               <Link href={`/search?gov=${g.slug}&type=stores`} className="text-sm font-medium text-brand-700">
                 {g.storesCount} متجر ←
               </Link>
             </div>
-            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+            <div className={`grid grid-cols-2 gap-3 ${g.markets.length > 2 ? "sm:grid-cols-3 lg:grid-cols-4" : ""}`}>
               {g.markets.map((m) => (
                 <Link
                   key={m.slug}
