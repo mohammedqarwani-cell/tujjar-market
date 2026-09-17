@@ -90,7 +90,8 @@ export default async function ProductPage({ params }: Props) {
           <Link href={`/stores/${p.store.slug}`} className="hover:text-ink">{p.store.name}</Link>
         </nav>
 
-        <div className="mt-4 grid gap-6 lg:grid-cols-2 lg:gap-10">
+        {/* min-w-0: grid items may shrink below their content, so photos or long text never widen the page */}
+        <div className="mt-4 grid gap-6 lg:grid-cols-2 lg:gap-10 [&>*]:min-w-0">
           <div className="relative">
             <ProductGallery images={p.images} title={p.title} icon={p.category.icon} seed={p.category.slug} />
             <FavoriteButton product={card} className="absolute end-3 top-3" />

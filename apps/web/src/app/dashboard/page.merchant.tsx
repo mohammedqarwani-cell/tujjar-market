@@ -115,7 +115,7 @@ function Overview() {
         </div>
       )}
 
-      <div className="grid gap-4 lg:grid-cols-2">
+      <div className="grid gap-4 lg:grid-cols-2 [&>*]:min-w-0">
         {stats && stats.topProducts.length > 0 && (
           <section className="rounded-card bg-surface p-5 ring-1 ring-line">
             <h2 className="font-bold">المنتجات الأكثر طلباً</h2>
@@ -133,12 +133,14 @@ function Overview() {
         )}
 
         {store && (
-          <section className="rounded-card bg-ink p-5 text-canvas">
+          <section className="min-w-0 rounded-card bg-ink p-5 text-canvas">
             <h2 className="flex items-center gap-2 font-bold"><ShareIcon size={18} /> شارك رابط متجرك</h2>
             <p className="mt-2 text-sm leading-7 text-canvas/70">
               حطّه بحالة الواتساب، بصفحة الفيسبوك، وعلى كرت المحل. كل زيارة منه بتنحسب هون.
             </p>
-            <div dir="ltr" className="mt-3 truncate rounded-xl bg-canvas/10 px-3 py-2 text-sm">{storeUrl}</div>
+            <div dir="ltr" className="mt-3 overflow-hidden text-ellipsis whitespace-nowrap rounded-xl bg-canvas/10 px-3 py-2 text-start text-sm" title={storeUrl}>
+              {storeUrl.replace(/^https?:\/\//, "")}
+            </div>
             <div className="mt-3 flex flex-wrap gap-2">
               <CopyButton text={storeUrl} />
               <a
