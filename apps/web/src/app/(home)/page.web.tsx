@@ -9,6 +9,10 @@ import { StoreCard } from "@components/catalog/StoreCard";
 import { Section } from "@components/ui/Section";
 import { SearchIcon, ShieldIcon, WhatsAppIcon, PinIcon } from "@components/ui/icons";
 import { SearchBox } from "@components/search/SearchBox";
+import { PromoCarousel, type Promo } from "@components/home/PromoCarousel";
+import { StoreStories } from "@components/home/StoreStories";
+import { Countdown, Greeting, OpenNowRail, RecentlyViewed } from "@components/home/LiveBits";
+import type { Page } from "@lib/types";
 
 const QUICK_SEARCHES = ["طاقة شمسية", "موبايلات", "بروكار", "صابون غار", "حلويات", "لابتوب"];
 
@@ -46,7 +50,10 @@ function HeroCollage({ products }: { products: ProductCardData[] }) {
 
 export default async function HomePage() {
   const gov = (await cookies()).get(GOV_COOKIE)?.value ?? "";
-  const data = await apiGet<HomeData>(`/home${toQuery({ gov })}`, 60);
+  const [data, offers] = await Promise.all([
+    apiGet<HomeData>(`/home${toQuery({ gov })}`, 60),
+    apiGet<Page<ProductCardData>>(`/products${toQuery({ gov, offers: "1", sort: "popular", pageSize: 12 })}`, 60).catch(() => null),
+  ]);
   const current = data.governorates.find((g) => g.slug === gov);
   const place = current ? current.name : "سوريا";
   const markets = (current ? [current] : data.governorates)
@@ -54,10 +61,33 @@ export default async function HomePage() {
     .filter((m) => m.storesCount > 0)
     .slice(0, 10);
 
+  // Stores that added products lately get a story ring
+  const fresh = new Set(data.latest.map((p) => p.store.slug));
+  const photo = (list: ProductCardData[]) => list.find((p) => p.images[0])?.images[0] ?? null;
+  const topCategory = [...data.categories].sort((a, b) => b.productsCount - a.productsCount)[0];
+  const promos: Promo[] = [
+    ...(offers?.total
+      ? [{ href: `/search${toQuery({ offers: "1", gov })}`, eyebrow: `${formatNumber(offers.total)} عرض اليوم`, title: "خصومات من محلات السوق", cta: "شوف العروض", image: photo(offers.items), tone: "rose" as const }]
+      : []),
+    { href: "/search?type=stores&open=1", eyebrow: `${formatNumber(data.totals.stores)} متجر`, title: "محلات مفتوحة هلّق حواليك", cta: "مفتوح الآن", image: data.stores.find((s) => s.coverUrl)?.coverUrl ?? null, tone: "olive" },
+    ...(topCategory
+      ? [{ href: `/categories/${topCategory.slug}`, eyebrow: `${topCategory.icon} ${topCategory.name}`, title: `الأكثر طلباً في ${place}`, cta: "تسوّق القسم", image: photo(data.featured), tone: "brand" as const }]
+      : []),
+    { href: "/verification", eyebrow: "اشترِ بثقة", title: "محلات موثّقة بالهوية وفيديو من المحل", cta: "كيف نوثّق", image: photo(data.latest), tone: "ink" },
+  ];
+
   return (
-    <div className="space-y-12 pb-4 sm:space-y-16">
-      {/* Hero */}
-      <section className="relative overflow-hidden border-b border-line bg-gradient-to-b from-brand-50 to-canvas">
+    <div className="space-y-10 pb-4 sm:space-y-16">
+      {/* Phone: app-style top, greeting and search */}
+      <section className="mx-auto max-w-6xl space-y-4 px-4 pt-5 md:hidden">
+        <Greeting place={place} />
+        <SearchBox variant="page" placeholder="ابحث عن منتج أو متجر…" hidden={gov ? { gov } : {}} />
+        <PromoCarousel promos={promos} />
+        <StoreStories stores={data.stores} fresh={fresh} />
+      </section>
+
+      {/* Hero (wide screens) */}
+      <section className="relative hidden overflow-hidden border-b border-line bg-gradient-to-b from-brand-50 to-canvas md:block">
         <div className="pattern-arches absolute inset-0 [mask-image:linear-gradient(to_bottom,black,transparent)]" />
         <div className="relative mx-auto grid max-w-6xl items-center gap-10 px-4 pb-10 pt-10 sm:pb-14 sm:pt-16 lg:grid-cols-[1.15fr_1fr]">
           <div>
@@ -106,14 +136,20 @@ export default async function HomePage() {
         </div>
       </section>
 
+      {/* Wide screens: banners and stories under the hero */}
+      <section className="mx-auto hidden max-w-6xl space-y-6 px-4 md:block">
+        <PromoCarousel promos={promos} />
+        <StoreStories stores={data.stores} fresh={fresh} />
+      </section>
+
       {/* Categories */}
-      <Section title="تسوّق حسب القسم">
+      <Section title="تسوّق حسب القسم" className="reveal">
         <div className="no-scrollbar -mx-4 flex gap-3 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-5 sm:overflow-visible sm:px-0 lg:grid-cols-8">
           {data.categories.map((c) => (
             <Link
               key={c.slug}
               href={`/categories/${c.slug}`}
-              className="flex w-24 shrink-0 flex-col items-center gap-2 rounded-2xl bg-surface p-3 text-center ring-1 ring-line/70 transition hover:-translate-y-0.5 hover:ring-brand-200 sm:w-auto"
+              className="press flex w-24 shrink-0 flex-col items-center gap-2 rounded-2xl bg-surface p-3 text-center ring-1 ring-line/70 transition hover:-translate-y-0.5 hover:ring-brand-200 sm:w-auto"
             >
               <span className="flex h-12 w-12 items-center justify-center rounded-2xl bg-brand-50 text-2xl" aria-hidden>
                 {c.icon}
@@ -124,9 +160,31 @@ export default async function HomePage() {
         </div>
       </Section>
 
+      {/* Today's offers */}
+      {offers && offers.items.length > 0 && (
+        <section className="reveal mx-auto max-w-6xl px-4">
+          <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+            <div className="flex flex-wrap items-center gap-2">
+              <h2 className="text-xl font-bold sm:text-2xl">🔥 عروض اليوم</h2>
+              <Countdown />
+            </div>
+            <Link href={`/search${toQuery({ offers: "1", gov })}`} className="text-sm font-medium text-brand-700">الكل ←</Link>
+          </div>
+          <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
+            {offers.items.map((p) => (
+              <div key={p.id} className="w-40 shrink-0 snap-start sm:w-52">
+                <ProductCard product={p} />
+              </div>
+            ))}
+          </div>
+        </section>
+      )}
+
+      <OpenNowRail stores={data.stores} />
+
       {/* Featured */}
       {data.featured.length > 0 && (
-        <Section title="مختارات من الأسواق" subtitle="منتجات مميزة يطلبها الزبائن كثيراً" href={`/search${toQuery({ sort: "popular", gov })}`}>
+        <Section title="مختارات من الأسواق" subtitle="منتجات مميزة يطلبها الزبائن كثيراً" href={`/search${toQuery({ sort: "popular", gov })}`} className="reveal">
           <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
             {data.featured.map((p) => (
               <div key={p.id} className="w-44 shrink-0 snap-start sm:w-52">
@@ -139,13 +197,13 @@ export default async function HomePage() {
 
       {/* Markets */}
       {markets.length > 0 && (
-        <Section title={`أسواق ${place}`} subtitle="ادخل السوق وشوف محلاته من مكانك" href="/markets" linkLabel="كل الأسواق">
+        <Section title={`أسواق ${place}`} subtitle="ادخل السوق وشوف محلاته من مكانك" href="/markets" linkLabel="كل الأسواق" className="reveal">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-5">
             {markets.map((m) => (
               <Link
                 key={m.slug}
                 href={`/markets/${m.slug}`}
-                className="group relative overflow-hidden rounded-card bg-olive-700 p-4 text-white shadow-card transition hover:-translate-y-0.5"
+                className="press group relative overflow-hidden rounded-card bg-olive-700 p-4 text-white shadow-card transition hover:-translate-y-0.5"
               >
                 <div className="pattern-arches absolute inset-0 opacity-40 invert" />
                 <div className="relative">
@@ -161,7 +219,7 @@ export default async function HomePage() {
 
       {/* Stores */}
       {data.stores.length > 0 && (
-        <Section title="متاجر موثوقة" subtitle="محلات حقيقية بأرقام تواصل مباشرة" href={`/search${toQuery({ type: "stores", gov })}`}>
+        <Section title="متاجر موثوقة" subtitle="محلات حقيقية بأرقام تواصل مباشرة" href={`/search${toQuery({ type: "stores", gov })}`} className="reveal">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {data.stores.map((s) => (
               <StoreCard key={s.id} store={s} />
@@ -193,9 +251,11 @@ export default async function HomePage() {
         </div>
       </section>
 
+      <RecentlyViewed />
+
       {/* Latest */}
       {data.latest.length > 0 && (
-        <Section title="وصل حديثاً" href={`/search${toQuery({ gov })}`}>
+        <Section title="وصل حديثاً" href={`/search${toQuery({ gov })}`} className="reveal">
           <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 xl:grid-cols-6">
             {data.latest.map((p) => (
               <ProductCard key={p.id} product={p} />

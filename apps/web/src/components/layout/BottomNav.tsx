@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { HeartIcon, HomeIcon, SearchIcon, StoreIcon, UserIcon } from "@components/ui/icons";
+import { useFavorites } from "@lib/favorites";
 
 const ITEMS = [
   { href: "/", label: "الرئيسية", Icon: HomeIcon, match: (p: string) => p === "/" },
@@ -14,6 +15,7 @@ const ITEMS = [
 
 export function BottomNav() {
   const pathname = usePathname();
+  const favorites = useFavorites().length;
 
   return (
     <nav
@@ -28,10 +30,17 @@ export function BottomNav() {
               <Link
                 href={href}
                 aria-current={active ? "page" : undefined}
-                className={`flex h-[4.25rem] flex-col items-center justify-center gap-1 text-[11px] font-medium transition ${active ? "text-brand-600" : "text-muted"}`}
+                className={`press relative flex h-[4.25rem] flex-col items-center justify-center gap-1 text-[11px] font-medium transition ${active ? "text-brand-600" : "text-muted"}`}
               >
-                <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
-                {label}
+                <span className={`relative flex h-8 w-14 items-center justify-center rounded-full transition-all duration-300 ${active ? "bg-brand-50" : ""}`}>
+                  <Icon size={22} strokeWidth={active ? 2.2 : 1.8} />
+                  {href === "/favorites" && favorites > 0 && (
+                    <span className="absolute -top-0.5 end-2 flex h-4 min-w-4 items-center justify-center rounded-full bg-danger px-1 text-[10px] font-bold leading-none text-white ring-2 ring-surface">
+                      {favorites > 99 ? "99+" : favorites}
+                    </span>
+                  )}
+                </span>
+                <span className={active ? "font-bold" : ""}>{label}</span>
               </Link>
             </li>
           );
