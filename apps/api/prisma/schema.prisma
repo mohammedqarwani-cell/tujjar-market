@@ -133,12 +133,26 @@ enum NotificationCategory {
   ORDERS
 }
 
-/// Where a request stands with the merchant
-enum LeadStatus {
+/// Where a purchase order stands with the shop
+enum OrderStatus {
+  /// Waiting for the shop to confirm price, delivery fee and time
   NEW
-  CONTACTED
+  CONFIRMED
   DONE
   CANCELLED
+}
+
+/// Delivery to the buyer, or the buyer picks it up from the shop
+enum Fulfillment {
+  DELIVERY
+  PICKUP
+}
+
+/// Money is settled between buyer and shop; the platform takes nothing
+enum PaymentMethod {
+  CASH_ON_DELIVERY
+  CASH_AT_SHOP
+  TRANSFER
 }
 
 enum CampaignAudience {
@@ -182,7 +196,7 @@ model User {
   auditLogs             AuditLog[]
   reviewedVerifications VerificationRequest[] @relation("VerificationReviewer")
   storeContacts         StoreContact[]        @relation("BuyerContacts")
-  leads                 Lead[]                @relation("BuyerLeads")
+  orders                Order[]               @relation("BuyerOrders")
   reviews               Review[]              @relation("BuyerReviews")
   moderatedReviews      Review[]              @relation("ReviewModerator")
   /// Reporter credibility: reports moderators confirmed or dismissed
@@ -264,6 +278,7 @@ model Governorate {
   stores    Store[]
   interests MerchantInterest[]
   banners   HomeBanner[]
+  orders    Order[]
 }
 
 model Market {
@@ -366,7 +381,7 @@ model Store {
   contactsCount         Int                   @default(0)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
-  leads                 Lead[]
+  orders                Order[]
   promotions            StorePromotion[]
   products              Product[]
   dailyStats            StoreDailyStat[]
@@ -396,29 +411,44 @@ model StoreContact {
   @@index([buyerId])
 }
 
-/// A buyer asking a shop for something, so requests don't get lost in WhatsApp
-model Lead {
-  id        String     @id @default(cuid())
-  storeId   String
-  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  productId String?
-  product   Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
-  /// Set when the buyer was signed in
-  buyerId   String?
-  buyer     User?      @relation("BuyerLeads", fields: [buyerId], references: [id], onDelete: SetNull)
-  name      String
-  /// 9639xxxxxxxx; only the shop sees it
-  phone     String
-  quantity  Int?
-  note      String?
-  status    LeadStatus @default(NEW)
-  createdAt DateTime   @default(now())
-  updatedAt DateTime   @updatedAt
-  /// When the merchant first moved it out of "new"
-  handledAt DateTime?
+/// A purchase order a buyer sends to a shop: quantity, address, payment and the price agreed
+model Order {
+  id            String        @id @default(cuid())
+  /// Short number both sides can quote, e.g. 1043
+  ref           Int           @unique @default(autoincrement())
+  storeId       String
+  store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId     String?
+  product       Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
+  buyerId       String?
+  buyer         User?         @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: SetNull)
+  /// Copied when the order is placed, so it survives edits to the product or the account
+  productTitle  String
+  buyerName     String
+  buyerPhone    String
+  quantity      Int           @default(1)
+  unitPrice     Int?
+  currency      Currency      @default(SYP)
+  /// unitPrice × quantity, before any delivery fee
+  total         Int?
+  fulfillment   Fulfillment   @default(DELIVERY)
+  governorateId String?
+  governorate   Governorate?  @relation(fields: [governorateId], references: [id])
+  address       String?
+  payment       PaymentMethod @default(CASH_ON_DELIVERY)
+  note          String?
+  status        OrderStatus   @default(NEW)
+  /// What the shop answered: delivery fee and when it arrives
+  deliveryFee   Int?
+  merchantNote  String?
+  cancelReason  String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+  confirmedAt   DateTime?
+  closedAt      DateTime?
 
   @@index([storeId, status, createdAt])
-  @@index([storeId, createdAt])
+  @@index([buyerId, createdAt])
 }
 
 /// One review per buyer per store; only published reviews count towards the store rating
@@ -504,7 +534,7 @@ model Product {
   contactsCount Int           @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  leads         Lead[]
+  orders        Order[]
   reports       Report[]
   favoritedBy   Favorite[]
 

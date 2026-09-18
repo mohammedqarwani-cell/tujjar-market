@@ -41,6 +41,7 @@ export type ProductCardData = {
     slug: string;
     name: string;
     verificationLevel: VerificationLevel;
+    hasDelivery: boolean;
     governorate: { name: string };
     market: { name: string } | null;
   };

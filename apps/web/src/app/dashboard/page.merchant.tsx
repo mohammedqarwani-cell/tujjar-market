@@ -23,7 +23,7 @@ function Overview() {
   const [days, setDays] = useState(30);
   const { data: stats, error } = useAuthData<MerchantStats>(`/merchant/stats?days=${days}`);
   const { data: store } = useAuthData<MerchantStore>("/merchant/store");
-  const { data: leads } = useAuthData<{ newLeads: number }>("/merchant/leads/pending");
+  const { data: orders } = useAuthData<{ newOrders: number }>("/merchant/orders/pending");
 
   const storeUrl = store ? `${SITE_URL}/stores/${store.slug}` : "";
   const tiles = [
@@ -64,16 +64,16 @@ function Overview() {
 
       <FormError message={error} />
 
-      {!!leads?.newLeads && (
+      {!!orders?.newOrders && (
         <Link
           href="/dashboard/orders"
           className="press flex items-center justify-between gap-3 rounded-card bg-brand-600 p-5 text-white shadow-card"
         >
           <span>
-            <b className="block text-lg">عندك {formatNumber(leads.newLeads)} طلب جديد من زبائن</b>
-            <span className="text-sm text-white/85">ردّ عليهم بسرعة — الزبون يلي بيستنى كتير بيروح لغيرك.</span>
+            <b className="block text-lg">عندك {formatNumber(orders.newOrders)} طلب جديد بانتظار تأكيدك</b>
+            <span className="text-sm text-white/85">أكّدها بسرعة — الزبون يلي بيستنى كتير بيروح لغيرك.</span>
           </span>
-          <span className="shrink-0 text-2xl" aria-hidden>🛎</span>
+          <span className="shrink-0 text-2xl" aria-hidden>🛒</span>
         </Link>
       )}
 

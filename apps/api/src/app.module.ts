@@ -17,7 +17,7 @@ import { AdminModule } from './admin/admin.module';
 import { NotificationsModule } from './notifications/notifications.module';
 import { SearchModule } from './search/search.module';
 import { EngagementModule } from './engagement/engagement';
-import { LeadsModule } from './leads/leads';
+import { OrdersModule } from './orders/orders';
 import { CsrfGuard } from './common/csrf.guard';
 import { ThrottleGuard } from './common/throttle';
 
@@ -40,7 +40,7 @@ import { ThrottleGuard } from './common/throttle';
     ReviewsModule,
     AdminModule,
     EngagementModule,
-    LeadsModule,
+    OrdersModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottleGuard },

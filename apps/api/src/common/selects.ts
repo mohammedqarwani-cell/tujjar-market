@@ -36,6 +36,7 @@ export const productCardSelect = {
   category: { select: { slug: true, name: true, icon: true } },
   store: {
     select: {
+      hasDelivery: true,
       slug: true,
       name: true,
       verificationLevel: true,

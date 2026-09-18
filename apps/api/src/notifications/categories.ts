@@ -63,8 +63,11 @@ export const CATEGORY_INFO: Record<NotificationCategory, CategoryInfo> = {
     marketing: true,
   },
   ORDERS: {
-    label: 'طلبات الزبائن',
-    description: 'عندما يرسل زبون طلباً أو استفساراً لمتجرك',
+    label: 'الطلبات',
+    description: {
+      BUYER: 'تأكيد المتجر لطلبك، تسليمه، أو إلغاؤه',
+      MERCHANT: 'الطلبات الجديدة على متجرك وإلغاءات الزبائن',
+    },
     defaults: { inApp: true, push: true },
     inAppLocked: true,
   },
@@ -76,7 +79,7 @@ export const CATEGORY_INFO: Record<NotificationCategory, CategoryInfo> = {
 };
 
 export const ROLE_CATEGORIES: Record<Role, NotificationCategory[]> = {
-  BUYER: ['ACCOUNT', 'FAVORITES', 'FOLLOWING', 'PROMOTIONS', 'INVITES'],
+  BUYER: ['ACCOUNT', 'ORDERS', 'FAVORITES', 'FOLLOWING', 'PROMOTIONS', 'INVITES'],
   MERCHANT: ['ACCOUNT', 'ORDERS', 'REVIEWS', 'PROMOTIONS', 'INVITES'],
   ADMIN: ['ACCOUNT', 'MODERATION'],
   MODERATOR: ['ACCOUNT', 'MODERATION'],

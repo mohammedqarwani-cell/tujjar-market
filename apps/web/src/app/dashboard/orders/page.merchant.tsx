@@ -4,58 +4,82 @@ import { useState } from "react";
 import Link from "next/link";
 import { apiRequest } from "@lib/session";
 import { useAuthData } from "@lib/merchant";
-import { displayPhone, formatNumber, timeAgo } from "@lib/format";
+import { displayPhone, formatNumber, priceLabel, timeAgo } from "@lib/format";
 import { whatsappLink } from "@lib/contact";
 import { webUrl } from "@lib/urls";
-import { FormError } from "@components/forms/fields";
+import type { Currency } from "@lib/types";
+import { FormError, inputClass } from "@components/forms/fields";
 import { EmptyState } from "@components/ui/Section";
 import { PhoneIcon, WhatsAppIcon } from "@components/ui/icons";
 
-type Status = "NEW" | "CONTACTED" | "DONE" | "CANCELLED";
+type Status = "NEW" | "CONFIRMED" | "DONE" | "CANCELLED";
 
-type Lead = {
+type Order = {
   id: string;
-  name: string;
-  phone: string;
-  quantity: number | null;
+  ref: number;
+  buyerName: string;
+  buyerPhone: string;
+  productTitle: string;
+  quantity: number;
+  unitPrice: number | null;
+  currency: Currency;
+  total: number | null;
+  fulfillment: "DELIVERY" | "PICKUP";
+  address: string | null;
+  payment: "CASH_ON_DELIVERY" | "CASH_AT_SHOP" | "TRANSFER";
   note: string | null;
   status: Status;
+  deliveryFee: number | null;
+  merchantNote: string | null;
+  cancelReason: string | null;
   createdAt: string;
-  handledAt: string | null;
-  product: { id: string; title: string; images: string[] } | null;
+  governorate: { name: string } | null;
+  product: { id: string; images: string[] } | null;
 };
 
-type LeadsPage = { items: Lead[]; total: number; counts: Partial<Record<Status, number>> };
+type OrdersPage = { items: Order[]; counts: Partial<Record<Status, number>> };
 
 const TABS: { id: string; label: string }[] = [
   { id: "NEW", label: "جديدة" },
-  { id: "CONTACTED", label: "تواصلت معهم" },
-  { id: "DONE", label: "مكتملة" },
+  { id: "CONFIRMED", label: "مؤكّدة" },
+  { id: "DONE", label: "مسلّمة" },
   { id: "CANCELLED", label: "ملغاة" },
   { id: "", label: "الكل" },
 ];
 
 const STATUS_STYLE: Record<Status, string> = {
   NEW: "bg-brand-50 text-brand-700",
-  CONTACTED: "bg-olive-50 text-olive-700",
+  CONFIRMED: "bg-olive-50 text-olive-700",
   DONE: "bg-sand text-muted",
-  CANCELLED: "bg-sand text-muted",
+  CANCELLED: "bg-danger/10 text-danger",
 };
-const STATUS_LABEL: Record<Status, string> = { NEW: "جديد", CONTACTED: "تواصلت", DONE: "مكتمل", CANCELLED: "ملغى" };
+const STATUS_LABEL: Record<Status, string> = { NEW: "بانتظار تأكيدك", CONFIRMED: "مؤكّد", DONE: "مسلّم", CANCELLED: "ملغى" };
+const PAYMENT_LABEL: Record<Order["payment"], string> = {
+  CASH_ON_DELIVERY: "نقداً عند الاستلام",
+  CASH_AT_SHOP: "نقداً في المحل",
+  TRANSFER: "حوالة أو تحويل",
+};
 
-const chip = "rounded-lg px-3 py-1.5 text-xs font-bold ring-1 transition disabled:opacity-50";
+const money = (value: number, currency: Currency) => priceLabel({ price: value, currency, priceType: "FIXED" }).main;
+const chip = "h-10 rounded-xl px-4 text-sm font-bold ring-1 transition disabled:opacity-50";
 
 export default function OrdersPage() {
   const [tab, setTab] = useState("NEW");
-  const { data, error, reload } = useAuthData<LeadsPage>(`/merchant/leads?pageSize=50${tab ? `&status=${tab}` : ""}`);
+  const { data, error, reload } = useAuthData<OrdersPage>(`/merchant/orders?pageSize=50${tab ? `&status=${tab}` : ""}`);
   const [busy, setBusy] = useState("");
   const [actionError, setActionError] = useState("");
+  const [confirming, setConfirming] = useState<string | null>(null);
+  const [fee, setFee] = useState("");
+  const [note, setNote] = useState("");
 
-  const setStatus = async (id: string, status: Status) => {
+  const update = async (id: string, body: Record<string, unknown>) => {
     setBusy(id);
     setActionError("");
     try {
-      await apiRequest(`/merchant/leads/${id}`, { audience: "merchant", method: "PATCH", body: { status } });
+      await apiRequest(`/merchant/orders/${id}`, { audience: "merchant", method: "PATCH", body });
+      setConfirming(null);
+      setFee("");
+      setNote("");
       await reload();
     } catch (e) {
       setActionError(e instanceof Error ? e.message : "تعذّر تحديث الطلب");
@@ -64,12 +88,19 @@ export default function OrdersPage() {
     }
   };
 
+  const cancel = (id: string) => {
+    const reason = window.prompt("سبب الإلغاء (يظهر للزبون):", "المنتج غير متوفر حالياً");
+    if (reason === null) return;
+    void update(id, { status: "CANCELLED", cancelReason: reason });
+  };
+
   return (
     <div className="space-y-5">
       <div>
-        <h1 className="text-2xl font-bold">طلبات الزبائن</h1>
+        <h1 className="text-2xl font-bold">الطلبات</h1>
         <p className="mt-1 text-sm leading-7 text-muted">
-          كل زبون ضغط «اطلب من المتجر» بيوصلك هون باسمه ورقمه، وبتقدر تتابع حالته حتى ما يضيع بين رسائل الواتساب.
+          كل طلب بيوصلك باسم الزبون ورقمه والكمية والعنوان وطريقة الدفع. أكّد الطلب وحدد أجرة التوصيل، والزبون
+          بيوصله إشعار بردك.
         </p>
       </div>
 
@@ -97,76 +128,145 @@ export default function OrdersPage() {
       <FormError message={error || actionError} />
 
       {data?.items.length === 0 && (
-        <EmptyState icon="🛎" title={tab === "NEW" ? "ما في طلبات جديدة" : "لا توجد طلبات هنا"}>
-          لما يضغط زبون «اطلب من المتجر» على صفحة منتجك، بيوصلك الطلب هون وبيجيك إشعار.
+        <EmptyState icon="🛒" title={tab === "NEW" ? "ما في طلبات جديدة" : "لا توجد طلبات هنا"}>
+          لما يضغط زبون «اطلب الآن» على منتج من متجرك، بيوصلك الطلب هون وبيجيك إشعار فوراً.
         </EmptyState>
       )}
 
-      {data?.items.map((lead) => {
-        const message = lead.product
-          ? `مرحباً ${lead.name}، وصلنا طلبك على تُجّار ماركت بخصوص «${lead.product.title}».`
-          : `مرحباً ${lead.name}، وصلنا طلبك على تُجّار ماركت.`;
-        return (
-          <article key={lead.id} className={`rounded-card bg-surface p-4 ring-1 ring-line ${busy === lead.id ? "opacity-50" : ""}`}>
-            <div className="flex flex-wrap items-start gap-3">
-              {lead.product?.images[0] && (
-                <img src={lead.product.images[0]} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />
+      {data?.items.map((o) => (
+        <article key={o.id} className={`rounded-card bg-surface p-4 ring-1 ring-line ${busy === o.id ? "opacity-50" : ""}`}>
+          <div className="flex flex-wrap items-start gap-3">
+            {o.product?.images[0] && <img src={o.product.images[0]} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />}
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_STYLE[o.status]}`}>{STATUS_LABEL[o.status]}</span>
+                <span className="text-xs text-muted">طلب #{o.ref} · {timeAgo(o.createdAt)}</span>
+              </div>
+              <h2 className="mt-1 font-bold">
+                {o.product ? (
+                  <Link href={webUrl(`/products/${o.product.id}`)} target="_blank" className="hover:text-brand-700">{o.productTitle}</Link>
+                ) : (
+                  o.productTitle
+                )}
+              </h2>
+              <p className="text-sm text-muted">
+                {o.buyerName} · <bdi dir="ltr">{displayPhone(o.buyerPhone)}</bdi>
+              </p>
+            </div>
+          </div>
+
+          <dl className="mt-3 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
+            <div className="flex gap-2">
+              <dt className="text-muted">الكمية:</dt>
+              <dd className="font-medium">
+                {formatNumber(o.quantity)}
+                {o.unitPrice !== null && <span className="text-muted"> × {money(o.unitPrice, o.currency)}</span>}
+              </dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-muted">الإجمالي:</dt>
+              <dd className="font-medium">
+                {o.total === null ? "السعر عند الطلب" : money(o.total, o.currency)}
+                {o.deliveryFee ? <span className="text-muted"> + توصيل {money(o.deliveryFee, o.currency)}</span> : null}
+              </dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-muted">الاستلام:</dt>
+              <dd className="font-medium">{o.fulfillment === "DELIVERY" ? `توصيل — ${o.governorate?.name ?? ""}` : "من المحل"}</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-muted">الدفع:</dt>
+              <dd className="font-medium">{PAYMENT_LABEL[o.payment]}</dd>
+            </div>
+            {o.address && (
+              <div className="flex gap-2 sm:col-span-2">
+                <dt className="shrink-0 text-muted">العنوان:</dt>
+                <dd>{o.address}</dd>
+              </div>
+            )}
+            {o.note && (
+              <div className="flex gap-2 sm:col-span-2">
+                <dt className="shrink-0 text-muted">ملاحظة الزبون:</dt>
+                <dd className="whitespace-pre-line">{o.note}</dd>
+              </div>
+            )}
+          </dl>
+
+          {o.merchantNote && <p className="mt-3 rounded-xl bg-sand px-3 py-2 text-sm leading-7">ردك: {o.merchantNote}</p>}
+          {o.status === "CANCELLED" && o.cancelReason && (
+            <p className="mt-3 rounded-xl bg-danger/10 px-3 py-2 text-sm leading-7 text-danger">سبب الإلغاء: {o.cancelReason}</p>
+          )}
+
+          {confirming === o.id ? (
+            <div className="mt-3 space-y-2 rounded-xl bg-sand p-3">
+              {o.fulfillment === "DELIVERY" && (
+                <label className="block text-sm">
+                  <span className="mb-1 block font-medium">أجرة التوصيل ({o.currency === "USD" ? "دولار" : "ل.س"})</span>
+                  <input
+                    className={inputClass}
+                    value={fee}
+                    onChange={(e) => setFee(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                    inputMode="numeric"
+                    placeholder="مثال: 15000"
+                  />
+                </label>
               )}
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <b>{lead.name}</b>
-                  <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_STYLE[lead.status]}`}>{STATUS_LABEL[lead.status]}</span>
-                  <span className="text-xs text-muted">{timeAgo(lead.createdAt)}</span>
-                </div>
-                <div className="mt-1 text-sm">
-                  {lead.product ? (
-                    <Link href={webUrl(`/products/${lead.product.id}`)} target="_blank" className="font-medium hover:text-brand-700">
-                      {lead.product.title}
-                    </Link>
-                  ) : (
-                    <span className="text-muted">استفسار عن المتجر</span>
-                  )}
-                  {lead.quantity ? <span className="text-muted"> · الكمية: {formatNumber(lead.quantity)}</span> : null}
-                </div>
-                {lead.note && <p className="mt-2 whitespace-pre-line rounded-xl bg-sand px-3 py-2 text-sm leading-7">{lead.note}</p>}
-                <div className="mt-2 text-sm">
-                  <bdi dir="ltr" className="font-medium">{displayPhone(lead.phone)}</bdi>
-                </div>
+              <label className="block text-sm">
+                <span className="mb-1 block font-medium">رسالة للزبون</span>
+                <input
+                  className={inputClass}
+                  value={note}
+                  onChange={(e) => setNote(e.target.value)}
+                  maxLength={300}
+                  placeholder="مثال: جاهز للتسليم بكرا قبل الظهر"
+                />
+              </label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  disabled={!!busy}
+                  onClick={() => update(o.id, { status: "CONFIRMED", deliveryFee: fee ? Number(fee) : undefined, merchantNote: note || undefined })}
+                  className={`${chip} bg-olive-500 text-white ring-olive-500`}
+                >
+                  أكّد الطلب
+                </button>
+                <button type="button" onClick={() => setConfirming(null)} className={`${chip} ring-line`}>
+                  رجوع
+                </button>
               </div>
             </div>
-
+          ) : (
             <div className="mt-3 flex flex-wrap gap-2">
               <a
-                href={whatsappLink(lead.phone, message)}
+                href={whatsappLink(o.buyerPhone, `مرحباً ${o.buyerName}، بخصوص طلبك #${o.ref} «${o.productTitle}» من متجرنا.`)}
                 target="_blank"
                 rel="noopener noreferrer"
-                onClick={() => lead.status === "NEW" && setStatus(lead.id, "CONTACTED")}
                 className="flex h-10 items-center gap-2 rounded-xl bg-wa px-4 text-sm font-bold text-white"
               >
-                <WhatsAppIcon size={18} /> رد على واتساب
+                <WhatsAppIcon size={18} /> واتساب
               </a>
-              <a href={`tel:+${lead.phone}`} className="flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-bold ring-1 ring-line">
+              <a href={`tel:+${o.buyerPhone}`} className="flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-bold ring-1 ring-line">
                 <PhoneIcon size={18} /> اتصال
               </a>
-              {lead.status !== "DONE" && (
-                <button type="button" disabled={!!busy} onClick={() => setStatus(lead.id, "DONE")} className={`${chip} h-10 bg-olive-500 text-white ring-olive-500`}>
-                  تم البيع
+              {o.status === "NEW" && (
+                <button type="button" disabled={!!busy} onClick={() => setConfirming(o.id)} className={`${chip} bg-olive-500 text-white ring-olive-500`}>
+                  أكّد الطلب
                 </button>
               )}
-              {lead.status !== "CANCELLED" && (
-                <button type="button" disabled={!!busy} onClick={() => setStatus(lead.id, "CANCELLED")} className={`${chip} h-10 text-danger ring-danger/30`}>
-                  إلغاء
-                </button>
-              )}
-              {lead.status !== "NEW" && (
-                <button type="button" disabled={!!busy} onClick={() => setStatus(lead.id, "NEW")} className={`${chip} h-10 ring-line`}>
-                  رجّعه جديد
-                </button>
+              {(o.status === "NEW" || o.status === "CONFIRMED") && (
+                <>
+                  <button type="button" disabled={!!busy} onClick={() => update(o.id, { status: "DONE" })} className={`${chip} bg-ink text-canvas ring-ink`}>
+                    تم التسليم
+                  </button>
+                  <button type="button" disabled={!!busy} onClick={() => cancel(o.id)} className={`${chip} text-danger ring-danger/30`}>
+                    إلغاء
+                  </button>
+                </>
               )}
             </div>
-          </article>
-        );
-      })}
+          )}
+        </article>
+      ))}
     </div>
   );
 }

@@ -21,7 +21,7 @@ export default function AccountPage() {
     return (
       <div className="mx-auto max-w-xl px-4 py-12">
         <EmptyState icon="👤" title="حسابك في تُجّار ماركت">
-          سجّل الدخول لمتابعة المتاجر، وتصلك العروض وانخفاض أسعار مفضلتك، وللإبلاغ عن الإعلانات المخالفة.
+          سجّل الدخول لتطلب من المتاجر وتتابع طلباتك، ولتصلك العروض وانخفاض أسعار مفضلتك.
           <div className="mt-5 flex flex-wrap justify-center gap-2">
             <Link href="/account/login" className="rounded-xl bg-brand-600 px-5 py-2.5 font-bold text-white hover:bg-brand-700">تسجيل الدخول</Link>
             <Link href="/account/register" className="rounded-xl px-5 py-2.5 font-bold text-ink ring-1 ring-line hover:ring-brand-200">حساب جديد</Link>
@@ -47,6 +47,11 @@ export default function AccountPage() {
           <ShieldIcon size={16} /> رقمك موثّق، ولا يظهر للتجار عند الإبلاغ.
         </p>
       </div>
+
+      <Link href="/account/orders" className="flex items-center justify-between rounded-card bg-surface p-5 ring-1 ring-line hover:ring-brand-200">
+        <span className="flex items-center gap-3 font-medium"><span aria-hidden>🛒</span> طلباتي</span>
+        <span className="text-sm text-muted">←</span>
+      </Link>
 
       <Link href="/favorites" className="flex items-center justify-between rounded-card bg-surface p-5 ring-1 ring-line hover:ring-brand-200">
         <span className="flex items-center gap-3 font-medium"><HeartIcon size={20} className="text-danger" /> المفضلة</span>

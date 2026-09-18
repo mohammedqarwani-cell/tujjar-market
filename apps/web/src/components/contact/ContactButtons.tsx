@@ -2,7 +2,6 @@
 
 import { PhoneIcon, WhatsAppIcon } from "@components/ui/icons";
 import { SITE_URL, trackContact, whatsappLink } from "@lib/contact";
-import { RequestButton } from "./RequestButton";
 
 type Props = {
   store: { slug: string; name: string; whatsapp: string; phone: string | null };
@@ -17,7 +16,7 @@ export function ContactButtons({ store, product, layout = "row" }: Props) {
   const callNumber = store.phone ?? store.whatsapp;
 
   return (
-    <div className={`flex gap-2 ${layout === "stack" ? "flex-col" : "flex-wrap"}`}>
+    <div className={`flex gap-2 ${layout === "stack" ? "flex-col" : ""}`}>
       <a
         href={whatsappLink(store.whatsapp, message)}
         target="_blank"
@@ -37,7 +36,6 @@ export function ContactButtons({ store, product, layout = "row" }: Props) {
         <PhoneIcon size={20} />
         <span className={layout === "stack" ? "" : "hidden sm:inline"}>اتصال</span>
       </a>
-      <RequestButton store={store} product={product} className={layout === "stack" ? "" : "w-full"} />
     </div>
   );
 }

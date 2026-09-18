@@ -21,7 +21,7 @@ function ShareQrIcon({ size = 20 }: { size?: number }) {
 
 const NAV = [
   { href: "/dashboard", label: "نظرة عامة", Icon: ChartIcon, exact: true },
-  { href: "/dashboard/orders", label: "طلبات الزبائن", Icon: BellIcon, exact: false, badge: true },
+  { href: "/dashboard/orders", label: "الطلبات", Icon: BellIcon, exact: false, badge: true },
   { href: "/dashboard/products", label: "منتجاتي", Icon: BoxIcon, exact: true },
   { href: "/dashboard/products/new", label: "إضافة منتج", Icon: PlusIcon, exact: true },
   { href: "/dashboard/verification", label: "التوثيق", Icon: ShieldIcon, exact: false },
@@ -34,7 +34,7 @@ const NAV = [
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const { status, user } = useSession("merchant");
   // Unanswered requests, so the merchant sees them from any page
-  const { data: pending } = useAuthData<{ newLeads: number }>(status === "authenticated" ? "/merchant/leads/pending" : null);
+  const { data: pending } = useAuthData<{ newOrders: number }>(status === "authenticated" ? "/merchant/orders/pending" : null);
   const pathname = usePathname();
   const router = useRouter();
 
@@ -64,7 +64,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         <nav className="no-scrollbar -mx-4 flex gap-2 overflow-x-auto px-4 pb-2 md:mx-0 md:mt-3 md:flex-col md:gap-1 md:px-0">
           {NAV.map(({ href, label, Icon, exact, badge }) => {
             const active = isActive(href, exact);
-            const count = badge ? (pending?.newLeads ?? 0) : 0;
+            const count = badge ? (pending?.newOrders ?? 0) : 0;
             return (
               <Link
                 key={href}
