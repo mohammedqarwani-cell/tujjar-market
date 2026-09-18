@@ -11,7 +11,6 @@ import { Section } from "@components/ui/Section";
 import { SearchIcon, ShieldIcon, WhatsAppIcon, PinIcon } from "@components/ui/icons";
 import { SearchBox } from "@components/search/SearchBox";
 import { PromoCarousel, type Promo } from "@components/home/PromoCarousel";
-import { StoreStories } from "@components/home/StoreStories";
 import { StoreShowcase } from "@components/home/StoreShowcase";
 import { Countdown, Greeting, OpenNowRail, RecentlyViewed } from "@components/home/LiveBits";
 import type { Page } from "@lib/types";
@@ -19,7 +18,6 @@ import type { Page } from "@lib/types";
 const DEFAULT_TITLES: Record<HomeSectionId, string> = {
   banners: "",
   showcase: "متاجر من أسواقك",
-  stories: "",
   categories: "تسوّق حسب القسم",
   offers: "🔥 عروض اليوم",
   openNow: "مفتوح الآن",
@@ -36,7 +34,6 @@ const FALLBACK_LAYOUT: HomeLayout = {
   sections: (Object.keys(DEFAULT_TITLES) as HomeSectionId[]).map((id) => ({ id, enabled: true, title: "" })),
   autoBanners: true,
   offers: { countdown: "midnight", until: null },
-  stories: { showAuto: true },
   quickSearches: ["طاقة شمسية", "موبايلات", "بروكار", "صابون غار", "حلويات", "لابتوب"],
   greeting: true,
 };
@@ -55,8 +52,6 @@ export default async function HomePage() {
     .filter((m) => m.storesCount > 0)
     .slice(0, 10);
 
-  // Stores that added products lately get a story ring
-  const fresh = new Set(data.latest.map((p) => p.store.slug));
   const photo = (list: ProductCardData[]) => list.find((p) => p.images[0])?.images[0] ?? null;
   const topCategory = [...data.categories].sort((a, b) => b.productsCount - a.productsCount)[0];
   // Every turn of the hero shows shops by name: paid packages first, then the rest
@@ -98,13 +93,6 @@ export default async function HomePage() {
               <StoreShowcase items={showcase} />
             </section>
           )
-        );
-      case "stories":
-        return (
-          <section className="mx-auto max-w-6xl px-4 empty:hidden">
-            {title && <h2 className="mb-3 text-xl font-bold">{title}</h2>}
-            <StoreStories stores={data.stores} fresh={fresh} pinned={data.pinnedStores ?? []} showAuto={layout.stories.showAuto} />
-          </section>
         );
       case "categories":
         return (

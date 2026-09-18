@@ -1,4 +1,4 @@
-// Homepage content managed by the platform team: banners, section order, pinned stories.
+// Homepage content managed by the platform team: banners, section order, paid store showcase.
 // Needs the local API on :4000 (built, so dist/src/auth/totp.js exists) and Docker Postgres.
 // Temporarily enables admin TOTP and restores everything it changes at the end.
 import { execFileSync } from "node:child_process";
@@ -68,7 +68,7 @@ try {
   r = await anon("/home");
   check(
     "The homepage sends the default layout with every section",
-    r.code === 200 && r.json.layout?.sections?.length === 12 && Array.isArray(r.json.showcase) && Array.isArray(r.json.banners) && r.json.layout.stories.pinned === undefined,
+    r.code === 200 && r.json.layout?.sections?.length === 11 && Array.isArray(r.json.showcase) && Array.isArray(r.json.banners),
     JSON.stringify(r.json?.layout)?.slice(0, 120),
   );
 
@@ -117,18 +117,17 @@ try {
   check("Click counting still requires the X-Client header", r.code === 403, `got ${r.code}`);
 
   // ---------- layout ----------
-  const store = (await anon("/stores?pageSize=1&gov=damascus")).json.items[0];
   const sections = [{ id: "latest", enabled: false, title: "" }, { id: "offers", enabled: true, title: "عروض الجمعة" }, { id: "bogus", enabled: true }];
   r = await admin("/admin/home/layout", {
     method: "PUT",
-    body: { sections, autoBanners: false, offers: { countdown: "until", until: "2030-01-01T10:00:00Z" }, stories: { pinned: [store.id], showAuto: false }, quickSearches: ["  شاي ", "شاي", "قهوة"], greeting: false },
+    body: { sections, autoBanners: false, offers: { countdown: "until", until: "2030-01-01T10:00:00Z" }, quickSearches: ["  شاي ", "شاي", "قهوة"], greeting: false },
   });
   check("The team saves a layout", r.code === 200, `got ${r.code} ${JSON.stringify(r.json)?.slice(0, 120)}`);
   const home = (await anon("/home?gov=damascus")).json;
   const ids = home.layout.sections.map((s) => s.id);
   check(
     "Order, hiding and titles apply; unknown sections are dropped and missing ones kept",
-    ids[0] === "latest" && ids[1] === "offers" && !ids.includes("bogus") && ids.length === 12 && home.layout.sections[0].enabled === false && home.layout.sections[1].title === "عروض الجمعة",
+    ids[0] === "latest" && ids[1] === "offers" && !ids.includes("bogus") && ids.length === 11 && home.layout.sections[0].enabled === false && home.layout.sections[1].title === "عروض الجمعة",
     ids.join(","),
   );
   check(
@@ -136,14 +135,10 @@ try {
     home.layout.offers.until === "2030-01-01T10:00:00.000Z" && home.layout.greeting === false && home.layout.autoBanners === false && home.layout.quickSearches.join("|") === "شاي|قهوة",
     JSON.stringify(home.layout).slice(0, 200),
   );
-  check("Pinned stores reach the homepage in their governorate", home.pinnedStores.length === 1 && home.pinnedStores[0].id === store.id && home.layout.stories.showAuto === false);
-  const away = (await anon(`/home?gov=${other.slug}`)).json;
-  check("…and not in other governorates", away.pinnedStores.length === 0, `${away.pinnedStores.length}`);
-
   r = await admin("/admin/home/layout", { method: "PUT", body: { offers: { countdown: "until" } } });
   check("A campaign countdown needs an end time", r.code === 400, `got ${r.code}`);
-  r = await admin("/admin/home/layout", { method: "PUT", body: { stories: { pinned: Array.from({ length: 21 }, (_, i) => `abcdefghij${String(i).padStart(4, "0")}`) } } });
-  check("At most 20 pinned stores", r.code === 400, `got ${r.code}`);
+  r = await admin("/admin/home/layout", { method: "PUT", body: { stories: { pinned: ["x"] } } });
+  check("The removed stories settings are refused", r.code === 400, `got ${r.code}`);
   r = await admin("/admin/home/layout", { method: "PUT", body: { hacked: true } });
   check("Unknown layout fields are refused", r.code === 400, `got ${r.code}`);
 

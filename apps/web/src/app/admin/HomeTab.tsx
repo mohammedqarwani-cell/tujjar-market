@@ -30,18 +30,16 @@ type Layout = {
   sections: { id: HomeSectionId; enabled: boolean; title: string }[];
   autoBanners: boolean;
   offers: { countdown: "midnight" | "until" | "none"; until: string | null };
-  stories: { pinned: string[]; showAuto: boolean };
   quickSearches: string[];
   greeting: boolean;
 };
 
-type PinnedStore = { id: string; name: string; slug: string; status?: string; governorate: { name: string } };
+type StoreRef = { id: string; name: string; slug: string; status?: string; governorate: { name: string } };
 type Gov = { id: string; name: string; status: string };
 
 const SECTIONS: Record<HomeSectionId, { label: string; hint: string; fallback: string }> = {
   banners: { label: "البنرات", hint: "شريط العروض المتحرك", fallback: "بلا عنوان" },
   showcase: { label: "بطاقات المتاجر", hint: "ثلاث بطاقات تتبدّل: المتاجر المميزة أولاً ثم بقية المتاجر (على الكمبيوتر تظهر دائماً بجانب العنوان)", fallback: "متاجر من أسواقك" },
-  stories: { label: "الستوري", hint: "دوائر المتاجر", fallback: "بلا عنوان" },
   categories: { label: "الأقسام", hint: "أيقونات الأقسام", fallback: "تسوّق حسب القسم" },
   offers: { label: "عروض اليوم", hint: "منتجات عليها خصم مع عدّاد", fallback: "🔥 عروض اليوم" },
   openNow: { label: "مفتوح الآن", hint: "المتاجر المفتوحة حسب ساعات العمل", fallback: "مفتوح الآن" },
@@ -447,13 +445,13 @@ function promotionState(p: Promotion) {
 const daysLeft = (iso: string | null) => (iso ? Math.ceil((new Date(iso).getTime() - Date.now()) / 86_400_000) : null);
 const inDays = (days: number, from?: string | null) => new Date(new Date(from ?? Date.now()).getTime() + days * 86_400_000).toISOString();
 
-function StorePicker({ onPick, exclude = [] }: { onPick: (s: PinnedStore) => void; exclude?: string[] }) {
+function StorePicker({ onPick, exclude = [] }: { onPick: (s: StoreRef) => void; exclude?: string[] }) {
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<PinnedStore[]>([]);
+  const [results, setResults] = useState<StoreRef[]>([]);
   useEffect(() => {
     if (query.trim().length < 2) return setResults([]);
     const t = setTimeout(() => {
-      adminFetch<Page<PinnedStore>>(`/admin/stores${toQuery({ q: query.trim(), pageSize: 8 })}`)
+      adminFetch<Page<StoreRef>>(`/admin/stores${toQuery({ q: query.trim(), pageSize: 8 })}`)
         .then((r) => setResults(r.items))
         .catch(() => setResults([]));
     }, 300);
@@ -493,7 +491,7 @@ const PLANS = ["باقة الواجهة", "باقة الواجهة الشهري�
 
 function ShowcasePanel() {
   const [list, setList] = useState<Promotion[] | null>(null);
-  const [store, setStore] = useState<PinnedStore | null>(null);
+  const [store, setStore] = useState<StoreRef | null>(null);
   const [plan, setPlan] = useState(PLANS[0]);
   const [startsAt, setStartsAt] = useState<string | null>(null);
   const [endsAt, setEndsAt] = useState<string | null>(() => inDays(30));
@@ -682,34 +680,17 @@ function ShowcasePanel() {
 
 function LayoutPanel() {
   const [layout, setLayout] = useState<Layout | null>(null);
-  const [pinned, setPinned] = useState<PinnedStore[]>([]);
   const [saved, setSaved] = useState<string>("");
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
-  const [query, setQuery] = useState("");
-  const [results, setResults] = useState<PinnedStore[]>([]);
   const [newSearch, setNewSearch] = useState("");
 
   useEffect(() => {
-    adminFetch<{ layout: Layout; pinnedStores: PinnedStore[] }>("/admin/home/layout")
-      .then((r) => {
-        setLayout(r.layout);
-        const byId = new Map(r.pinnedStores.map((s) => [s.id, s]));
-        setPinned(r.layout.stories.pinned.map((id) => byId.get(id)).filter((s): s is PinnedStore => !!s));
-      })
+    adminFetch<{ layout: Layout }>("/admin/home/layout")
+      .then((r) => setLayout(r.layout))
       .catch((e: Error) => setError(e.message));
   }, []);
-
-  useEffect(() => {
-    if (query.trim().length < 2) return setResults([]);
-    const t = setTimeout(() => {
-      adminFetch<Page<PinnedStore>>(`/admin/stores${toQuery({ q: query.trim(), pageSize: 8 })}`)
-        .then((r) => setResults(r.items))
-        .catch(() => setResults([]));
-    }, 300);
-    return () => clearTimeout(t);
-  }, [query]);
 
   if (!layout) return <FormError message={error} />;
 
@@ -725,11 +706,6 @@ function LayoutPanel() {
     [next[i], next[i + dir]] = [next[i + dir], next[i]];
     update({ sections: next });
   };
-  const setPins = (list: PinnedStore[]) => {
-    setPinned(list);
-    update({ stories: { ...layout.stories, pinned: list.map((s) => s.id) } });
-  };
-
   const save = async () => {
     setSaving(true);
     setError("");
@@ -822,64 +798,6 @@ function LayoutPanel() {
                 onChange={(e) => update({ offers: { ...layout.offers, until: fromLocal(e.target.value) } })}
               />
             )}
-          </section>
-
-          <section className={`${card} space-y-3`}>
-            <h3 className="font-bold">الستوري: متاجر مثبّتة</h3>
-            <p className="text-xs leading-6 text-muted">تظهر أولاً بحلقة ملوّنة وشارة «مميز»، في محافظتها فقط. مناسبة للشركاء والمتاجر المدعومة.</p>
-            <div className="relative">
-              <input className={input} type="search" value={query} onChange={(e) => setQuery(e.target.value)} placeholder="ابحث عن متجر لتثبيته…" />
-              {results.length > 0 && (
-                <ul className="absolute inset-x-0 top-full z-10 mt-1 max-h-64 overflow-auto rounded-xl bg-surface shadow-xl ring-1 ring-line">
-                  {results.map((s) => {
-                    const already = pinned.some((p) => p.id === s.id);
-                    return (
-                      <li key={s.id}>
-                        <button
-                          type="button"
-                          disabled={already}
-                          onClick={() => {
-                            setPins([...pinned, s]);
-                            setQuery("");
-                          }}
-                          className="flex w-full items-center justify-between gap-2 px-3 py-2 text-start text-sm hover:bg-sand disabled:opacity-40"
-                        >
-                          <span className="truncate">{s.name}</span>
-                          <span className="shrink-0 text-xs text-muted">{already ? "مثبّت" : s.governorate.name}</span>
-                        </button>
-                      </li>
-                    );
-                  })}
-                </ul>
-              )}
-            </div>
-            {pinned.length > 0 && (
-              <ol className="space-y-1.5">
-                {pinned.map((s, i) => (
-                  <li key={s.id} className="flex items-center gap-2 rounded-xl px-2 py-1.5 text-sm ring-1 ring-line">
-                    <span className="min-w-0 flex-1 truncate">
-                      {s.name} <span className="text-xs text-muted">· {s.governorate.name}</span>
-                      {s.status && s.status !== "ACTIVE" && <span className="text-xs text-danger"> · موقوف (لن يظهر)</span>}
-                    </span>
-                    <button type="button" className={smallBtn} disabled={i === 0} onClick={() => setPins(pinned.map((p, j) => (j === i ? pinned[i - 1] : j === i - 1 ? s : p)))} aria-label="تقديم">
-                      ↑
-                    </button>
-                    <button type="button" className={`${smallBtn} text-danger`} onClick={() => setPins(pinned.filter((p) => p.id !== s.id))}>
-                      إزالة
-                    </button>
-                  </li>
-                ))}
-              </ol>
-            )}
-            <label className="flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={layout.stories.showAuto}
-                onChange={(e) => update({ stories: { ...layout.stories, showAuto: e.target.checked } })}
-                className="h-4 w-4 accent-brand-600"
-              />
-              بعدها: المتاجر الموثوقة وأصحاب المنتجات الجديدة تلقائياً
-            </label>
           </section>
 
           <section className={`${card} space-y-3`}>

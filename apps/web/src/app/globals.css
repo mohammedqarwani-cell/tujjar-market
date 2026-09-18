@@ -127,11 +127,6 @@ body {
   animation: slide-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
 }
 
-/* Gradient ring around stores with something new (like stories) */
-.story-ring {
-  background: conic-gradient(from 200deg, #d4861f, #c2412d, #b86e14, #6b7a36, #d4861f);
-}
-
 @keyframes showcase-in {
   from {
     opacity: 0;

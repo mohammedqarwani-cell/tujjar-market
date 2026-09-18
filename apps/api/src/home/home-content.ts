@@ -33,7 +33,6 @@ import type { AuthUser } from '../auth/current-user.decorator';
 export const SECTION_IDS = [
   'banners',
   'showcase',
-  'stories',
   'categories',
   'offers',
   'openNow',
@@ -51,19 +50,16 @@ export type HomeLayout = {
   /** Also show the banners the site builds by itself (offers count, open now, top category, verification) */
   autoBanners: boolean;
   offers: { countdown: 'midnight' | 'until' | 'none'; until: string | null };
-  stories: { pinned: string[]; showAuto: boolean };
   quickSearches: string[];
   greeting: boolean;
 };
 
 const LAYOUT_KEY = 'home.layout';
-const MAX_PINNED = 20;
 
 export const DEFAULT_LAYOUT: HomeLayout = {
   sections: SECTION_IDS.map((id) => ({ id, enabled: true, title: '' })),
   autoBanners: true,
   offers: { countdown: 'midnight', until: null },
-  stories: { pinned: [], showAuto: true },
   quickSearches: ['طاقة شمسية', 'موبايلات', 'بروكار', 'صابون غار', 'حلويات', 'لابتوب'],
   greeting: true,
 };
@@ -94,10 +90,6 @@ export function sanitizeLayout(raw: unknown): HomeLayout {
   const until = untilDate && !Number.isNaN(untilDate.getTime()) ? untilDate.toISOString() : null;
   if (countdown === 'until' && !until) throw new BadRequestException('حدّد موعد انتهاء العروض');
 
-  const stories = (input.stories ?? {}) as Record<string, unknown>;
-  const pinned = [...new Set((Array.isArray(stories.pinned) ? stories.pinned : []).filter((x): x is string => typeof x === 'string' && /^[a-z0-9]{10,40}$/.test(x)))];
-  if (pinned.length > MAX_PINNED) throw new BadRequestException(`الحد الأقصى ${MAX_PINNED} متجراً مثبّتاً`);
-
   const quickSearches = [
     ...new Set((Array.isArray(input.quickSearches) ? input.quickSearches : []).map((q) => str(q, 30)).filter(Boolean)),
   ].slice(0, 10);
@@ -106,7 +98,6 @@ export function sanitizeLayout(raw: unknown): HomeLayout {
     sections,
     autoBanners: input.autoBanners !== false,
     offers: { countdown, until: countdown === 'until' ? until : null },
-    stories: { pinned, showAuto: stories.showAuto !== false },
     quickSearches,
     greeting: input.greeting !== false,
   };
@@ -150,7 +141,6 @@ class LayoutDto {
   @IsOptional() sections?: unknown;
   @IsOptional() autoBanners?: unknown;
   @IsOptional() offers?: unknown;
-  @IsOptional() stories?: unknown;
   @IsOptional() quickSearches?: unknown;
   @IsOptional() greeting?: unknown;
 }
@@ -186,17 +176,7 @@ export class HomeContentService {
   async publicContent(govSlug?: string) {
     const layout = await this.layout();
     const now = new Date();
-    const pinnedQuery = layout.stories.pinned.length
-      ? this.prisma.store.findMany({
-          where: {
-            id: { in: layout.stories.pinned },
-            ...publicStoreWhere,
-            ...(govSlug ? { governorate: { status: 'ACTIVE' as const, slug: govSlug } } : {}),
-          },
-          select: storeCardSelect,
-        })
-      : null;
-    const [banners, pinnedStores, showcase] = await Promise.all([
+    const [banners, showcase] = await Promise.all([
       this.prisma.homeBanner.findMany({
         where: {
           isActive: true,
@@ -210,7 +190,6 @@ export class HomeContentService {
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
         take: 10,
       }),
-      pinnedQuery ?? Promise.resolve([] as Awaited<NonNullable<typeof pinnedQuery>>),
       this.prisma.storePromotion.findMany({
         where: {
           isActive: true,
@@ -222,11 +201,7 @@ export class HomeContentService {
         take: 18,
       }),
     ]);
-    const order = new Map(layout.stories.pinned.map((id, i) => [id, i]));
-    pinnedStores.sort((a, b) => order.get(a.id)! - order.get(b.id)!);
-    // Only what the page needs; the pinned id list stays with the admin
-    const { stories, ...rest } = layout;
-    return { layout: { ...rest, stories: { showAuto: stories.showAuto } }, banners, pinnedStores, showcase };
+    return { layout, banners, showcase };
   }
 
   async saveLayout(actorId: string, raw: unknown, ip: string) {
@@ -241,14 +216,7 @@ export class HomeContentService {
   }
 
   async adminLayout() {
-    const layout = await this.layout();
-    const stores = layout.stories.pinned.length
-      ? await this.prisma.store.findMany({
-          where: { id: { in: layout.stories.pinned } },
-          select: { id: true, name: true, slug: true, logoUrl: true, status: true, governorate: { select: { name: true } } },
-        })
-      : [];
-    return { layout, pinnedStores: stores };
+    return { layout: await this.layout() };
   }
 
   listBanners() {
