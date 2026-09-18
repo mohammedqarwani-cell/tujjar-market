@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { signOut, useSession } from "@lib/session";
 import { webUrl } from "@lib/urls";
-import { BellIcon, BoxIcon, ChartIcon, EyeIcon, LogoutIcon, PlusIcon, ShieldIcon, SlidersIcon, StarIcon, UserIcon } from "@components/ui/icons";
+import { BellIcon, BoxIcon, ChartIcon, EyeIcon, ImageIcon, LogoutIcon, PlusIcon, ShieldIcon, SlidersIcon, StarIcon, UserIcon } from "@components/ui/icons";
 import { useAuthData } from "@lib/merchant";
 
 function ShareQrIcon({ size = 20 }: { size?: number }) {
@@ -27,6 +27,7 @@ const NAV = [
   { href: "/dashboard/verification", label: "التوثيق", Icon: ShieldIcon, exact: false },
   { href: "/dashboard/reviews", label: "التقييمات", Icon: StarIcon, exact: false },
   { href: "/dashboard/store", label: "إعدادات المتجر", Icon: SlidersIcon, exact: false },
+  { href: "/dashboard/share", label: "بطاقة للمشاركة", Icon: ImageIcon, exact: false },
   { href: "/dashboard/qr", label: "رمز QR للمحل", Icon: ShareQrIcon, exact: false },
   { href: "/dashboard/account", label: "الحساب", Icon: UserIcon, exact: false },
 ];
