@@ -192,7 +192,7 @@ export default function AdminPage() {
       <div className="mt-4">
         {tab === "verifications" && <VerificationsTab />}
         {tab === "stores" && <StoresTab isAdmin={isAdmin} />}
-        {tab === "products" && <ProductsTab />}
+        {tab === "products" && <ProductsTab isAdmin={isAdmin} />}
         {tab === "reports" && <ReportsTab />}
         {tab === "reviews" && <ReviewsTab />}
         {tab === "markets" && <MarketsTab isAdmin={isAdmin} />}
@@ -237,11 +237,11 @@ function OverviewCards() {
 function useAction(reload: () => Promise<void>) {
   const [busy, setBusy] = useState("");
   const [error, setError] = useState("");
-  const run = async (id: string, path: string, body: unknown) => {
+  const run = async (id: string, path: string, body: unknown, method = "PATCH") => {
     setBusy(id);
     setError("");
     try {
-      await apiRequest(path, { audience: "admin", method: "PATCH", body });
+      await apiRequest(path, { audience: "admin", method, body });
       await reload();
     } catch (e) {
       setError(e instanceof Error ? e.message : "تعذّر تنفيذ العملية");
@@ -378,7 +378,7 @@ function StoresTab({ isAdmin }: { isAdmin: boolean }) {
   );
 }
 
-function ProductsTab() {
+function ProductsTab({ isAdmin }: { isAdmin: boolean }) {
   const [status, setStatus] = useState("UNDER_REVIEW");
   const { data, error, reload } = useAdminData<Page<AdminProduct>>(`/admin/products${toQuery({ status, pageSize: 100 })}`);
   const action = useAction(reload);
@@ -423,6 +423,19 @@ function ProductsTab() {
             <button type="button" disabled={!!action.busy} onClick={() => action.run(p.id, `/admin/products/${p.id}`, { isFeatured: !p.isFeatured })} className={`${chip} ${p.isFeatured ? "bg-brand-600 text-white ring-brand-600" : "ring-line"}`}>
               {p.isFeatured ? "★ مميز" : "☆ تمييز"}
             </button>
+            {isAdmin && (
+              <button
+                type="button"
+                disabled={!!action.busy}
+                onClick={() =>
+                  window.confirm(`حذف «${p.title}» نهائياً؟ لا يمكن التراجع، ويصل إشعار للتاجر بأن منتجه حُذف لمخالفته شروط النشر.`) &&
+                  action.run(p.id, `/admin/products/${p.id}`, undefined, "DELETE")
+                }
+                className={`${chip} bg-danger/10 text-danger ring-danger/30`}
+              >
+                حذف نهائي
+              </button>
+            )}
           </div>
         </article>
       ))}

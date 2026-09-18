@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Query, Req } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Query, Req } from '@nestjs/common';
 import type { Request } from 'express';
 import { IsBoolean, IsIn, IsOptional } from 'class-validator';
 import { Auth } from '../auth/guards';
@@ -51,6 +51,13 @@ export class AdminController {
   @Patch('products/:id')
   updateProduct(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: UpdateProductAdminDto, @Req() req: Request) {
     return this.admin.updateProduct(actor.id, id, dto, clientIp(req));
+  }
+
+  /** Deleting cannot be undone, so it stays with full admins. */
+  @Delete('products/:id')
+  @Auth('ADMIN')
+  deleteProduct(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Req() req: Request) {
+    return this.admin.deleteProduct(actor.id, id, clientIp(req));
   }
 
   @Get('reports')

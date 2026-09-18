@@ -186,6 +186,23 @@ export class AdminService {
     return product;
   }
 
+  /** Permanent removal, for junk or unlawful listings; the merchant is told why. */
+  async deleteProduct(actorId: string, id: string, ip: string) {
+    const product = await this.prisma.product.findUnique({ where: { id }, select: { title: true, store: { select: { id: true, name: true, ownerId: true } } } });
+    if (!product) throw new NotFoundException('المنتج غير موجود');
+    await this.prisma.product.delete({ where: { id } });
+    await this.audit.log({ actorId, action: 'product.deleted', entityType: 'product', entityId: id, meta: { title: product.title, storeId: product.store.id }, ip });
+    this.notifications.notify(product.store.ownerId, {
+      category: 'ACCOUNT',
+      type: 'product.deleted',
+      title: 'حُذف أحد منتجاتك',
+      body: `«${product.title}» حُذف من المنصة لمخالفته شروط النشر`,
+      url: '/dashboard/products',
+      urgent: true,
+    });
+    return { ok: true };
+  }
+
   async reports(query: Record<string, string>) {
     const { page, pageSize, skip, take } = paging(query.page, query.pageSize, 100);
     const status = (['OPEN', 'RESOLVED', 'DISMISSED'].includes(query.status) ? query.status : 'OPEN') as ReportStatus;
