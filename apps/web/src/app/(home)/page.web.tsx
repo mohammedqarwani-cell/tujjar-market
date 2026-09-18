@@ -6,7 +6,6 @@ import { GOV_COOKIE } from "@lib/gov";
 import { formatNumber } from "@lib/format";
 import type { HomeData, HomeLayout, HomeSectionId, ProductCardData } from "@lib/types";
 import { ProductCard } from "@components/catalog/ProductCard";
-import { StoreCard } from "@components/catalog/StoreCard";
 import { Section } from "@components/ui/Section";
 import { SearchIcon, ShieldIcon, WhatsAppIcon, PinIcon } from "@components/ui/icons";
 import { SearchBox } from "@components/search/SearchBox";
@@ -23,7 +22,7 @@ const DEFAULT_TITLES: Record<HomeSectionId, string> = {
   openNow: "مفتوح الآن",
   featured: "مختارات من الأسواق",
   markets: "",
-  stores: "متاجر موثوقة",
+  popular: "الأكثر طلباً في السوق",
   howItWorks: "",
   recent: "شاهدتها مؤخراً",
   latest: "وصل حديثاً",
@@ -176,13 +175,13 @@ export default async function HomePage() {
             </Section>
           )
         );
-      case "stores":
+      case "popular":
         return (
-          data.stores.length > 0 && (
-            <Section title={name} subtitle="محلات حقيقية بأرقام تواصل مباشرة" href={`/search${toQuery({ type: "stores", gov })}`} className="reveal">
-              <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-                {data.stores.map((s) => (
-                  <StoreCard key={s.id} store={s} />
+          data.popular?.length > 0 && (
+            <Section title={name} subtitle="منتجات يكثر التواصل مع أصحابها هذه الأيام" href={`/search${toQuery({ sort: "popular", gov })}`} className="reveal">
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4">
+                {data.popular.map((p) => (
+                  <ProductCard key={p.id} product={p} />
                 ))}
               </div>
             </Section>

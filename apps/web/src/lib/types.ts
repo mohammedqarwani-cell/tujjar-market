@@ -84,6 +84,8 @@ export type HomeData = {
   categories: Category[];
   governorates: Governorate[];
   featured: ProductCardData[];
+  /** Busiest listings, for "الأكثر طلباً" */
+  popular: ProductCardData[];
   latest: ProductCardData[];
   stores: StoreCardData[];
   totals: { stores: number; products: number; markets: number };
@@ -94,7 +96,7 @@ export type HomeData = {
 };
 
 /** Homepage sections the platform team can reorder, rename or hide. */
-export type HomeSectionId = "banners" | "showcase" | "categories" | "offers" | "openNow" | "featured" | "markets" | "stores" | "howItWorks" | "recent" | "latest";
+export type HomeSectionId = "banners" | "showcase" | "categories" | "offers" | "openNow" | "featured" | "markets" | "popular" | "howItWorks" | "recent" | "latest";
 export type BannerTone = "brand" | "olive" | "ink" | "rose";
 
 export type HomeLayout = {

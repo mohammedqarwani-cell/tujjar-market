@@ -80,7 +80,7 @@ export class DirectoryService {
       : publicStoreWhere;
     const productScope: Prisma.ProductWhereInput = { ...publicProductWhere, store: storeScope };
 
-    const [categories, governorates, featured, latest, stores, totals, content] = await Promise.all([
+    const [categories, governorates, featured, popular, latest, stores, totals, content] = await Promise.all([
       this.categories(),
       this.governorates(),
       this.prisma.product.findMany({
@@ -88,6 +88,13 @@ export class DirectoryService {
         select: productCardSelect,
         orderBy: [{ contactsCount: 'desc' }, { createdAt: 'desc' }],
         take: 10,
+      }),
+      // The busiest listings that aren't already in "featured", so the two rows differ
+      this.prisma.product.findMany({
+        where: { ...productScope, isFeatured: false, contactsCount: { gt: 0 } },
+        select: productCardSelect,
+        orderBy: [{ contactsCount: 'desc' }, { viewsCount: 'desc' }],
+        take: 8,
       }),
       this.prisma.product.findMany({
         where: productScope,
@@ -113,6 +120,7 @@ export class DirectoryService {
       categories,
       governorates,
       featured,
+      popular,
       latest,
       stores,
       totals: { stores: totals[0], products: totals[1], markets: totals[2] },

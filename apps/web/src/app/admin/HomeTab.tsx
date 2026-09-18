@@ -45,7 +45,7 @@ const SECTIONS: Record<HomeSectionId, { label: string; hint: string; fallback: s
   openNow: { label: "مفتوح الآن", hint: "المتاجر المفتوحة حسب ساعات العمل", fallback: "مفتوح الآن" },
   featured: { label: "المختارات", hint: "المنتجات المميّزة", fallback: "مختارات من الأسواق" },
   markets: { label: "الأسواق", hint: "أسواق المحافظة", fallback: "أسواق المحافظة" },
-  stores: { label: "المتاجر", hint: "متاجر موثوقة", fallback: "متاجر موثوقة" },
+  popular: { label: "الأكثر طلباً", hint: "منتجات يكثر التواصل مع أصحابها (غير المختارات)", fallback: "الأكثر طلباً في السوق" },
   howItWorks: { label: "كيف يعمل", hint: "ثلاث خطوات للزبون الجديد", fallback: "بلا عنوان" },
   recent: { label: "شاهدتها مؤخراً", hint: "تظهر فقط لمن تصفّح منتجات", fallback: "شاهدتها مؤخراً" },
   latest: { label: "وصل حديثاً", hint: "آخر المنتجات المضافة", fallback: "وصل حديثاً" },

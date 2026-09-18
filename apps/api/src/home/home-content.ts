@@ -38,7 +38,7 @@ export const SECTION_IDS = [
   'openNow',
   'featured',
   'markets',
-  'stores',
+  'popular',
   'howItWorks',
   'recent',
   'latest',
