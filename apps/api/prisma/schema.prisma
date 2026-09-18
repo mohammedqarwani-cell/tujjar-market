@@ -129,6 +129,16 @@ enum NotificationCategory {
   INVITES
   /// Moderation queues (verification, reports, held reviews) for staff
   MODERATION
+  /// Buyer requests waiting for the merchant to answer
+  ORDERS
+}
+
+/// Where a request stands with the merchant
+enum LeadStatus {
+  NEW
+  CONTACTED
+  DONE
+  CANCELLED
 }
 
 enum CampaignAudience {
@@ -172,6 +182,7 @@ model User {
   auditLogs             AuditLog[]
   reviewedVerifications VerificationRequest[] @relation("VerificationReviewer")
   storeContacts         StoreContact[]        @relation("BuyerContacts")
+  leads                 Lead[]                @relation("BuyerLeads")
   reviews               Review[]              @relation("BuyerReviews")
   moderatedReviews      Review[]              @relation("ReviewModerator")
   /// Reporter credibility: reports moderators confirmed or dismissed
@@ -355,6 +366,7 @@ model Store {
   contactsCount         Int                   @default(0)
   createdAt             DateTime              @default(now())
   updatedAt             DateTime              @updatedAt
+  leads                 Lead[]
   promotions            StorePromotion[]
   products              Product[]
   dailyStats            StoreDailyStat[]
@@ -382,6 +394,31 @@ model StoreContact {
 
   @@unique([storeId, buyerId])
   @@index([buyerId])
+}
+
+/// A buyer asking a shop for something, so requests don't get lost in WhatsApp
+model Lead {
+  id        String     @id @default(cuid())
+  storeId   String
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  /// Set when the buyer was signed in
+  buyerId   String?
+  buyer     User?      @relation("BuyerLeads", fields: [buyerId], references: [id], onDelete: SetNull)
+  name      String
+  /// 9639xxxxxxxx; only the shop sees it
+  phone     String
+  quantity  Int?
+  note      String?
+  status    LeadStatus @default(NEW)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  /// When the merchant first moved it out of "new"
+  handledAt DateTime?
+
+  @@index([storeId, status, createdAt])
+  @@index([storeId, createdAt])
 }
 
 /// One review per buyer per store; only published reviews count towards the store rating
@@ -467,6 +504,7 @@ model Product {
   contactsCount Int           @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
+  leads         Lead[]
   reports       Report[]
   favoritedBy   Favorite[]
 
