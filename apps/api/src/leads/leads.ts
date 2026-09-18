@@ -1,5 +1,4 @@
 import {
-  BadRequestException,
   Body,
   Controller,
   Get,
@@ -10,18 +9,16 @@ import {
   Patch,
   Post,
   Query,
-  UseGuards,
 } from '@nestjs/common';
 import { LeadStatus, Prisma } from '@prisma/client';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, MinLength } from 'class-validator';
+import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { Throttle } from '../common/throttle';
 import { paging, pageResult } from '../common/pagination';
 import { publicStoreWhere } from '../common/selects';
-import { normalizeSyrianMobile } from '../common/text/phone';
-import { Auth, OptionalJwtAuthGuard } from '../auth/guards';
+import { Auth } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
 
@@ -32,8 +29,6 @@ const DEDUPE_MS = 10 * 60_000;
 class CreateLeadDto {
   @IsString() @MaxLength(80) storeSlug!: string;
   @IsOptional() @IsString() @MaxLength(40) productId?: string;
-  @IsString() @MinLength(2, { message: 'اكتب اسمك' }) @MaxLength(60, { message: 'الاسم طويل' }) name!: string;
-  @IsString() @MaxLength(20) phone!: string;
   @IsOptional() @Type(() => Number) @IsInt({ message: 'الكمية يجب أن تكون رقماً' }) @Min(1) @Max(9999) quantity?: number;
   @IsOptional() @IsString() @MaxLength(500, { message: 'الملاحظة طويلة' }) note?: string;
 }
@@ -61,10 +56,13 @@ export class LeadsService {
     private notifications: NotificationsService,
   ) {}
 
-  /** A buyer asks a shop for a product; the shop gets it in its dashboard and as a notification. */
-  async create(dto: CreateLeadDto, user: AuthUser | null) {
-    const phone = normalizeSyrianMobile(dto.phone);
-    if (!phone) throw new BadRequestException('اكتب رقم موبايل سوري صحيح، مثال: 0999123456');
+  /**
+   * A signed-in buyer asks a shop for a product. The name and number come from their account,
+   * so the shop always gets a number that was verified when the buyer registered.
+   */
+  async create(dto: CreateLeadDto, user: AuthUser) {
+    const buyer = await this.prisma.user.findUnique({ where: { id: user.id }, select: { id: true, name: true, phone: true } });
+    if (!buyer) throw new NotFoundException('الحساب غير موجود');
 
     const store = await this.prisma.store.findFirst({
       where: { slug: dto.storeSlug, ...publicStoreWhere },
@@ -85,7 +83,7 @@ export class LeadsService {
     const recent = await this.prisma.lead.findFirst({
       where: {
         storeId: store.id,
-        phone,
+        buyerId: buyer.id,
         productId: product?.id ?? null,
         createdAt: { gt: new Date(Date.now() - DEDUPE_MS) },
       },
@@ -97,29 +95,27 @@ export class LeadsService {
       data: {
         storeId: store.id,
         productId: product?.id ?? null,
-        buyerId: user?.role === 'BUYER' ? user.id : null,
-        name: dto.name.trim(),
-        phone,
+        buyerId: buyer.id,
+        name: buyer.name,
+        phone: buyer.phone,
         quantity: dto.quantity ?? null,
         note: dto.note?.trim() || null,
       },
       select: { id: true },
     });
 
-    // Contacting through a request also lets a signed-in buyer review the shop later
-    if (user?.role === 'BUYER') {
-      await this.prisma.storeContact.upsert({
-        where: { storeId_buyerId: { storeId: store.id, buyerId: user.id } },
-        create: { storeId: store.id, buyerId: user.id },
-        update: { lastContactAt: new Date(), contacts: { increment: 1 } },
-      });
-    }
+    // A request is a contact too, so the buyer may review the shop later
+    await this.prisma.storeContact.upsert({
+      where: { storeId_buyerId: { storeId: store.id, buyerId: buyer.id } },
+      create: { storeId: store.id, buyerId: buyer.id },
+      update: { lastContactAt: new Date(), contacts: { increment: 1 } },
+    });
 
     this.notifications.notify(store.ownerId, {
       category: 'ORDERS',
       type: 'lead.new',
       title: 'طلب جديد من زبون 🛎',
-      body: product ? `${dto.name.trim()} يسأل عن «${product.title}»` : `${dto.name.trim()} يسأل عن متجرك`,
+      body: product ? `${buyer.name} يسأل عن «${product.title}»` : `${buyer.name} يسأل عن متجرك`,
       url: '/dashboard/orders',
       groupKey: `lead:${lead.id}`,
       urgent: true,
@@ -174,14 +170,15 @@ export class LeadsService {
   }
 }
 
+/** Requests carry the buyer's own name and number, so only signed-in buyers send them. */
 @Controller('leads')
+@Auth('BUYER')
 export class LeadsController {
   constructor(private leads: LeadsService) {}
 
   @Post()
-  @Throttle({ default: { limit: 8, ttl: 3600_000 } })
-  @UseGuards(OptionalJwtAuthGuard)
-  create(@Body() dto: CreateLeadDto, @CurrentUser() user: AuthUser | null) {
+  @Throttle({ default: { limit: 12, ttl: 3600_000 } })
+  create(@Body() dto: CreateLeadDto, @CurrentUser() user: AuthUser) {
     return this.leads.create(dto, user);
   }
 }

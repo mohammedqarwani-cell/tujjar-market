@@ -33,11 +33,12 @@ function jar() {
   };
 }
 
-const PHONE = "0999000771";
-const RESET = `DELETE FROM "Lead" WHERE phone IN ('963999000771', '963999000772');`;
+const BUYER = { phone: "0900000200", password: "Buyer@2026", e164: "963900000200" };
+const RESET = `DELETE FROM "Lead" WHERE "buyerId" IN (SELECT id FROM "User" WHERE phone = '963900000200');`;
 sql(RESET);
 
 const anon = jar();
+const buyer = jar();
 const merchant = jar();
 const other = jar();
 
@@ -45,19 +46,26 @@ try {
   // The merchant seed account owns "brocade-alsham"
   const store = (await anon("/stores/brocade-alsham")).json;
   const product = (await anon("/products?store=brocade-alsham&pageSize=1")).json.items[0];
-  const base = { storeSlug: store.slug, productId: product.id, name: "أبو أحمد", phone: PHONE, quantity: 2, note: "بدي ياه لون غامق" };
+  const base = { storeSlug: store.slug, productId: product.id, quantity: 2, note: "بدي ياه لون غامق" };
 
-  let r = await anon("/leads", { method: "POST", body: { ...base, phone: "12345" } });
-  check("A request needs a real Syrian mobile number", r.code === 400, `got ${r.code}`);
-  r = await anon("/leads", { method: "POST", body: { ...base, storeSlug: "no-such-store" } });
+  let r = await anon("/leads", { method: "POST", body: base });
+  check("A visitor who is not signed in cannot send a request", r.code === 401 || r.code === 403, `got ${r.code}`);
+
+  r = await buyer("/auth/login", { method: "POST", body: { phone: BUYER.phone, password: BUYER.password } });
+  check("The buyer signs in", r.code === 200, `got ${r.code}`);
+  const me = (await buyer("/auth/me")).json;
+
+  r = await buyer("/leads", { method: "POST", body: { ...base, storeSlug: "no-such-store" } });
   check("A request to an unknown shop is refused", r.code === 404, `got ${r.code}`);
-  r = await anon("/leads", { method: "POST", body: { ...base, productId: "cmzzzzzzzzzzzzzzzzzzzzzz" } });
+  r = await buyer("/leads", { method: "POST", body: { ...base, productId: "cmzzzzzzzzzzzzzzzzzzzzzz" } });
   check("A product from another shop is refused", r.code === 404, `got ${r.code}`);
+  r = await buyer("/leads", { method: "POST", body: { ...base, name: "اسم مزيّف", phone: "0999999999" } });
+  check("A name or number sent by hand is refused; the account decides", r.code === 400, `got ${r.code}`);
 
-  r = await anon("/leads", { method: "POST", body: base });
-  check("A buyer sends a request without signing in", r.code === 201 && r.json?.ok, `got ${r.code}`);
+  r = await buyer("/leads", { method: "POST", body: base });
+  check("The buyer sends a request", r.code === 201 && r.json?.ok, `got ${r.code}`);
   const first = r.json.id;
-  r = await anon("/leads", { method: "POST", body: base });
+  r = await buyer("/leads", { method: "POST", body: base });
   check("Sending twice in a row does not duplicate it", r.code === 201 && r.json.id === first, `${first} vs ${r.json?.id}`);
 
   r = await merchant("/auth/login", { method: "POST", client: "merchant", body: { phone: "0900000100", password: "Tujjar@2026" } });
@@ -65,9 +73,9 @@ try {
   let list = await merchant("/merchant/leads?status=NEW", { client: "merchant" });
   const mine = list.json.items.find((x) => x.id === first);
   check(
-    "The request is waiting in the shop's dashboard with the buyer's number",
-    !!mine && mine.phone === "963999000771" && mine.quantity === 2 && mine.product.id === product.id,
-    JSON.stringify(mine)?.slice(0, 120),
+    "The request is waiting in the shop's dashboard with the account's own name and number",
+    !!mine && mine.phone === BUYER.e164 && mine.name === me.name && mine.quantity === 2 && mine.product.id === product.id,
+    JSON.stringify(mine)?.slice(0, 140),
   );
   const pending = (await merchant("/merchant/leads/pending", { client: "merchant" })).json;
   check("Unanswered requests are counted for the menu badge", pending.newLeads >= 1, JSON.stringify(pending));
@@ -92,12 +100,7 @@ try {
   r = await anon("/merchant/leads", { client: "merchant" });
   check("Buyer numbers are not readable without signing in", r.code === 401 || r.code === 403, `got ${r.code}`);
 
-  // A signed-in buyer's request also lets them review the shop later
-  const buyer = jar();
-  await buyer("/auth/login", { method: "POST", body: { phone: "0900000200", password: "Buyer@2026" } });
-  r = await buyer("/leads", { method: "POST", body: { ...base, phone: "0999000772", name: "زبون مسجّل" } });
-  check("A signed-in buyer sends a request", r.code === 201, `got ${r.code}`);
-  const contacts = sql(`SELECT count(*) FROM "StoreContact" c JOIN "User" u ON u.id = c."buyerId" WHERE u.phone = '963900000200';`);
+  const contacts = sql(`SELECT count(*) FROM "StoreContact" c JOIN "User" u ON u.id = c."buyerId" WHERE u.phone = '${BUYER.e164}';`);
   check("The request counts as contacting the shop, so the buyer can review it", Number(contacts) >= 1, `rows=${contacts}`);
 } finally {
   sql(RESET);

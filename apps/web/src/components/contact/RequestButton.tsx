@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { PUBLIC_API, readError } from "@lib/api";
-import { useSession } from "@lib/session";
+import Link from "next/link";
+import { usePathname } from "next/navigation";
+import { apiRequest, useSession } from "@lib/session";
+import { displayPhone } from "@lib/format";
 import { toast, haptic } from "@lib/toast";
 import { Portal } from "@components/ui/Portal";
 import { Field, FormError, inputClass, textareaClass } from "@components/forms/fields";
@@ -14,29 +16,20 @@ type Props = {
   className?: string;
 };
 
-const SENT_KEY = "tj_request_contact";
-
 /**
- * Sends the shop a written request (name, number, quantity) instead of a WhatsApp message.
- * The shop finds it in its dashboard, so a request is never lost in a busy chat.
+ * Sends the shop a written request instead of a WhatsApp message: it waits in the shop's
+ * dashboard until answered. The buyer signs in first, so the shop gets the name and number
+ * from their account rather than whatever they type.
  */
 export function RequestButton({ store, product, className = "" }: Props) {
-  const { user } = useSession("web", { lazy: true });
+  const { status, user } = useSession("web", { lazy: true });
+  const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [sent, setSent] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
-  const [form, setForm] = useState({ name: "", phone: "", quantity: "", note: "" });
-
-  // Fills in what the buyer typed last time (kept on this phone only)
-  useEffect(() => {
-    if (!open) return;
-    let saved: { name?: string; phone?: string } = {};
-    try {
-      saved = JSON.parse(localStorage.getItem(SENT_KEY) ?? "{}");
-    } catch {}
-    setForm((f) => ({ ...f, name: f.name || user?.name || saved.name || "", phone: f.phone || saved.phone || "" }));
-  }, [open, user]);
+  const [quantity, setQuantity] = useState("");
+  const [note, setNote] = useState("");
 
   useEffect(() => {
     if (!open) return;
@@ -50,23 +43,16 @@ export function RequestButton({ store, product, className = "" }: Props) {
     setBusy(true);
     setError("");
     try {
-      const res = await fetch(`${PUBLIC_API}/leads`, {
+      await apiRequest("/leads", {
+        audience: "web",
         method: "POST",
-        headers: { "Content-Type": "application/json", "X-Client": "web" },
-        credentials: "include",
-        body: JSON.stringify({
+        body: {
           storeSlug: store.slug,
           productId: product?.id,
-          name: form.name,
-          phone: form.phone,
-          quantity: form.quantity ? Number(form.quantity) : undefined,
-          note: form.note || undefined,
-        }),
+          quantity: quantity ? Number(quantity) : undefined,
+          note: note || undefined,
+        },
       });
-      if (!res.ok) throw new Error(await readError(res));
-      try {
-        localStorage.setItem(SENT_KEY, JSON.stringify({ name: form.name, phone: form.phone }));
-      } catch {}
       haptic(18);
       setSent(true);
       toast("وصل طلبك للمتجر", "🛎");
@@ -80,7 +66,12 @@ export function RequestButton({ store, product, className = "" }: Props) {
   const close = () => {
     setOpen(false);
     setSent(false);
+    setQuantity("");
+    setNote("");
   };
+
+  const signedIn = status === "authenticated" && user?.role === "BUYER";
+  const loginHref = `/account/login?next=${encodeURIComponent(pathname)}`;
 
   return (
     <>
@@ -94,7 +85,7 @@ export function RequestButton({ store, product, className = "" }: Props) {
 
       {open && (
         <Portal>
-          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/50 p-0 backdrop-blur-sm sm:items-center sm:p-4" onClick={close}>
+          <div className="fixed inset-0 z-[60] flex items-end justify-center bg-ink/50 backdrop-blur-sm sm:items-center sm:p-4" onClick={close}>
             <div
               role="dialog"
               aria-modal="true"
@@ -107,7 +98,7 @@ export function RequestButton({ store, product, className = "" }: Props) {
                   <h2 className="text-lg font-bold">{sent ? "وصل طلبك ✓" : `اطلب من ${store.name}`}</h2>
                   {!sent && (
                     <p className="mt-1 text-sm leading-6 text-muted">
-                      {product ? `«${product.title}»` : "اكتب طلبك"} — يصل الطلب للتاجر مباشرة ويرد عليك على رقمك.
+                      {product ? `«${product.title}»` : "استفسار عن المتجر"} — يصل الطلب للتاجر مباشرة ويرد عليك على رقمك.
                     </p>
                   )}
                 </div>
@@ -119,44 +110,46 @@ export function RequestButton({ store, product, className = "" }: Props) {
               {sent ? (
                 <div className="space-y-4">
                   <p className="rounded-xl bg-olive-50 px-4 py-3 text-sm leading-7 text-olive-700">
-                    التاجر شاف طلبك بلوحته ووصله إشعار. رح يتواصل معك على الرقم يلي كتبته. رقمك ما بيظهر لغير هالمتجر.
+                    التاجر شاف طلبك بلوحته ووصله إشعار. رح يتواصل معك على رقمك. رقمك ما بيظهر لغير هالمتجر.
                   </p>
                   <button type="button" onClick={close} className="h-12 w-full rounded-xl bg-brand-600 font-bold text-white">
                     تمام
                   </button>
                 </div>
+              ) : status === "loading" || status === "unknown" ? (
+                <div className="h-28 animate-pulse rounded-xl bg-sand" aria-busy="true" />
+              ) : !signedIn ? (
+                <div className="space-y-4">
+                  <p className="rounded-xl bg-sand px-4 py-3 text-sm leading-7">
+                    سجّل دخولك لتبعت طلبك. منرسل للتاجر اسمك ورقمك من حسابك، فما بتحتاج تكتبهم كل مرة،
+                    وبيوصلك رده، وبتقدر تقيّم المتجر بعد ما تشتري.
+                  </p>
+                  <Link href={loginHref} className="press flex h-12 w-full items-center justify-center rounded-xl bg-brand-600 font-bold text-white">
+                    تسجيل الدخول
+                  </Link>
+                  <p className="text-center text-sm text-muted">
+                    ما عندك حساب؟{" "}
+                    <Link href={`/account/register?next=${encodeURIComponent(pathname)}`} className="font-bold text-brand-700">
+                      أنشئ حساباً بدقيقة
+                    </Link>
+                  </p>
+                </div>
               ) : (
                 <form onSubmit={submit} className="space-y-3">
-                  <Field label="اسمك">
-                    <input
-                      className={inputClass}
-                      value={form.name}
-                      onChange={(e) => setForm({ ...form, name: e.target.value })}
-                      required
-                      minLength={2}
-                      maxLength={60}
-                      autoComplete="name"
-                      placeholder="مثال: أبو أحمد"
-                    />
-                  </Field>
-                  <Field label="رقم الموبايل" hint="يشوفه صاحب هالمتجر فقط، ليرد عليك.">
-                    <input
-                      className={inputClass}
-                      value={form.phone}
-                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
-                      required
-                      inputMode="tel"
-                      autoComplete="tel"
-                      dir="ltr"
-                      placeholder="09xxxxxxxx"
-                    />
-                  </Field>
+                  <div className="rounded-xl bg-sand px-4 py-3 text-sm leading-7">
+                    <div className="font-bold">{user.name}</div>
+                    <bdi dir="ltr" className="text-muted">{displayPhone(user.phone)}</bdi>
+                    <div className="mt-1 text-xs text-muted">
+                      منرسل هالاسم والرقم للتاجر.{" "}
+                      <Link href="/account/phone" className="font-medium text-brand-700">تغيير الرقم</Link>
+                    </div>
+                  </div>
                   {product && (
                     <Field label="الكمية" optional>
                       <input
                         className={inputClass}
-                        value={form.quantity}
-                        onChange={(e) => setForm({ ...form, quantity: e.target.value.replace(/\D/g, "").slice(0, 4) })}
+                        value={quantity}
+                        onChange={(e) => setQuantity(e.target.value.replace(/\D/g, "").slice(0, 4))}
                         inputMode="numeric"
                         placeholder="1"
                       />
@@ -167,8 +160,8 @@ export function RequestButton({ store, product, className = "" }: Props) {
                       className={textareaClass}
                       rows={3}
                       maxLength={500}
-                      value={form.note}
-                      onChange={(e) => setForm({ ...form, note: e.target.value })}
+                      value={note}
+                      onChange={(e) => setNote(e.target.value)}
                       placeholder={product ? "مثال: بدي ياه لون أسود، وقت التوصيل؟" : "شو بتحتاج من المتجر؟"}
                     />
                   </Field>
