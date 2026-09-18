@@ -18,7 +18,7 @@ import type { Page } from "@lib/types";
 
 const DEFAULT_TITLES: Record<HomeSectionId, string> = {
   banners: "",
-  showcase: "متاجر مميزة",
+  showcase: "متاجر من أسواقك",
   stories: "",
   categories: "تسوّق حسب القسم",
   offers: "🔥 عروض اليوم",
@@ -41,39 +41,6 @@ const FALLBACK_LAYOUT: HomeLayout = {
   greeting: true,
 };
 
-/** Real product photos from the markets, beside the headline on wide screens. */
-function HeroCollage({ products }: { products: ProductCardData[] }) {
-  const withPhotos = products.filter((p, i, all) => p.images[0] && all.findIndex((x) => x.id === p.id) === i).slice(0, 4);
-  if (withPhotos.length < 4) return null;
-  return (
-    <div className="relative hidden lg:block" aria-hidden>
-      <div className="grid grid-cols-2 gap-4">
-        {withPhotos.map((p, i) => (
-          <Link
-            key={p.id}
-            href={`/products/${p.id}`}
-            tabIndex={-1}
-            className={`group relative overflow-hidden rounded-card bg-surface shadow-card ring-1 ring-line ${i % 2 ? "translate-y-8" : ""}`}
-          >
-            <img src={p.images[0]} alt="" className="aspect-[4/3] w-full object-cover transition duration-300 group-hover:scale-105" />
-            <span className="absolute inset-x-2 bottom-2 truncate rounded-xl bg-surface/90 px-3 py-1.5 text-xs font-bold backdrop-blur">
-              {p.title}
-            </span>
-          </Link>
-        ))}
-      </div>
-      <div className="absolute -start-6 top-1/2 flex -translate-y-1/2 items-center gap-2 rounded-2xl bg-surface px-4 py-3 text-sm shadow-card ring-1 ring-line">
-        <span className="flex h-8 w-8 items-center justify-center rounded-full bg-olive-50 text-olive-700">✓</span>
-        <span>
-          <b className="block">محلات موثّقة</b>
-          <span className="text-xs text-muted">تواصل مباشر بلا وسيط</span>
-        </span>
-      </div>
-    </div>
-  );
-}
-
-
 export default async function HomePage() {
   const gov = (await cookies()).get(GOV_COOKIE)?.value ?? "";
   const [data, offers] = await Promise.all([
@@ -92,6 +59,11 @@ export default async function HomePage() {
   const fresh = new Set(data.latest.map((p) => p.store.slug));
   const photo = (list: ProductCardData[]) => list.find((p) => p.images[0])?.images[0] ?? null;
   const topCategory = [...data.categories].sort((a, b) => b.productsCount - a.productsCount)[0];
+  // Every turn of the hero shows shops by name: paid packages first, then the rest
+  const showcase = [
+    ...(data.showcase ?? []),
+    ...data.stores.filter((st) => !(data.showcase ?? []).some((x) => x.store.id === st.id)).map((store) => ({ store })),
+  ];
   const teamPromos: Promo[] = (data.banners ?? []).map((b) => ({ id: b.id, href: b.href, eyebrow: b.eyebrow, title: b.title, cta: b.cta, image: b.imageUrl, tone: b.tone }));
   const autoPromos: Promo[] = [
     ...(offers?.total
@@ -120,10 +92,10 @@ export default async function HomePage() {
       case "showcase":
         // Wide screens show the showcase inside the hero instead
         return (
-          (data.showcase?.length ?? 0) > 0 && (
+          showcase.length > 0 && (
             <section className="mx-auto max-w-6xl px-4 md:hidden">
               <h2 className="mb-3 text-xl font-bold">{name}</h2>
-              <StoreShowcase items={data.showcase} />
+              <StoreShowcase items={showcase} />
             </section>
           )
         );
@@ -326,11 +298,7 @@ export default async function HomePage() {
               ))}
             </dl>
           </div>
-          {data.showcase?.length ? (
-            <StoreShowcase items={data.showcase} className="hidden lg:block" />
-          ) : (
-            <HeroCollage products={[...data.featured, ...data.latest]} />
-          )}
+          <StoreShowcase items={showcase} className="hidden lg:block" />
         </div>
       </section>
 

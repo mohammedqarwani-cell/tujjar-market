@@ -40,7 +40,7 @@ type Gov = { id: string; name: string; status: string };
 
 const SECTIONS: Record<HomeSectionId, { label: string; hint: string; fallback: string }> = {
   banners: { label: "البنرات", hint: "شريط العروض المتحرك", fallback: "بلا عنوان" },
-  showcase: { label: "المتاجر المميزة", hint: "على الموبايل؛ على الكمبيوتر تظهر دائماً بجانب العنوان الرئيسي", fallback: "متاجر مميزة" },
+  showcase: { label: "بطاقات المتاجر", hint: "ثلاث بطاقات تتبدّل: المتاجر المميزة أولاً ثم بقية المتاجر (على الكمبيوتر تظهر دائماً بجانب العنوان)", fallback: "متاجر من أسواقك" },
   stories: { label: "الستوري", hint: "دوائر المتاجر", fallback: "بلا عنوان" },
   categories: { label: "الأقسام", hint: "أيقونات الأقسام", fallback: "تسوّق حسب القسم" },
   offers: { label: "عروض اليوم", hint: "منتجات عليها خصم مع عدّاد", fallback: "🔥 عروض اليوم" },
