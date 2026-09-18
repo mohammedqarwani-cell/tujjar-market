@@ -128,7 +128,7 @@ export default async function HomePage() {
               </div>
               <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
                 {offers.items.map((p) => (
-                  <div key={p.id} className="w-40 shrink-0 snap-start sm:w-52">
+                  <div key={p.id} className="flex w-40 shrink-0 snap-start sm:w-52 [&>*]:w-full">
                     <ProductCard product={p} />
                   </div>
                 ))}
@@ -144,7 +144,7 @@ export default async function HomePage() {
             <Section title={name} subtitle="منتجات مميزة يطلبها الزبائن كثيراً" href={`/search${toQuery({ sort: "popular", gov })}`} className="reveal">
               <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
                 {data.featured.map((p) => (
-                  <div key={p.id} className="w-44 shrink-0 snap-start sm:w-52">
+                  <div key={p.id} className="flex w-44 shrink-0 snap-start sm:w-52 [&>*]:w-full">
                     <ProductCard product={p} />
                   </div>
                 ))}

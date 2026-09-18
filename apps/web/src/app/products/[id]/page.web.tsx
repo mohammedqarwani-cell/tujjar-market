@@ -167,7 +167,7 @@ export default async function ProductPage({ params }: Props) {
         <Section title={`المزيد من ${p.store.name}`} href={`/stores/${p.store.slug}`} className="mt-6">
           <div className="no-scrollbar -mx-4 flex snap-x gap-3 overflow-x-auto px-4 pb-2">
             {fromStore.map((x) => (
-              <div key={x.id} className="w-44 shrink-0 snap-start sm:w-52"><ProductCard product={x} /></div>
+              <div key={x.id} className="flex w-44 shrink-0 snap-start sm:w-52 [&>*]:w-full"><ProductCard product={x} /></div>
             ))}
           </div>
         </Section>
