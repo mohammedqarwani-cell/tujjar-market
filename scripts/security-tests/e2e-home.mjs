@@ -68,7 +68,7 @@ try {
   r = await anon("/home");
   check(
     "The homepage sends the default layout with every section",
-    r.code === 200 && r.json.layout?.sections?.length === 11 && Array.isArray(r.json.showcase) && Array.isArray(r.json.banners),
+    r.code === 200 && r.json.layout?.sections?.length === 13 && Array.isArray(r.json.showcase) && Array.isArray(r.json.banners),
     JSON.stringify(r.json?.layout)?.slice(0, 120),
   );
 
@@ -127,7 +127,7 @@ try {
   const ids = home.layout.sections.map((s) => s.id);
   check(
     "Order, hiding and titles apply; unknown sections are dropped and missing ones kept",
-    ids[0] === "latest" && ids[1] === "offers" && !ids.includes("bogus") && ids.length === 11 && home.layout.sections[0].enabled === false && home.layout.sections[1].title === "عروض الجمعة",
+    ids[0] === "latest" && ids[1] === "offers" && !ids.includes("bogus") && ids.length === 13 && home.layout.sections[0].enabled === false && home.layout.sections[1].title === "عروض الجمعة",
     ids.join(","),
   );
   check(
