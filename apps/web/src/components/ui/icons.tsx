@@ -145,6 +145,13 @@ export const MegaphoneIcon = ({ size = 16, ...p }: IconProps) => (
   </svg>
 );
 
+export const PlayCircleIcon = ({ size = 16, ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...p}>
+    <circle cx="12" cy="12" r="9" />
+    <path d="M10.2 8.9v6.2l5-3.1z" />
+  </svg>
+);
+
 export const CartIcon = ({ size = 16, ...p }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...p}>
     <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h6.9a2 2 0 0 0 2-1.5L20 8H6" />

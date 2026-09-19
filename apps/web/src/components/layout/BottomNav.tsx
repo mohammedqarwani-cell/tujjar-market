@@ -2,13 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CartIcon, HeartIcon, HomeIcon, SearchIcon, StoreIcon, UserIcon } from "@components/ui/icons";
+import { CartIcon, HeartIcon, HomeIcon, PlayCircleIcon, SearchIcon, UserIcon } from "@components/ui/icons";
 import { useFavorites } from "@lib/favorites";
 import { useCartCount } from "@lib/cart";
 
 const ITEMS = [
   { href: "/", label: "الرئيسية", Icon: HomeIcon, match: (p: string) => p === "/" },
-  { href: "/markets", label: "الأسواق", Icon: StoreIcon, match: (p: string) => p.startsWith("/markets") },
+  { href: "/feed", label: "الجديد", Icon: PlayCircleIcon, match: (p: string) => p.startsWith("/feed") },
   { href: "/search", label: "بحث", Icon: SearchIcon, match: (p: string) => p.startsWith("/search") },
   { href: "/cart", label: "السلة", Icon: CartIcon, match: (p: string) => p.startsWith("/cart") },
   { href: "/favorites", label: "المفضلة", Icon: HeartIcon, match: (p: string) => p.startsWith("/favorites") },
