@@ -14,14 +14,14 @@ import { PhoneIcon, WhatsAppIcon } from "@components/ui/icons";
 
 type Status = "NEW" | "CONFIRMED" | "DONE" | "CANCELLED";
 
+type OrderItem = { id: string; title: string; image: string | null; unitPrice: number | null; quantity: number; lineTotal: number | null; product: { id: string } | null };
+
 type Order = {
   id: string;
   ref: number;
   buyerName: string;
   buyerPhone: string;
-  productTitle: string;
-  quantity: number;
-  unitPrice: number | null;
+  items: OrderItem[];
   currency: Currency;
   total: number | null;
   fulfillment: "DELIVERY" | "PICKUP";
@@ -34,7 +34,6 @@ type Order = {
   cancelReason: string | null;
   createdAt: string;
   governorate: { name: string } | null;
-  product: { id: string; images: string[] } | null;
 };
 
 type OrdersPage = { items: Order[]; counts: Partial<Record<Status, number>> };
@@ -135,34 +134,36 @@ export default function OrdersPage() {
 
       {data?.items.map((o) => (
         <article key={o.id} className={`rounded-card bg-surface p-4 ring-1 ring-line ${busy === o.id ? "opacity-50" : ""}`}>
-          <div className="flex flex-wrap items-start gap-3">
-            {o.product?.images[0] && <img src={o.product.images[0]} alt="" className="h-16 w-16 shrink-0 rounded-xl object-cover" />}
-            <div className="min-w-0 flex-1">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_STYLE[o.status]}`}>{STATUS_LABEL[o.status]}</span>
-                <span className="text-xs text-muted">طلب #{o.ref} · {timeAgo(o.createdAt)}</span>
-              </div>
-              <h2 className="mt-1 font-bold">
-                {o.product ? (
-                  <Link href={webUrl(`/products/${o.product.id}`)} target="_blank" className="hover:text-brand-700">{o.productTitle}</Link>
-                ) : (
-                  o.productTitle
-                )}
-              </h2>
-              <p className="text-sm text-muted">
-                {o.buyerName} · <bdi dir="ltr">{displayPhone(o.buyerPhone)}</bdi>
-              </p>
-            </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <span className={`rounded-full px-2 py-0.5 text-[11px] font-bold ${STATUS_STYLE[o.status]}`}>{STATUS_LABEL[o.status]}</span>
+            <span className="text-xs text-muted">طلب #{o.ref} · {timeAgo(o.createdAt)}</span>
+            <span className="text-sm font-bold">{o.buyerName}</span>
+            <bdi dir="ltr" className="text-sm text-muted">{displayPhone(o.buyerPhone)}</bdi>
           </div>
 
+          <ul className="mt-3 divide-y divide-line rounded-xl bg-sand">
+            {o.items.map((item) => (
+              <li key={item.id} className="flex items-center gap-3 p-3">
+                {item.image && <img src={item.image} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />}
+                <div className="min-w-0 flex-1">
+                  <div className="line-clamp-1 text-sm font-medium">
+                    {item.product ? (
+                      <Link href={webUrl(`/products/${item.product.id}`)} target="_blank" className="hover:text-brand-700">{item.title}</Link>
+                    ) : (
+                      item.title
+                    )}
+                  </div>
+                  <div className="text-xs text-muted">
+                    {formatNumber(item.quantity)}
+                    {item.unitPrice !== null ? ` × ${money(item.unitPrice, o.currency)}` : " قطعة"}
+                  </div>
+                </div>
+                {item.lineTotal !== null && <div className="shrink-0 text-sm font-bold">{money(item.lineTotal, o.currency)}</div>}
+              </li>
+            ))}
+          </ul>
+
           <dl className="mt-3 grid gap-x-4 gap-y-1.5 text-sm sm:grid-cols-2">
-            <div className="flex gap-2">
-              <dt className="text-muted">الكمية:</dt>
-              <dd className="font-medium">
-                {formatNumber(o.quantity)}
-                {o.unitPrice !== null && <span className="text-muted"> × {money(o.unitPrice, o.currency)}</span>}
-              </dd>
-            </div>
             <div className="flex gap-2">
               <dt className="text-muted">الإجمالي:</dt>
               <dd className="font-medium">
@@ -238,7 +239,7 @@ export default function OrdersPage() {
           ) : (
             <div className="mt-3 flex flex-wrap gap-2">
               <a
-                href={whatsappLink(o.buyerPhone, `مرحباً ${o.buyerName}، بخصوص طلبك #${o.ref} «${o.productTitle}» من متجرنا.`)}
+                href={whatsappLink(o.buyerPhone, `مرحباً ${o.buyerName}، بخصوص طلبك #${o.ref} من متجرنا.`)}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex h-10 items-center gap-2 rounded-xl bg-wa px-4 text-sm font-bold text-white"

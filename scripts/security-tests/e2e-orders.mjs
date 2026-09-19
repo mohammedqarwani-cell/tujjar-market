@@ -1,4 +1,4 @@
-// Purchase orders: a buyer orders a product, the shop confirms, both sides are kept in the loop.
+// Purchase orders: a buyer fills one basket per shop, the shop confirms, both sides are kept in the loop.
 // Needs the local API on :4000 and Docker Postgres.
 import { execFileSync } from "node:child_process";
 
@@ -45,12 +45,13 @@ const other = jar();
 
 try {
   const store = (await anon(`/stores/${STORE}`)).json;
-  const product = (await anon(`/products?store=${STORE}&pageSize=1`)).json.items[0];
+  const catalogue = (await anon(`/products?store=${STORE}&pageSize=3`)).json.items;
+  const product = catalogue[0];
+  const second = catalogue[1];
   const governorates = (await anon("/governorates")).json.filter((g) => g.status === "ACTIVE");
   const damascus = governorates.find((g) => g.slug === "damascus") ?? governorates[0];
   const base = {
-    productId: product.id,
-    quantity: 3,
+    items: [{ productId: product.id, quantity: 3 }],
     fulfillment: "DELIVERY",
     payment: "CASH_ON_DELIVERY",
     governorateId: damascus.id,
@@ -66,8 +67,10 @@ try {
   check("The buyer signs in", r.code === 200, `got ${r.code}`);
   const me = (await buyer("/auth/me")).json;
 
-  r = await buyer("/orders", { method: "POST", body: { ...base, quantity: 0 } });
+  r = await buyer("/orders", { method: "POST", body: { ...base, items: [{ productId: product.id, quantity: 0 }] } });
   check("The quantity must be at least one", r.code === 400, `got ${r.code}`);
+  r = await buyer("/orders", { method: "POST", body: { ...base, items: [] } });
+  check("An empty basket is refused", r.code === 400, `got ${r.code}`);
   r = await buyer("/orders", { method: "POST", body: { ...base, address: "" } });
   check("Delivery needs an address", r.code === 400, `got ${r.code}`);
   r = await buyer("/orders", { method: "POST", body: { ...base, governorateId: undefined } });
@@ -76,8 +79,18 @@ try {
   check("Paying at the shop does not fit a delivery", r.code === 400, `got ${r.code}`);
   r = await buyer("/orders", { method: "POST", body: { ...base, fulfillment: "PICKUP", payment: "CASH_ON_DELIVERY" } });
   check("Paying the courier does not fit a pickup", r.code === 400, `got ${r.code}`);
-  r = await buyer("/orders", { method: "POST", body: { ...base, productId: "cmzzzzzzzzzzzzzzzzzzzzzz" } });
+  r = await buyer("/orders", { method: "POST", body: { ...base, items: [{ productId: "cmzzzzzzzzzzzzzzzzzzzzzz", quantity: 1 }] } });
   check("An unknown product is refused", r.code === 404, `got ${r.code}`);
+  const otherShopProduct = (await anon("/products?store=alnoor-solar&pageSize=1")).json.items[0];
+  if (otherShopProduct) {
+    r = await buyer("/orders", {
+      method: "POST",
+      body: { ...base, items: [{ productId: product.id, quantity: 1 }, { productId: otherShopProduct.id, quantity: 1 }] },
+    });
+    check("A basket cannot mix two shops", r.code === 400, `got ${r.code}`);
+  } else {
+    check("A second shop is available for the mixed-basket check", false, "no product found");
+  }
   r = await buyer("/orders", { method: "POST", body: { ...base, payment: "CARD" } });
   check("An unsupported payment method is refused", r.code === 400, `got ${r.code}`);
 
@@ -89,10 +102,11 @@ try {
 
   const mine = (await buyer("/orders/mine")).json.items.find((o) => o.id === order.id);
   check(
-    "The buyer follows the order with its price, address and payment",
+    "The buyer follows the order with its lines, price, address and payment",
     !!mine &&
-      mine.quantity === 3 &&
-      mine.total === mine.unitPrice * 3 &&
+      mine.items.length === 1 &&
+      mine.items[0].quantity === 3 &&
+      mine.total === mine.items[0].unitPrice * 3 &&
       mine.address === base.address &&
       mine.payment === "CASH_ON_DELIVERY" &&
       mine.status === "NEW" &&
@@ -145,10 +159,28 @@ try {
   r = await merchant(`/merchant/orders/${order.id}`, { client: "merchant", method: "PATCH", body: { status: "DONE" } });
   check("A cancelled order cannot be reopened", r.code === 400, `got ${r.code}`);
 
+  // A basket with two products from the same shop
+  if (second) {
+    r = await buyer("/orders", {
+      method: "POST",
+      body: { ...base, items: [{ productId: product.id, quantity: 2 }, { productId: second.id, quantity: 1 }] },
+    });
+    const basket = (await buyer("/orders/mine")).json.items.find((o) => o.id === r.json.id);
+    const sum = basket?.items.reduce((t, i) => t + (i.lineTotal ?? 0), 0);
+    check(
+      "Several products from one shop become one order with one total",
+      r.code === 201 && basket?.items.length === 2 && basket.total === sum,
+      JSON.stringify(basket?.items)?.slice(0, 140),
+    );
+    await buyer(`/orders/${r.json.id}/cancel`, { method: "PATCH", body: {} });
+  } else {
+    check("A second product is available for the basket check", false, "no product found");
+  }
+
   // A pickup order, paid at the shop
   r = await buyer("/orders", {
     method: "POST",
-    body: { ...base, fulfillment: "PICKUP", payment: "CASH_AT_SHOP", address: undefined, governorateId: undefined, quantity: 1 },
+    body: { ...base, fulfillment: "PICKUP", payment: "CASH_AT_SHOP", address: undefined, governorateId: undefined, items: [{ productId: product.id, quantity: 1 }] },
   });
   check("A pickup order needs no address", r.code === 201, `got ${r.code} ${JSON.stringify(r.json)?.slice(0, 80)}`);
   const pickup = r.json;

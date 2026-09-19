@@ -137,6 +137,14 @@ export const StarIcon = ({ size = 16, ...p }: IconProps) => (
     <path fill="currentColor" d="m12 2.5 2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" />
   </svg>
 );
+export const CartIcon = ({ size = 16, ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...p}>
+    <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h6.9a2 2 0 0 0 2-1.5L20 8H6" />
+    <circle cx="10" cy="20" r="1.3" />
+    <circle cx="17" cy="20" r="1.3" />
+  </svg>
+);
+
 export const BellIcon = (p: IconProps) => (
   <svg {...base(p)}><path d="M6 9a6 6 0 1 1 12 0c0 5.2 2 6.8 2 6.8H4S6 14.2 6 9" /><path d="M10 19.5a2.1 2.1 0 0 0 4 0" /></svg>
 );

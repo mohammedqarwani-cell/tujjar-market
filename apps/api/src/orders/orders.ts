@@ -12,7 +12,7 @@ import {
   Query,
 } from '@nestjs/common';
 import { Fulfillment, OrderStatus, PaymentMethod, Prisma } from '@prisma/client';
-import { IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min } from 'class-validator';
+import { ArrayMaxSize, ArrayMinSize, IsArray, IsIn, IsInt, IsOptional, IsString, Max, MaxLength, Min, ValidateNested } from 'class-validator';
 import { Type } from 'class-transformer';
 import { PrismaService } from '../prisma/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
@@ -29,9 +29,18 @@ const PAYMENTS: PaymentMethod[] = ['CASH_ON_DELIVERY', 'CASH_AT_SHOP', 'TRANSFER
 /** The same product ordered again within this window is a double tap, not a second order */
 const DEDUPE_MS = 2 * 60_000;
 
-class CreateOrderDto {
+class OrderLineDto {
   @IsString() @MaxLength(40) productId!: string;
   @Type(() => Number) @IsInt({ message: 'الكمية يجب أن تكون رقماً' }) @Min(1, { message: 'أقل كمية 1' }) @Max(9999) quantity!: number;
+}
+
+class CreateOrderDto {
+  @IsArray({ message: 'أضف منتجاً واحداً على الأقل' })
+  @ArrayMinSize(1, { message: 'أضف منتجاً واحداً على الأقل' })
+  @ArrayMaxSize(40, { message: 'الحد الأقصى 40 صنفاً في الطلب' })
+  @ValidateNested({ each: true })
+  @Type(() => OrderLineDto)
+  items!: OrderLineDto[];
   @IsIn(FULFILLMENTS, { message: 'اختر التوصيل أو الاستلام من المحل' }) fulfillment!: Fulfillment;
   @IsIn(PAYMENTS, { message: 'اختر طريقة الدفع' }) payment!: PaymentMethod;
   @IsOptional() @IsString() @MaxLength(40) governorateId?: string;
@@ -53,9 +62,6 @@ class CancelDto {
 const orderSelect = {
   id: true,
   ref: true,
-  productTitle: true,
-  quantity: true,
-  unitPrice: true,
   currency: true,
   total: true,
   fulfillment: true,
@@ -70,7 +76,7 @@ const orderSelect = {
   confirmedAt: true,
   closedAt: true,
   governorate: { select: { name: true } },
-  product: { select: { id: true, images: true } },
+  items: { select: { id: true, title: true, image: true, unitPrice: true, quantity: true, lineTotal: true, product: { select: { id: true } } } },
 } satisfies Prisma.OrderSelect;
 
 const buyerFields = { buyerName: true, buyerPhone: true } as const;
@@ -83,13 +89,16 @@ export class OrdersService {
     private notifications: NotificationsService,
   ) {}
 
-  /** The buyer places an order: quantity, where it goes and how it is paid. The shop confirms it. */
+  /** The buyer sends one basket from one shop: its lines, where it goes and how it is paid. */
   async create(user: AuthUser, dto: CreateOrderDto) {
     const buyer = await this.prisma.user.findUnique({ where: { id: user.id }, select: { id: true, name: true, phone: true } });
     if (!buyer) throw new NotFoundException('الحساب غير موجود');
 
-    const product = await this.prisma.product.findFirst({
-      where: { id: dto.productId, status: 'ACTIVE', store: publicStoreWhere },
+    const wanted = new Map<string, number>();
+    for (const line of dto.items) wanted.set(line.productId, (wanted.get(line.productId) ?? 0) + line.quantity);
+
+    const products = await this.prisma.product.findMany({
+      where: { id: { in: [...wanted.keys()] }, status: 'ACTIVE', store: publicStoreWhere },
       select: {
         id: true,
         title: true,
@@ -97,13 +106,20 @@ export class OrdersService {
         currency: true,
         priceType: true,
         inStock: true,
-        store: { select: { id: true, name: true, ownerId: true, hasDelivery: true, governorateId: true } },
+        images: true,
+        store: { select: { id: true, name: true, ownerId: true, hasDelivery: true } },
       },
     });
-    if (!product) throw new NotFoundException('المنتج غير متاح للطلب');
-    if (!product.inStock) throw new BadRequestException('المنتج غير متوفر حالياً');
+    if (products.length !== wanted.size) throw new NotFoundException('أحد المنتجات لم يعد متاحاً للطلب');
+    const unavailable = products.find((p) => !p.inStock);
+    if (unavailable) throw new BadRequestException(`«${unavailable.title}» غير متوفر حالياً`);
 
-    const store = product.store;
+    // One order belongs to one shop: the basket is per shop on the buyer's side too
+    const store = products[0].store;
+    if (products.some((p) => p.store.id !== store.id)) throw new BadRequestException('الطلب الواحد يكون من متجر واحد');
+    const currency = products[0].currency;
+    if (products.some((p) => p.currency !== currency)) throw new BadRequestException('لا يمكن جمع منتجات بعملات مختلفة في طلب واحد');
+
     if (dto.fulfillment === 'DELIVERY' && !store.hasDelivery) throw new BadRequestException('هذا المتجر لا يوفّر توصيل، اختر الاستلام من المحل');
     if (dto.fulfillment === 'DELIVERY') {
       if (!dto.address?.trim()) throw new BadRequestException('اكتب عنوان التوصيل');
@@ -114,39 +130,53 @@ export class OrdersService {
 
     let governorateId: string | null = null;
     if (dto.fulfillment === 'DELIVERY') {
-      const gov = await this.prisma.governorate.findFirst({
-        where: { id: dto.governorateId ?? '', status: 'ACTIVE' },
-        select: { id: true },
-      });
+      const gov = await this.prisma.governorate.findFirst({ where: { id: dto.governorateId ?? '', status: 'ACTIVE' }, select: { id: true } });
       if (!gov) throw new BadRequestException('اختر المحافظة');
       governorateId = gov.id;
     }
 
+    const lines = products.map((p) => {
+      const quantity = wanted.get(p.id)!;
+      const unitPrice = p.priceType === 'FIXED' ? p.price : null;
+      return {
+        productId: p.id,
+        title: p.title,
+        image: p.images[0] ?? null,
+        unitPrice,
+        quantity,
+        lineTotal: unitPrice === null ? null : unitPrice * quantity,
+      };
+    });
+    // A basket where one line is priced on request has no total until the shop answers
+    const total = lines.some((l) => l.lineTotal === null) ? null : lines.reduce((sum, l) => sum + (l.lineTotal ?? 0), 0);
+
     // Two taps on "أرسل الطلب" must not become two orders
     const recent = await this.prisma.order.findFirst({
-      where: { buyerId: buyer.id, productId: product.id, status: 'NEW', createdAt: { gt: new Date(Date.now() - DEDUPE_MS) } },
-      select: { id: true, ref: true },
+      where: {
+        buyerId: buyer.id,
+        storeId: store.id,
+        status: 'NEW',
+        createdAt: { gt: new Date(Date.now() - DEDUPE_MS) },
+        items: { every: { productId: { in: [...wanted.keys()] } } },
+      },
+      select: { id: true, ref: true, _count: { select: { items: true } } },
     });
-    if (recent) return recent;
+    if (recent && recent._count.items === lines.length) return { id: recent.id, ref: recent.ref };
 
-    const unitPrice = product.priceType === 'FIXED' ? product.price : null;
     const order = await this.prisma.order.create({
       data: {
         storeId: store.id,
-        productId: product.id,
         buyerId: buyer.id,
-        productTitle: product.title,
         buyerName: buyer.name,
         buyerPhone: buyer.phone,
-        quantity: dto.quantity,
-        unitPrice,
-        currency: product.currency,
-        total: unitPrice === null ? null : unitPrice * dto.quantity,
+        currency,
+        total,
         fulfillment: dto.fulfillment,
         governorateId,
         address: dto.fulfillment === 'DELIVERY' ? dto.address!.trim() : null,
         payment: dto.payment,
         note: dto.note?.trim() || null,
+        items: { create: lines },
       },
       select: { id: true, ref: true },
     });
@@ -158,11 +188,15 @@ export class OrdersService {
       update: { lastContactAt: new Date(), contacts: { increment: 1 } },
     });
 
+    const first = lines[0];
     this.notifications.notify(store.ownerId, {
       category: 'ORDERS',
       type: 'order.new',
       title: `طلب جديد #${order.ref} 🛒`,
-      body: `${buyer.name} طلب ${dto.quantity} × «${product.title}»`,
+      body:
+        lines.length === 1
+          ? `${buyer.name} طلب ${first.quantity} × «${first.title}»`
+          : `${buyer.name} طلب ${lines.length} أصناف، منها «${first.title}»`,
       url: '/dashboard/orders',
       groupKey: `order:${order.id}`,
       urgent: true,
@@ -186,7 +220,7 @@ export class OrdersService {
   async cancelByBuyer(userId: string, id: string, dto: CancelDto) {
     const order = await this.prisma.order.findFirst({
       where: { id, buyerId: userId },
-      select: { id: true, status: true, ref: true, productTitle: true, store: { select: { ownerId: true } } },
+      select: { id: true, status: true, ref: true, store: { select: { ownerId: true } } },
     });
     if (!order) throw new NotFoundException('الطلب غير موجود');
     if (order.status === 'DONE' || order.status === 'CANCELLED') throw new BadRequestException('لا يمكن إلغاء هذا الطلب');
@@ -200,7 +234,7 @@ export class OrdersService {
       category: 'ORDERS',
       type: 'order.cancelled',
       title: `ألغى الزبون الطلب #${order.ref}`,
-      body: `«${order.productTitle}»`,
+      body: `تفاصيل الطلب في لوحتك`,
       url: '/dashboard/orders',
       groupKey: `order:${order.id}`,
     });
@@ -235,7 +269,7 @@ export class OrdersService {
     const store = await this.storeOf(userId);
     const order = await this.prisma.order.findFirst({
       where: { id, storeId: store.id },
-      select: { id: true, ref: true, status: true, buyerId: true, productTitle: true, confirmedAt: true, fulfillment: true },
+      select: { id: true, ref: true, status: true, buyerId: true, confirmedAt: true, fulfillment: true, items: { select: { title: true }, take: 1 } },
     });
     if (!order) throw new NotFoundException('الطلب غير موجود');
     if (order.status === 'DONE' || order.status === 'CANCELLED') throw new BadRequestException('الطلب مغلق');
@@ -256,10 +290,11 @@ export class OrdersService {
       select: { ...orderSelect, ...buyerFields },
     });
 
+    const what = order.items[0] ? `«${order.items[0].title}»` : `طلبك #${order.ref}`;
     const texts: Record<typeof dto.status, { title: string; body: string }> = {
-      CONFIRMED: { title: `أكّد المتجر طلبك #${order.ref} ✓`, body: `«${order.productTitle}» — التاجر رح يتواصل معك للتسليم` },
-      DONE: { title: `تم تسليم طلبك #${order.ref}`, body: `«${order.productTitle}» — قيّم المتجر ليستفيد باقي الزبائن` },
-      CANCELLED: { title: `أُلغي طلبك #${order.ref}`, body: updated.cancelReason ?? `«${order.productTitle}»` },
+      CONFIRMED: { title: `أكّد المتجر طلبك #${order.ref} ✓`, body: `${what} — التاجر رح يتواصل معك للتسليم` },
+      DONE: { title: `تم تسليم طلبك #${order.ref}`, body: `${what} — قيّم المتجر ليستفيد باقي الزبائن` },
+      CANCELLED: { title: `أُلغي طلبك #${order.ref}`, body: updated.cancelReason ?? what },
     };
     this.notifications.notify(order.buyerId, {
       category: 'ORDERS',

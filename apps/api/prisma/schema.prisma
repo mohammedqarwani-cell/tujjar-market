@@ -411,25 +411,21 @@ model StoreContact {
   @@index([buyerId])
 }
 
-/// A purchase order a buyer sends to a shop: quantity, address, payment and the price agreed
+/// A purchase order a buyer sends to a shop: its lines, address, payment and the price agreed
 model Order {
   id            String        @id @default(cuid())
   /// Short number both sides can quote, e.g. 1043
   ref           Int           @unique @default(autoincrement())
   storeId       String
   store         Store         @relation(fields: [storeId], references: [id], onDelete: Cascade)
-  productId     String?
-  product       Product?      @relation(fields: [productId], references: [id], onDelete: SetNull)
   buyerId       String?
   buyer         User?         @relation("BuyerOrders", fields: [buyerId], references: [id], onDelete: SetNull)
-  /// Copied when the order is placed, so it survives edits to the product or the account
-  productTitle  String
+  items         OrderItem[]
+  /// Copied when the order is placed, so it survives edits to the account
   buyerName     String
   buyerPhone    String
-  quantity      Int           @default(1)
-  unitPrice     Int?
   currency      Currency      @default(SYP)
-  /// unitPrice × quantity, before any delivery fee
+  /// Sum of the lines, before any delivery fee; null when a line is priced on request
   total         Int?
   fulfillment   Fulfillment   @default(DELIVERY)
   governorateId String?
@@ -449,6 +445,23 @@ model Order {
 
   @@index([storeId, status, createdAt])
   @@index([buyerId, createdAt])
+}
+
+/// One line of an order; the title and price are copied so the order reads the same later
+model OrderItem {
+  id        String   @id @default(cuid())
+  orderId   String
+  order     Order    @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  productId String?
+  product   Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+  title     String
+  image     String?
+  unitPrice Int?
+  quantity  Int      @default(1)
+  /// unitPrice × quantity
+  lineTotal Int?
+
+  @@index([orderId])
 }
 
 /// One review per buyer per store; only published reviews count towards the store rating
@@ -534,7 +547,7 @@ model Product {
   contactsCount Int           @default(0)
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
-  orders        Order[]
+  orderItems    OrderItem[]
   reports       Report[]
   favoritedBy   Favorite[]
 

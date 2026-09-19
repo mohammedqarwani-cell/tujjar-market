@@ -10,7 +10,7 @@ import { StoreAvatar } from "@components/catalog/StoreAvatar";
 import { FavoriteButton } from "@components/catalog/FavoriteButton";
 import { VerifiedMark } from "@components/catalog/VerificationBadge";
 import { ContactButtons } from "@components/contact/ContactButtons";
-import { OrderButton } from "@components/orders/OrderButton";
+import { AddToCart } from "@components/orders/AddToCart";
 import { ShareButton } from "@components/contact/ShareButton";
 import { ReportButton } from "@components/contact/ReportButton";
 import { ViewTracker } from "@components/contact/ViewTracker";
@@ -120,11 +120,7 @@ export default async function ProductPage({ params }: Props) {
             </div>
 
             <div className="hidden space-y-2 md:block">
-              <OrderButton
-                store={p.store}
-                product={{ id: p.id, title: p.title, price: p.price, currency: p.currency, priceType: p.priceType, inStock: p.inStock, image: p.images[0] }}
-                className="w-full"
-              />
+              <AddToCart product={card} />
               <ContactButtons store={p.store} product={{ id: p.id, title: p.title, priceText }} />
             </div>
 
@@ -190,11 +186,7 @@ export default async function ProductPage({ params }: Props) {
       )}
 
       <div className="fixed inset-x-0 bottom-[calc(4.25rem+env(safe-area-inset-bottom))] z-30 space-y-2 border-t border-line bg-surface/95 p-3 backdrop-blur md:hidden">
-        <OrderButton
-          store={p.store}
-          product={{ id: p.id, title: p.title, price: p.price, currency: p.currency, priceType: p.priceType, inStock: p.inStock, image: p.images[0] }}
-          className="w-full"
-        />
+        <AddToCart product={card} />
         <ContactButtons store={p.store} product={{ id: p.id, title: p.title, priceText }} />
       </div>
     </div>

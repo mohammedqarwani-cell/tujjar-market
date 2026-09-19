@@ -5,7 +5,7 @@ import { ProductArt } from "./ProductArt";
 import { PriceTag } from "./PriceTag";
 import { FavoriteButton } from "./FavoriteButton";
 import { VerifiedMark } from "./VerificationBadge";
-import { OrderButton } from "@components/orders/OrderButton";
+import { AddToCart } from "@components/orders/AddToCart";
 
 export function ProductCard({ product: p }: { product: ProductCardData }) {
   const discount = discountPercent(p.price, p.oldPrice);
@@ -58,11 +58,7 @@ export function ProductCard({ product: p }: { product: ProductCardData }) {
       </Link>
 
       <div className="p-3 pt-0">
-        <OrderButton
-          variant="compact"
-          store={{ slug: p.store.slug, name: p.store.name, hasDelivery: p.store.hasDelivery, governorate: p.store.governorate }}
-          product={{ id: p.id, title: p.title, price: p.price, currency: p.currency, priceType: p.priceType, inStock: p.inStock, image: p.images[0] }}
-        />
+        <AddToCart variant="compact" product={p} />
       </div>
 
       <FavoriteButton product={p} className="absolute end-2 top-2" />

@@ -6,6 +6,7 @@ import { GOV_COOKIE } from "@lib/gov";
 import type { Governorate } from "@lib/types";
 import { GovernoratePicker } from "./GovernoratePicker";
 import { AccountLink } from "./AccountLink";
+import { CartLink } from "./CartLink";
 import { GovernorateLocator } from "./GovernorateLocator";
 import { NotificationBell } from "@components/notifications/NotificationBell";
 import { SearchBox } from "@components/search/SearchBox";
@@ -40,6 +41,7 @@ export async function SiteHeader() {
             governorates={governorates.map(({ slug, name, status, latitude, longitude }) => ({ slug, name, status, latitude, longitude }))}
             current={current}
           />
+          <CartLink />
           <NotificationBell audience="web" />
           <AccountLink />
         </div>
