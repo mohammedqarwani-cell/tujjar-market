@@ -1,0 +1,5 @@
+# Formatting and lint-only commits, skipped by `git blame --ignore-revs-file .git-blame-ignore-revs`
+# (or once: git config blame.ignoreRevsFile .git-blame-ignore-revs)
+
+# Make lint pass in the API and the web app
+596b87fb786bf9d19a422b8137ce1191f8c9d44e
