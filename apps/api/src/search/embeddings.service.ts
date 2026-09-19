@@ -15,22 +15,35 @@ const MODEL = process.env.SEMANTIC_MODEL ?? 'Xenova/multilingual-e5-small';
 const MIN_MEMORY_BYTES = 900 * 1024 * 1024;
 
 function memoryLimit(): number {
-  for (const file of ['/sys/fs/cgroup/memory.max', '/sys/fs/cgroup/memory/memory.limit_in_bytes']) {
+  for (const file of [
+    '/sys/fs/cgroup/memory.max',
+    '/sys/fs/cgroup/memory/memory.limit_in_bytes',
+  ]) {
     try {
       const raw = readFileSync(file, 'utf8').trim();
       const n = Number(raw);
-      if (raw !== 'max' && Number.isFinite(n) && n > 0 && n < totalmem()) return n;
-    } catch {}
+      if (raw !== 'max' && Number.isFinite(n) && n > 0 && n < totalmem())
+        return n;
+    } catch {
+      // No readable cgroup limit: fall back to the machine's memory
+    }
   }
   return totalmem();
 }
 
 type TransformersModule = {
   env: { cacheDir: string };
-  pipeline: (task: string, model: string, opts: { dtype: string }) => Promise<unknown>;
+  pipeline: (
+    task: string,
+    model: string,
+    opts: { dtype: string },
+  ) => Promise<unknown>;
 };
 
-type Extractor = (texts: string[], opts: { pooling: 'mean'; normalize: boolean }) => Promise<{ data: Float32Array; dims: number[] }>;
+type Extractor = (
+  texts: string[],
+  opts: { pooling: 'mean'; normalize: boolean },
+) => Promise<{ data: Float32Array; dims: number[] }>;
 
 @Injectable()
 export class EmbeddingsService {
@@ -41,8 +54,11 @@ export class EmbeddingsService {
 
   constructor() {
     const mode = (process.env.SEMANTIC_SEARCH ?? 'auto').toLowerCase();
-    this.enabled = mode === 'on' || (mode === 'auto' && memoryLimit() >= MIN_MEMORY_BYTES);
-    this.log.log(`Semantic search ${this.enabled ? `enabled (${MODEL})` : 'disabled'}`);
+    this.enabled =
+      mode === 'on' || (mode === 'auto' && memoryLimit() >= MIN_MEMORY_BYTES);
+    this.log.log(
+      `Semantic search ${this.enabled ? `enabled (${MODEL})` : 'disabled'}`,
+    );
   }
 
   /** Identifies the model and the exact text, so edited products get a fresh vector. */
@@ -55,13 +71,24 @@ export class EmbeddingsService {
       try {
         // ESM-only package, loaded lazily so the API starts fast and works without it
         // Optional dependency: without the package installed, search runs on text matching alone
-        const tf = await (new Function('m', 'return import(m)') as (m: string) => Promise<TransformersModule>)('@huggingface/transformers');
-        tf.env.cacheDir = process.env.MODEL_CACHE_DIR ?? join(process.cwd(), '.cache', 'models');
-        const pipe = await tf.pipeline('feature-extraction', MODEL, { dtype: 'q8' });
+        // A real dynamic import: TypeScript would otherwise compile import() to require()
+        // eslint-disable-next-line @typescript-eslint/no-implied-eval
+        const load = new Function('m', 'return import(m)') as (
+          m: string,
+        ) => Promise<TransformersModule>;
+        const tf = await load('@huggingface/transformers');
+        tf.env.cacheDir =
+          process.env.MODEL_CACHE_DIR ??
+          join(process.cwd(), '.cache', 'models');
+        const pipe = await tf.pipeline('feature-extraction', MODEL, {
+          dtype: 'q8',
+        });
         this.log.log('Embedding model loaded');
-        return pipe as unknown as Extractor;
+        return pipe as Extractor;
       } catch (e) {
-        this.log.error(`Embedding model unavailable, using text search only: ${(e as Error).message}`);
+        this.log.error(
+          `Embedding model unavailable, using text search only: ${(e as Error).message}`,
+        );
         return null;
       }
     })();
@@ -91,8 +118,10 @@ export class EmbeddingsService {
   }
 }
 
-export const toBytes = (v: Float32Array) => Buffer.from(v.buffer, v.byteOffset, v.byteLength);
-export const fromBytes = (b: Uint8Array) => new Float32Array(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
+export const toBytes = (v: Float32Array) =>
+  Buffer.from(v.buffer, v.byteOffset, v.byteLength);
+export const fromBytes = (b: Uint8Array) =>
+  new Float32Array(b.buffer.slice(b.byteOffset, b.byteOffset + b.byteLength));
 
 export function cosine(a: Float32Array, b: Float32Array) {
   let dot = 0;

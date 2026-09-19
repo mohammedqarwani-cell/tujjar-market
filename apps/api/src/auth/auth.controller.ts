@@ -1,9 +1,33 @@
-import { BadRequestException, Body, Controller, Get, HttpCode, Post, Req, Res, UnauthorizedException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Req,
+  Res,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { Throttle } from '../common/throttle';
 import type { Request, Response } from 'express';
-import { clientIp, readAudience, requestMeta, type Audience } from '../common/request';
+import {
+  clientIp,
+  readAudience,
+  requestMeta,
+  type Audience,
+} from '../common/request';
 import { AuthService } from './auth.service';
-import { ChangePhoneDto, ChangePhoneOtpDto, LoginDto, RegisterBuyerDto, RegisterMerchantDto, RequestOtpDto, ResetPasswordDto, TotpCodeDto } from './auth.dto';
+import {
+  ChangePhoneDto,
+  ChangePhoneOtpDto,
+  LoginDto,
+  RegisterBuyerDto,
+  RegisterMerchantDto,
+  RequestOtpDto,
+  ResetPasswordDto,
+  TotpCodeDto,
+} from './auth.dto';
 import { AllowWithoutMfa, Auth } from './guards';
 import { CurrentUser } from './current-user.decorator';
 import type { AuthUser } from './current-user.decorator';
@@ -15,7 +39,8 @@ const HOUR = 3600_000;
 
 function audienceOf(req: Request, expected?: Audience): Audience {
   const aud = readAudience(req);
-  if (!aud || (expected && aud !== expected)) throw new BadRequestException('واجهة غير صحيحة لهذا الطلب');
+  if (!aud || (expected && aud !== expected))
+    throw new BadRequestException('واجهة غير صحيحة لهذا الطلب');
   return aud;
 }
 
@@ -37,17 +62,31 @@ export class AuthController {
 
   @Post('register/buyer')
   @Throttle({ default: { limit: 5, ttl: HOUR } })
-  async registerBuyer(@Body() dto: RegisterBuyerDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const { tokens, user } = await this.auth.registerBuyer(dto, requestMeta(req));
+  async registerBuyer(
+    @Body() dto: RegisterBuyerDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { tokens, user } = await this.auth.registerBuyer(
+      dto,
+      requestMeta(req),
+    );
     setAuthCookies(res, audienceOf(req, 'web'), tokens);
     return { user };
   }
 
   @Post('register/merchant')
   @Throttle({ default: { limit: 5, ttl: HOUR } })
-  async registerMerchant(@Body() dto: RegisterMerchantDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async registerMerchant(
+    @Body() dto: RegisterMerchantDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     audienceOf(req, 'merchant');
-    const { tokens, user } = await this.auth.registerMerchant(dto, requestMeta(req));
+    const { tokens, user } = await this.auth.registerMerchant(
+      dto,
+      requestMeta(req),
+    );
     setAuthCookies(res, 'merchant', tokens);
     return { user };
   }
@@ -55,7 +94,11 @@ export class AuthController {
   @Post('login')
   @HttpCode(200)
   @Throttle({ default: { limit: 10, ttl: 15 * 60_000 } })
-  async login(@Body() dto: LoginDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async login(
+    @Body() dto: LoginDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const aud = audienceOf(req);
     const { tokens, user } = await this.auth.login(dto, aud, requestMeta(req));
     setAuthCookies(res, aud, tokens);
@@ -65,12 +108,22 @@ export class AuthController {
   @Post('refresh')
   @HttpCode(200)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
-  async refresh(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
+  async refresh(
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
     const aud = audienceOf(req);
-    const raw = req.cookies?.[refreshCookie(aud)];
-    if (!raw) throw new UnauthorizedException('انتهت الجلسة، سجّل الدخول مجدداً');
+    const raw = (
+      req.cookies as Record<string, string | undefined> | undefined
+    )?.[refreshCookie(aud)];
+    if (!raw)
+      throw new UnauthorizedException('انتهت الجلسة، سجّل الدخول مجدداً');
     try {
-      setAuthCookies(res, aud, await this.sessions.rotate(raw, aud, requestMeta(req)));
+      setAuthCookies(
+        res,
+        aud,
+        await this.sessions.rotate(raw, aud, requestMeta(req)),
+      );
     } catch (e) {
       clearAuthCookies(res, aud);
       throw e;
@@ -82,7 +135,9 @@ export class AuthController {
   @HttpCode(204)
   async logout(@Req() req: Request, @Res({ passthrough: true }) res: Response) {
     const aud = audienceOf(req);
-    const raw = req.cookies?.[refreshCookie(aud)];
+    const raw = (
+      req.cookies as Record<string, string | undefined> | undefined
+    )?.[refreshCookie(aud)];
     if (raw) await this.sessions.revokeByToken(raw);
     clearAuthCookies(res, aud);
   }
@@ -108,8 +163,20 @@ export class AuthController {
   @HttpCode(200)
   @Auth()
   @Throttle({ default: { limit: 10, ttl: HOUR } })
-  async changePhone(@CurrentUser() user: AuthUser, @Body() dto: ChangePhoneDto, @Req() req: Request) {
-    return { user: await this.auth.changePhone(user.id, user.sid, user.aud, dto, requestMeta(req)) };
+  async changePhone(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: ChangePhoneDto,
+    @Req() req: Request,
+  ) {
+    return {
+      user: await this.auth.changePhone(
+        user.id,
+        user.sid,
+        user.aud,
+        dto,
+        requestMeta(req),
+      ),
+    };
   }
 
   @Get('me')
@@ -132,8 +199,17 @@ export class AuthController {
   @Auth('ADMIN', 'MODERATOR', 'FIELD_AGENT')
   @AllowWithoutMfa()
   @Throttle({ default: { limit: 10, ttl: 15 * 60_000 } })
-  async totpEnable(@CurrentUser() user: AuthUser, @Body() dto: TotpCodeDto, @Req() req: Request, @Res({ passthrough: true }) res: Response) {
-    const { tokens, user: me } = await this.auth.totpEnable(user.id, dto.code, requestMeta(req));
+  async totpEnable(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: TotpCodeDto,
+    @Req() req: Request,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    const { tokens, user: me } = await this.auth.totpEnable(
+      user.id,
+      dto.code,
+      requestMeta(req),
+    );
     setAuthCookies(res, 'admin', tokens);
     return { user: me };
   }

@@ -6,5 +6,8 @@ export const createS3Client = () =>
     region: env.minio.region,
     endpoint: env.minio.endpoint,
     forcePathStyle: true,
-    credentials: { accessKeyId: env.minio.accessKey, secretAccessKey: env.minio.secretKey },
+    credentials: {
+      accessKeyId: env.minio.accessKey,
+      secretAccessKey: env.minio.secretKey,
+    },
   });

@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { IsBoolean, IsIn, IsOptional } from 'class-validator';
 import { Auth } from '../auth/guards';
@@ -13,11 +22,17 @@ class StoreStatusDto {
 
 class UpdateProductAdminDto {
   @IsOptional() @IsBoolean() isFeatured?: boolean;
-  @IsOptional() @IsIn(['ACTIVE', 'HIDDEN', 'UNDER_REVIEW']) status?: 'ACTIVE' | 'HIDDEN' | 'UNDER_REVIEW';
+  @IsOptional() @IsIn(['ACTIVE', 'HIDDEN', 'UNDER_REVIEW']) status?:
+    | 'ACTIVE'
+    | 'HIDDEN'
+    | 'UNDER_REVIEW';
 }
 
 class UpdateReportDto {
-  @IsIn(['OPEN', 'RESOLVED', 'DISMISSED']) status!: 'OPEN' | 'RESOLVED' | 'DISMISSED';
+  @IsIn(['OPEN', 'RESOLVED', 'DISMISSED']) status!:
+    | 'OPEN'
+    | 'RESOLVED'
+    | 'DISMISSED';
 }
 
 /** Store verification levels are managed by AdminVerificationController. */
@@ -39,7 +54,12 @@ export class AdminController {
   /** Suspending a store hides it and all its products, so only full admins may do it. */
   @Patch('stores/:id/status')
   @Auth('ADMIN')
-  setStoreStatus(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: StoreStatusDto, @Req() req: Request) {
+  setStoreStatus(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: StoreStatusDto,
+    @Req() req: Request,
+  ) {
     return this.admin.setStoreStatus(actor.id, id, dto.status, clientIp(req));
   }
 
@@ -49,14 +69,23 @@ export class AdminController {
   }
 
   @Patch('products/:id')
-  updateProduct(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: UpdateProductAdminDto, @Req() req: Request) {
+  updateProduct(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateProductAdminDto,
+    @Req() req: Request,
+  ) {
     return this.admin.updateProduct(actor.id, id, dto, clientIp(req));
   }
 
   /** Deleting cannot be undone, so it stays with full admins. */
   @Delete('products/:id')
   @Auth('ADMIN')
-  deleteProduct(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Req() req: Request) {
+  deleteProduct(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
     return this.admin.deleteProduct(actor.id, id, clientIp(req));
   }
 
@@ -66,7 +95,12 @@ export class AdminController {
   }
 
   @Patch('reports/:id')
-  updateReport(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: UpdateReportDto, @Req() req: Request) {
+  updateReport(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateReportDto,
+    @Req() req: Request,
+  ) {
     return this.admin.updateReport(actor.id, id, dto.status, clientIp(req));
   }
 

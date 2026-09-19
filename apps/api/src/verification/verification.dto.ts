@@ -1,5 +1,15 @@
 import { Type } from 'class-transformer';
-import { IsIn, IsISO8601, IsNumber, IsOptional, IsString, Length, Max, MaxLength, Min } from 'class-validator';
+import {
+  IsIn,
+  IsISO8601,
+  IsNumber,
+  IsOptional,
+  IsString,
+  Length,
+  Max,
+  MaxLength,
+  Min,
+} from 'class-validator';
 import type { VerificationLevel } from '@prisma/client';
 import { LEVELS } from './verification.levels';
 
@@ -7,11 +17,27 @@ const GPS_REQUIRED = 'فعّل تحديد الموقع ثم أعد تصوير ا
 
 /** Multipart text fields sent with the shop video. */
 export class LocationEvidenceDto {
-  @Type(() => Number) @IsNumber({}, { message: GPS_REQUIRED }) @Min(-90) @Max(90) latitude!: number;
-  @Type(() => Number) @IsNumber({}, { message: GPS_REQUIRED }) @Min(-180) @Max(180) longitude!: number;
+  @Type(() => Number)
+  @IsNumber({}, { message: GPS_REQUIRED })
+  @Min(-90)
+  @Max(90)
+  latitude!: number;
+  @Type(() => Number)
+  @IsNumber({}, { message: GPS_REQUIRED })
+  @Min(-180)
+  @Max(180)
+  longitude!: number;
   /** Reported GPS accuracy radius in metres */
-  @Type(() => Number) @IsNumber({}, { message: GPS_REQUIRED }) @Min(0) @Max(100_000) accuracy!: number;
-  @IsISO8601({ strict: true }, { message: 'وقت التصوير غير معروف، أعد تصوير الفيديو' }) capturedAt!: string;
+  @Type(() => Number)
+  @IsNumber({}, { message: GPS_REQUIRED })
+  @Min(0)
+  @Max(100_000)
+  accuracy!: number;
+  @IsISO8601(
+    { strict: true },
+    { message: 'وقت التصوير غير معروف، أعد تصوير الفيديو' },
+  )
+  capturedAt!: string;
 }
 
 export class DecisionDto {

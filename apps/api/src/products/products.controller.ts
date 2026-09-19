@@ -1,4 +1,13 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Query,
+} from '@nestjs/common';
 import { Auth } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
@@ -42,12 +51,20 @@ export class MerchantProductsController {
   }
 
   @Patch(':id')
-  update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: ProductInputDto) {
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: ProductInputDto,
+  ) {
     return this.products.update(user.id, id, dto);
   }
 
   @Patch(':id/status')
-  setStatus(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: ProductStatusDto) {
+  setStatus(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: ProductStatusDto,
+  ) {
     return this.products.setStatus(user.id, id, dto.status);
   }
 

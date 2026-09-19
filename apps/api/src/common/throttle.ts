@@ -23,7 +23,8 @@ const DEFAULT_LIMIT: Limit = { limit: 120, ttl: 60_000 };
 const MAX_TRACKED_KEYS = 50_000;
 
 /** Same shape as @nestjs/throttler's decorator: `@Throttle({ default: { limit, ttl } })`. */
-export const Throttle = (options: { default: Limit }) => SetMetadata(KEY, options.default);
+export const Throttle = (options: { default: Limit }) =>
+  SetMetadata(KEY, options.default);
 
 @Injectable()
 export class ThrottleGuard implements CanActivate {
@@ -35,8 +36,10 @@ export class ThrottleGuard implements CanActivate {
     if (ctx.getType() !== 'http') return true;
 
     const { limit, ttl } =
-      this.reflector.getAllAndOverride<Limit | undefined>(KEY, [ctx.getHandler(), ctx.getClass()]) ??
-      DEFAULT_LIMIT;
+      this.reflector.getAllAndOverride<Limit | undefined>(KEY, [
+        ctx.getHandler(),
+        ctx.getClass(),
+      ]) ?? DEFAULT_LIMIT;
     const http = ctx.switchToHttp();
     const req = http.getRequest<Request>();
     const res = http.getResponse<Response>();
@@ -59,7 +62,10 @@ export class ThrottleGuard implements CanActivate {
     if (entry.count > limit) {
       res.setHeader('Retry-After', resetSeconds);
       throw new HttpException(
-        { statusCode: HttpStatus.TOO_MANY_REQUESTS, message: 'محاولات كثيرة، حاول لاحقاً' },
+        {
+          statusCode: HttpStatus.TOO_MANY_REQUESTS,
+          message: 'محاولات كثيرة، حاول لاحقاً',
+        },
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }

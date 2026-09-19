@@ -1,10 +1,20 @@
-import { BadRequestException, Injectable, Logger, OnModuleInit } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import webpush from 'web-push';
 import { PrismaService } from '../prisma/prisma.service';
 import { env } from '../env';
 import { decrypt, encrypt } from '../common/crypto';
 
-export type PushPayload = { title: string; body: string; url?: string | null; tag?: string | null };
+export type PushPayload = {
+  title: string;
+  body: string;
+  url?: string | null;
+  tag?: string | null;
+};
 type Target = { id: string; endpoint: string; p256dh: string; auth: string };
 
 const VAPID_SETTING = 'vapid';
@@ -28,7 +38,11 @@ export function assertPushEndpoint(endpoint: string) {
   } catch {
     throw new BadRequestException('عنوان الإشعارات غير صالح');
   }
-  if (url.protocol !== 'https:' || url.port || !PUSH_HOSTS.some((re) => re.test(url.hostname))) {
+  if (
+    url.protocol !== 'https:' ||
+    url.port ||
+    !PUSH_HOSTS.some((re) => re.test(url.hostname))
+  ) {
     throw new BadRequestException('خدمة الإشعارات في هذا المتصفح غير مدعومة');
   }
 }
@@ -49,26 +63,45 @@ export class PushService implements OnModuleInit {
   private init() {
     this.ready ??= (async () => {
       let pair: { publicKey: string; privateKey: string } | null =
-        env.vapid.publicKey && env.vapid.privateKey ? { publicKey: env.vapid.publicKey, privateKey: env.vapid.privateKey } : null;
+        env.vapid.publicKey && env.vapid.privateKey
+          ? { publicKey: env.vapid.publicKey, privateKey: env.vapid.privateKey }
+          : null;
       if (!pair) {
         const read = async () => {
-          const row = await this.prisma.appSetting.findUnique({ where: { key: VAPID_SETTING } });
+          const row = await this.prisma.appSetting.findUnique({
+            where: { key: VAPID_SETTING },
+          });
           if (!row) return null;
-          const saved = JSON.parse(row.value) as { publicKey: string; privateKey: string };
-          return { publicKey: saved.publicKey, privateKey: decrypt(env.totpKey, saved.privateKey) };
+          const saved = JSON.parse(row.value) as {
+            publicKey: string;
+            privateKey: string;
+          };
+          return {
+            publicKey: saved.publicKey,
+            privateKey: decrypt(env.totpKey, saved.privateKey),
+          };
         };
         pair = await read();
         if (!pair) {
           const generated = webpush.generateVAPIDKeys();
-          const value = JSON.stringify({ publicKey: generated.publicKey, privateKey: encrypt(env.totpKey, generated.privateKey) });
+          const value = JSON.stringify({
+            publicKey: generated.publicKey,
+            privateKey: encrypt(env.totpKey, generated.privateKey),
+          });
           // Several instances may start together: the first write wins and everyone reads it back
-          await this.prisma.appSetting.create({ data: { key: VAPID_SETTING, value } }).catch(() => undefined);
+          await this.prisma.appSetting
+            .create({ data: { key: VAPID_SETTING, value } })
+            .catch(() => undefined);
           pair = await read();
           this.log.log('Generated Web Push VAPID keys');
         }
       }
       if (!pair) throw new Error('VAPID keys unavailable');
-      webpush.setVapidDetails(env.vapid.subject, pair.publicKey, pair.privateKey);
+      webpush.setVapidDetails(
+        env.vapid.subject,
+        pair.publicKey,
+        pair.privateKey,
+      );
       this.publicKey = pair.publicKey;
     })().catch((e) => {
       this.ready = null;
@@ -83,7 +116,11 @@ export class PushService implements OnModuleInit {
   }
 
   /** Sends to each subscription; removes ones the push service says are gone. Returns how many were accepted. */
-  async send(targets: Target[], payload: PushPayload, urgent = false): Promise<number> {
+  async send(
+    targets: Target[],
+    payload: PushPayload,
+    urgent = false,
+  ): Promise<number> {
     if (!targets.length) return 0;
     await this.init();
     if (!this.publicKey) return 0;
@@ -98,11 +135,15 @@ export class PushService implements OnModuleInit {
       const batch = targets.slice(i, i + CONCURRENCY);
       const results = await Promise.allSettled(
         batch.map((t) =>
-          webpush.sendNotification({ endpoint: t.endpoint, keys: { p256dh: t.p256dh, auth: t.auth } }, body, {
-            TTL: urgent ? 3 * 86_400 : 86_400,
-            urgency: urgent ? 'high' : 'normal',
-            timeout: 10_000,
-          }),
+          webpush.sendNotification(
+            { endpoint: t.endpoint, keys: { p256dh: t.p256dh, auth: t.auth } },
+            body,
+            {
+              TTL: urgent ? 3 * 86_400 : 86_400,
+              urgency: urgent ? 'high' : 'normal',
+              timeout: 10_000,
+            },
+          ),
         ),
       );
       await Promise.all(
@@ -111,20 +152,31 @@ export class PushService implements OnModuleInit {
           if (r.status === 'fulfilled') {
             delivered++;
             await this.prisma.pushSubscription
-              .update({ where: { id: target.id }, data: { failures: 0, lastSuccessAt: new Date() } })
+              .update({
+                where: { id: target.id },
+                data: { failures: 0, lastSuccessAt: new Date() },
+              })
               .catch(() => undefined);
             return;
           }
           const status = (r.reason as { statusCode?: number })?.statusCode;
           if (status === 404 || status === 410) {
-            await this.prisma.pushSubscription.delete({ where: { id: target.id } }).catch(() => undefined);
+            await this.prisma.pushSubscription
+              .delete({ where: { id: target.id } })
+              .catch(() => undefined);
             return;
           }
           const sub = await this.prisma.pushSubscription
-            .update({ where: { id: target.id }, data: { failures: { increment: 1 } }, select: { failures: true } })
+            .update({
+              where: { id: target.id },
+              data: { failures: { increment: 1 } },
+              select: { failures: true },
+            })
             .catch(() => null);
           if (sub && sub.failures >= MAX_FAILURES) {
-            await this.prisma.pushSubscription.delete({ where: { id: target.id } }).catch(() => undefined);
+            await this.prisma.pushSubscription
+              .delete({ where: { id: target.id } })
+              .catch(() => undefined);
           }
           this.log.warn(`Push failed (${status ?? 'network'})`);
         }),

@@ -9,7 +9,12 @@ import { CampaignsController, CampaignsService } from './campaigns';
 @Global()
 @Module({
   controllers: [NotificationsController, CampaignsController],
-  providers: [NotificationsService, PushService, ActivityNotifier, CampaignsService],
+  providers: [
+    NotificationsService,
+    PushService,
+    ActivityNotifier,
+    CampaignsService,
+  ],
   exports: [NotificationsService, ActivityNotifier],
 })
 export class NotificationsModule {}

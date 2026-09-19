@@ -1,4 +1,15 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { Throttle } from '../common/throttle';
 import { Auth } from '../auth/guards';
@@ -30,8 +41,18 @@ export class AdminPlacesController {
 
   @Patch('governorates/:id/status')
   @Auth('ADMIN')
-  setGovernorateStatus(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: GovernorateStatusDto, @Req() req: Request) {
-    return this.markets.setGovernorateStatus(actor.id, id, dto.status, clientIp(req));
+  setGovernorateStatus(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: GovernorateStatusDto,
+    @Req() req: Request,
+  ) {
+    return this.markets.setGovernorateStatus(
+      actor.id,
+      id,
+      dto.status,
+      clientIp(req),
+    );
   }
 
   @Get('markets')
@@ -41,32 +62,54 @@ export class AdminPlacesController {
 
   @Post('markets')
   @Auth('ADMIN')
-  createMarket(@CurrentUser() actor: AuthUser, @Body() dto: CreateMarketDto, @Req() req: Request) {
+  createMarket(
+    @CurrentUser() actor: AuthUser,
+    @Body() dto: CreateMarketDto,
+    @Req() req: Request,
+  ) {
     return this.markets.createMarket(actor.id, dto, clientIp(req));
   }
 
   @Patch('markets/:id')
   @Auth('ADMIN')
-  updateMarket(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: UpdateMarketDto, @Req() req: Request) {
+  updateMarket(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateMarketDto,
+    @Req() req: Request,
+  ) {
     return this.markets.updateMarket(actor.id, id, dto, clientIp(req));
   }
 
   @Delete('markets/:id')
   @Auth('ADMIN')
   @HttpCode(204)
-  async deleteMarket(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Req() req: Request) {
+  async deleteMarket(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
     await this.markets.deleteMarket(actor.id, id, clientIp(req));
   }
 
   @Patch('markets/:id/geofence')
   @Auth('ADMIN')
-  setGeofence(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: GeofenceDto, @Req() req: Request) {
+  setGeofence(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: GeofenceDto,
+    @Req() req: Request,
+  ) {
     return this.markets.setGeofence(actor.id, id, dto, clientIp(req));
   }
 
   @Delete('markets/:id/geofence')
   @Auth('ADMIN')
-  removeGeofence(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Req() req: Request) {
+  removeGeofence(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
     return this.markets.removeGeofence(actor.id, id, clientIp(req));
   }
 
@@ -82,20 +125,33 @@ export class AdminPlacesController {
 
   @Post('categories')
   @Auth('ADMIN')
-  createCategory(@CurrentUser() actor: AuthUser, @Body() dto: CreateCategoryDto, @Req() req: Request) {
+  createCategory(
+    @CurrentUser() actor: AuthUser,
+    @Body() dto: CreateCategoryDto,
+    @Req() req: Request,
+  ) {
     return this.markets.createCategory(actor.id, dto, clientIp(req));
   }
 
   @Patch('categories/:id')
   @Auth('ADMIN')
-  updateCategory(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: UpdateCategoryDto, @Req() req: Request) {
+  updateCategory(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateCategoryDto,
+    @Req() req: Request,
+  ) {
     return this.markets.updateCategory(actor.id, id, dto, clientIp(req));
   }
 
   @Delete('categories/:id')
   @Auth('ADMIN')
   @HttpCode(204)
-  async deleteCategory(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Req() req: Request) {
+  async deleteCategory(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
     await this.markets.deleteCategory(actor.id, id, clientIp(req));
   }
 
@@ -105,8 +161,18 @@ export class AdminPlacesController {
   }
 
   @Patch('interests/:id')
-  setInterestContacted(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: InterestContactedDto, @Req() req: Request) {
-    return this.markets.setInterestContacted(actor.id, id, dto.contacted, clientIp(req));
+  setInterestContacted(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: InterestContactedDto,
+    @Req() req: Request,
+  ) {
+    return this.markets.setInterestContacted(
+      actor.id,
+      id,
+      dto.contacted,
+      clientIp(req),
+    );
   }
 }
 

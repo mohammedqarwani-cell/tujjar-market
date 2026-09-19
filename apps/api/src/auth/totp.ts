@@ -52,7 +52,11 @@ export function hotp(secret: Buffer, counter: number, digits = 6): string {
 export const currentStep = (now = Date.now()) => Math.floor(now / 30_000);
 
 /** Returns the matching time step (±1 step of clock drift), or null. */
-export function matchTotp(secret: Buffer, code: string, now = Date.now()): number | null {
+export function matchTotp(
+  secret: Buffer,
+  code: string,
+  now = Date.now(),
+): number | null {
   if (!/^\d{6}$/.test(code)) return null;
   const step = currentStep(now);
   for (const s of [step, step - 1, step + 1]) {

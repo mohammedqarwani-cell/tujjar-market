@@ -50,9 +50,15 @@ export class KycStorageService implements OnModuleInit {
   }
 
   async get(key: string): Promise<Buffer> {
-    const res = await this.s3.send(new GetObjectCommand({ Bucket: this.bucket, Key: key }));
+    const res = await this.s3.send(
+      new GetObjectCommand({ Bucket: this.bucket, Key: key }),
+    );
     const buf = Buffer.from(await res.Body!.transformToByteArray());
-    const decipher = createDecipheriv('aes-256-gcm', env.kycKey, buf.subarray(0, 12));
+    const decipher = createDecipheriv(
+      'aes-256-gcm',
+      env.kycKey,
+      buf.subarray(0, 12),
+    );
     decipher.setAuthTag(buf.subarray(12, 28));
     return Buffer.concat([decipher.update(buf.subarray(28)), decipher.final()]);
   }

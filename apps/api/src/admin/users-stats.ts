@@ -1,7 +1,25 @@
-import { BadRequestException, Body, Controller, ForbiddenException, Get, Injectable, NotFoundException, Param, Patch, Query, Req } from '@nestjs/common';
+import {
+  BadRequestException,
+  Body,
+  Controller,
+  ForbiddenException,
+  Get,
+  Injectable,
+  NotFoundException,
+  Param,
+  Patch,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { Prisma, Role, UserStatus } from '@prisma/client';
-import { IsBoolean, IsIn, IsOptional, IsString, MaxLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsIn,
+  IsOptional,
+  IsString,
+  MaxLength,
+} from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.module';
 import { Auth } from '../auth/guards';
@@ -12,7 +30,13 @@ import { damascusDay, pageResult, paging } from '../common/pagination';
 import { normalizeArabic, toLatinDigits } from '../common/text/arabic';
 import { reporterCredibility } from '../reports/credibility';
 
-const ROLES: Role[] = ['BUYER', 'MERCHANT', 'MODERATOR', 'FIELD_AGENT', 'ADMIN'];
+const ROLES: Role[] = [
+  'BUYER',
+  'MERCHANT',
+  'MODERATOR',
+  'FIELD_AGENT',
+  'ADMIN',
+];
 const DAY_MS = 86_400_000;
 
 class UpdateUserDto {
@@ -32,12 +56,18 @@ export class AdminUsersService {
   ) {}
 
   async list(query: Record<string, string>) {
-    const { page, pageSize, skip, take } = paging(query.page, query.pageSize, 100);
+    const { page, pageSize, skip, take } = paging(
+      query.page,
+      query.pageSize,
+      100,
+    );
     const where: Prisma.UserWhereInput = {};
     if (ROLES.includes(query.role as Role)) where.role = query.role as Role;
-    if (query.status === 'ACTIVE' || query.status === 'SUSPENDED') where.status = query.status;
+    if (query.status === 'ACTIVE' || query.status === 'SUSPENDED')
+      where.status = query.status;
     if (query.flag === 'locked') where.lockedUntil = { gt: new Date() };
-    if (query.flag === 'reporting_blocked') where.reportingBlockedUntil = { gt: new Date() };
+    if (query.flag === 'reporting_blocked')
+      where.reportingBlockedUntil = { gt: new Date() };
     const q = query.q?.trim();
     if (q) {
       const digits = toLatinDigits(q).replace(/\D/g, '');
@@ -68,8 +98,23 @@ export class AdminUsersService {
           reportsConfirmed: true,
           reportsDismissed: true,
           totpEnabled: true,
-          stores: { select: { slug: true, name: true, status: true, verificationLevel: true }, take: 1 },
-          _count: { select: { reviews: true, reports: true, favorites: true, follows: true } },
+          stores: {
+            select: {
+              slug: true,
+              name: true,
+              status: true,
+              verificationLevel: true,
+            },
+            take: 1,
+          },
+          _count: {
+            select: {
+              reviews: true,
+              reports: true,
+              favorites: true,
+              follows: true,
+            },
+          },
         },
       }),
       this.prisma.user.count({ where }),
@@ -80,8 +125,11 @@ export class AdminUsersService {
         ...u,
         store: stores[0] ?? null,
         locked: !!u.lockedUntil && u.lockedUntil > now,
-        reportingBlocked: !!u.reportingBlockedUntil && u.reportingBlockedUntil > now,
-        credibility: Math.round(reporterCredibility(u.reportsConfirmed, u.reportsDismissed) * 100),
+        reportingBlocked:
+          !!u.reportingBlockedUntil && u.reportingBlockedUntil > now,
+        credibility: Math.round(
+          reporterCredibility(u.reportsConfirmed, u.reportsDismissed) * 100,
+        ),
       })),
       total,
       page,
@@ -90,17 +138,26 @@ export class AdminUsersService {
   }
 
   async update(actor: AuthUser, id: string, dto: UpdateUserDto, ip: string) {
-    if (id === actor.id) throw new BadRequestException('لا يمكنك تعديل حسابك من هنا');
-    const user = await this.prisma.user.findUnique({ where: { id }, select: { id: true, role: true, status: true } });
+    if (id === actor.id)
+      throw new BadRequestException('لا يمكنك تعديل حسابك من هنا');
+    const user = await this.prisma.user.findUnique({
+      where: { id },
+      select: { id: true, role: true, status: true },
+    });
     if (!user) throw new NotFoundException('المستخدم غير موجود');
     // Admin accounts are managed outside the console, so one compromised admin can't lock out the others
-    if (user.role === 'ADMIN') throw new ForbiddenException('لا يمكن تعديل حسابات المدراء من لوحة الإدارة');
+    if (user.role === 'ADMIN')
+      throw new ForbiddenException(
+        'لا يمكن تعديل حسابات المدراء من لوحة الإدارة',
+      );
 
     const data: Prisma.UserUpdateInput = {};
     const actions: string[] = [];
     if (dto.status && dto.status !== user.status) {
       data.status = dto.status;
-      actions.push(dto.status === 'SUSPENDED' ? 'user.suspended' : 'user.reactivated');
+      actions.push(
+        dto.status === 'SUSPENDED' ? 'user.suspended' : 'user.reactivated',
+      );
     }
     if (dto.unlock) {
       data.lockedUntil = null;
@@ -112,15 +169,26 @@ export class AdminUsersService {
       actions.push('user.reporting_allowed');
     }
     if (!actions.length) throw new BadRequestException('لا يوجد تغيير');
-    if (dto.status === 'SUSPENDED' && !dto.note?.trim()) throw new BadRequestException('اكتب سبب الإيقاف');
+    if (dto.status === 'SUSPENDED' && !dto.note?.trim())
+      throw new BadRequestException('اكتب سبب الإيقاف');
 
     await this.prisma.user.update({ where: { id }, data });
     if (dto.status === 'SUSPENDED') {
       // Signs the account out everywhere right away
-      await this.prisma.session.updateMany({ where: { userId: id, revokedAt: null }, data: { revokedAt: new Date() } });
+      await this.prisma.session.updateMany({
+        where: { userId: id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
     }
     for (const action of actions) {
-      await this.audit.log({ actorId: actor.id, action, entityType: 'user', entityId: id, meta: { note: dto.note?.trim() || null }, ip });
+      await this.audit.log({
+        actorId: actor.id,
+        action,
+        entityType: 'user',
+        entityId: id,
+        meta: { note: dto.note?.trim() || null },
+        ip,
+      });
     }
     return { id, updated: actions };
   }
@@ -159,7 +227,11 @@ export class PlatformStatsService {
       favorites,
     ] = await Promise.all([
       this.prisma.user.groupBy({ by: ['role'], _count: true }),
-      this.prisma.store.groupBy({ by: ['verificationLevel'], where: { status: 'ACTIVE' }, _count: true }),
+      this.prisma.store.groupBy({
+        by: ['verificationLevel'],
+        where: { status: 'ACTIVE' },
+        _count: true,
+      }),
       this.prisma.product.groupBy({ by: ['status'], _count: true }),
       series('User'),
       series('Store'),
@@ -178,11 +250,18 @@ export class PlatformStatsService {
       }),
       this.prisma.governorate.findMany({
         where: { status: 'ACTIVE' },
-        select: { name: true, _count: { select: { stores: { where: { status: 'ACTIVE' } } } } },
+        select: {
+          name: true,
+          _count: { select: { stores: { where: { status: 'ACTIVE' } } } },
+        },
         orderBy: { sortOrder: 'asc' },
       }),
       this.prisma.category.findMany({
-        select: { name: true, icon: true, _count: { select: { products: { where: { status: 'ACTIVE' } } } } },
+        select: {
+          name: true,
+          icon: true,
+          _count: { select: { products: { where: { status: 'ACTIVE' } } } },
+        },
       }),
       this.prisma.review.count({ where: { status: 'PUBLISHED' } }),
       this.prisma.report.count({ where: { status: 'OPEN' } }),
@@ -197,7 +276,9 @@ export class PlatformStatsService {
     });
 
     const key = (d: Date) => new Date(d).toISOString().slice(0, 10);
-    const dayList = Array.from({ length: days }, (_, i) => key(new Date(since.getTime() + i * DAY_MS)));
+    const dayList = Array.from({ length: days }, (_, i) =>
+      key(new Date(since.getTime() + i * DAY_MS)),
+    );
     const fill = (rows: { day: Date; n: bigint }[]) => {
       const map = new Map(rows.map((r) => [key(r.day), Number(r.n)]));
       return dayList.map((d) => map.get(d) ?? 0);
@@ -213,8 +294,12 @@ export class PlatformStatsService {
       dayList,
       totals: {
         users: Object.fromEntries(usersByRole.map((r) => [r.role, r._count])),
-        storesByLevel: Object.fromEntries(storesByLevel.map((r) => [r.verificationLevel, r._count])),
-        productsByStatus: Object.fromEntries(productsByStatus.map((r) => [r.status, r._count])),
+        storesByLevel: Object.fromEntries(
+          storesByLevel.map((r) => [r.verificationLevel, r._count]),
+        ),
+        productsByStatus: Object.fromEntries(
+          productsByStatus.map((r) => [r.status, r._count]),
+        ),
         reviews,
         openReports,
         pushDevices,
@@ -238,11 +323,23 @@ export class PlatformStatsService {
       },
       topStores: topStoreRows.map((r) => {
         const s = topStores.find((x) => x.id === r.storeId);
-        return { slug: s?.slug, name: s?.name, views: r._sum.views ?? 0, contacts: (r._sum.whatsapp ?? 0) + (r._sum.calls ?? 0) };
+        return {
+          slug: s?.slug,
+          name: s?.name,
+          views: r._sum.views ?? 0,
+          contacts: (r._sum.whatsapp ?? 0) + (r._sum.calls ?? 0),
+        };
       }),
-      byGovernorate: byGovernorate.map((g) => ({ name: g.name, stores: g._count.stores })),
+      byGovernorate: byGovernorate.map((g) => ({
+        name: g.name,
+        stores: g._count.stores,
+      })),
       byCategory: byCategory
-        .map((c) => ({ name: c.name, icon: c.icon, products: c._count.products }))
+        .map((c) => ({
+          name: c.name,
+          icon: c.icon,
+          products: c._count.products,
+        }))
         .sort((a, b) => b.products - a.products)
         .slice(0, 8),
     };
@@ -265,7 +362,12 @@ export class AdminUsersController {
   /** Suspending, unlocking and lifting reporting pauses are for full admins only. */
   @Patch('users/:id')
   @Auth('ADMIN')
-  update(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: UpdateUserDto, @Req() req: Request) {
+  update(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: UpdateUserDto,
+    @Req() req: Request,
+  ) {
     return this.users.update(actor, id, dto, clientIp(req));
   }
 

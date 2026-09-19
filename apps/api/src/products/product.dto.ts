@@ -18,7 +18,9 @@ import {
 const MAX_PRICE = 2_000_000_000;
 
 export class ProductInputDto {
-  @IsString() @Length(2, 120, { message: 'اسم المنتج بين 2 و120 حرفاً' }) title!: string;
+  @IsString()
+  @Length(2, 120, { message: 'اسم المنتج بين 2 و120 حرفاً' })
+  title!: string;
   @IsOptional() @IsString() @MaxLength(2000) description?: string;
   @IsString() categoryId!: string;
   @IsEnum(PriceType) priceType!: PriceType;

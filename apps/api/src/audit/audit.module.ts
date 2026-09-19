@@ -22,7 +22,10 @@ export class AuditService {
     try {
       await this.prisma.auditLog.create({ data: entry });
     } catch (e) {
-      this.logger.error(`Audit write failed for ${entry.action}`, (e as Error).stack);
+      this.logger.error(
+        `Audit write failed for ${entry.action}`,
+        (e as Error).stack,
+      );
     }
   }
 }

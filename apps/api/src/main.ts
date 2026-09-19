@@ -8,13 +8,17 @@ import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
-  const app = await NestFactory.create<NestExpressApplication>(AppModule, { bodyParser: false });
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
+    bodyParser: false,
+  });
 
   app.set('trust proxy', env.trustProxy);
   app.use(
     helmet({
       crossOriginResourcePolicy: { policy: 'same-site' },
-      contentSecurityPolicy: { directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },
+      contentSecurityPolicy: {
+        directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] },
+      },
     }),
   );
   app.use(cookieParser());
@@ -29,11 +33,16 @@ async function bootstrap() {
     maxAge: 600,
   });
   app.useGlobalPipes(
-    new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true, stopAtFirstError: true }),
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+      stopAtFirstError: true,
+    }),
   );
   app.useGlobalFilters(new AllExceptionsFilter());
   app.enableShutdownHooks();
 
   await app.listen(env.port);
 }
-bootstrap();
+void bootstrap();

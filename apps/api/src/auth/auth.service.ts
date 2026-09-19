@@ -18,7 +18,13 @@ import type { Audience, RequestMeta } from '../common/request';
 import { buildSearchText } from '../common/text/arabic';
 import { normalizeSyrianMobile } from '../common/text/phone';
 import { slugify, withSuffix } from '../common/text/slug';
-import { ChangePhoneDto, LoginDto, RegisterBuyerDto, RegisterMerchantDto, ResetPasswordDto } from './auth.dto';
+import {
+  ChangePhoneDto,
+  LoginDto,
+  RegisterBuyerDto,
+  RegisterMerchantDto,
+  ResetPasswordDto,
+} from './auth.dto';
 import { SmsSender } from '../sms/sms.module';
 import { OtpService } from './otp.service';
 import { ROLE_AUDIENCE } from './roles';
@@ -45,13 +51,21 @@ export class AuthService {
 
   private phoneOrThrow(raw: string) {
     const phone = normalizeSyrianMobile(raw);
-    if (!phone) throw new BadRequestException('رقم الموبايل غير صحيح، مثال: 0912345678');
+    if (!phone)
+      throw new BadRequestException('رقم الموبايل غير صحيح، مثال: 0912345678');
     return phone;
   }
 
   private async assertPhoneFree(phone: string) {
-    if (await this.prisma.user.findUnique({ where: { phone }, select: { id: true } })) {
-      throw new ConflictException('هذا الرقم مسجّل مسبقاً، سجّل الدخول بدلاً من ذلك');
+    if (
+      await this.prisma.user.findUnique({
+        where: { phone },
+        select: { id: true },
+      })
+    ) {
+      throw new ConflictException(
+        'هذا الرقم مسجّل مسبقاً، سجّل الدخول بدلاً من ذلك',
+      );
     }
   }
 
@@ -71,7 +85,13 @@ export class AuthService {
         termsAcceptedAt: new Date(),
       },
     });
-    await this.audit.log({ actorId: user.id, action: 'user.register', entityType: 'user', entityId: user.id, ip: meta.ip });
+    await this.audit.log({
+      actorId: user.id,
+      action: 'user.register',
+      entityType: 'user',
+      entityId: user.id,
+      ip: meta.ip,
+    });
     this.notifications.notify(user.id, {
       category: 'ACCOUNT',
       type: 'welcome',
@@ -90,23 +110,32 @@ export class AuthService {
 
     const [governorate, market, category] = await Promise.all([
       this.prisma.governorate.findUnique({ where: { id: dto.governorateId } }),
-      dto.marketId ? this.prisma.market.findUnique({ where: { id: dto.marketId } }) : null,
+      dto.marketId
+        ? this.prisma.market.findUnique({ where: { id: dto.marketId } })
+        : null,
       this.prisma.category.findUnique({ where: { id: dto.categoryId } }),
     ]);
     if (!governorate) throw new BadRequestException('اختر المحافظة');
     // Pilot rollout: only opened governorates accept stores; the others collect merchant interest
     if (governorate.status !== 'ACTIVE') {
-      throw new BadRequestException(`التسجيل في ${governorate.name} يفتح قريباً. سجّل اهتمامك وسنتواصل معك عند الافتتاح`);
+      throw new BadRequestException(
+        `التسجيل في ${governorate.name} يفتح قريباً. سجّل اهتمامك وسنتواصل معك عند الافتتاح`,
+      );
     }
-    if (!category || !category.isActive) throw new BadRequestException('اختر تصنيف المتجر');
-    if (dto.marketId && (!market || market.governorateId !== governorate.id || !market.isActive)) {
+    if (!category || !category.isActive)
+      throw new BadRequestException('اختر تصنيف المتجر');
+    if (
+      dto.marketId &&
+      (!market || market.governorateId !== governorate.id || !market.isActive)
+    ) {
       throw new BadRequestException('السوق غير متاح في المحافظة المختارة');
     }
 
     await this.otp.verify(phone, 'REGISTER', dto.otpCode);
 
     let slug = slugify(dto.storeName);
-    if (await this.prisma.store.findUnique({ where: { slug } })) slug = withSuffix(slug);
+    if (await this.prisma.store.findUnique({ where: { slug } }))
+      slug = withSuffix(slug);
 
     const user = await this.prisma.user.create({
       data: {
@@ -128,12 +157,23 @@ export class AuthService {
             phone,
             address: dto.address?.trim() || null,
             attestedAt: new Date(),
-            searchText: buildSearchText(dto.storeName, market?.name, governorate.name, category.name),
+            searchText: buildSearchText(
+              dto.storeName,
+              market?.name,
+              governorate.name,
+              category.name,
+            ),
           },
         },
       },
     });
-    await this.audit.log({ actorId: user.id, action: 'merchant.register', entityType: 'user', entityId: user.id, ip: meta.ip });
+    await this.audit.log({
+      actorId: user.id,
+      action: 'merchant.register',
+      entityType: 'user',
+      entityId: user.id,
+      ip: meta.ip,
+    });
     this.notifications.notify(user.id, {
       category: 'ACCOUNT',
       type: 'welcome',
@@ -145,16 +185,22 @@ export class AuthService {
   }
 
   async login(dto: LoginDto, aud: Audience, meta: RequestMeta) {
-    const invalid = () => new UnauthorizedException('رقم الموبايل أو كلمة المرور غير صحيحة');
+    const invalid = () =>
+      new UnauthorizedException('رقم الموبايل أو كلمة المرور غير صحيحة');
     const phone = normalizeSyrianMobile(dto.phone);
-    const user = phone ? await this.prisma.user.findUnique({ where: { phone } }) : null;
+    const user = phone
+      ? await this.prisma.user.findUnique({ where: { phone } })
+      : null;
     if (!user) {
       await bcrypt.compare(dto.password, DUMMY_HASH);
       throw invalid();
     }
 
     if (user.lockedUntil && user.lockedUntil > new Date()) {
-      throw new HttpException('الحساب مقفل مؤقتاً بسبب محاولات فاشلة متكررة، حاول بعد 15 دقيقة', HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(
+        'الحساب مقفل مؤقتاً بسبب محاولات فاشلة متكررة، حاول بعد 15 دقيقة',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
@@ -162,7 +208,10 @@ export class AuthService {
       const lock = failed >= MAX_FAILED_LOGINS;
       await this.prisma.user.update({
         where: { id: user.id },
-        data: { failedLogins: lock ? 0 : failed, ...(lock ? { lockedUntil: new Date(Date.now() + LOCK_MS) } : {}) },
+        data: {
+          failedLogins: lock ? 0 : failed,
+          ...(lock ? { lockedUntil: new Date(Date.now() + LOCK_MS) } : {}),
+        },
       });
       await this.audit.log({
         actorId: user.id,
@@ -177,16 +226,31 @@ export class AuthService {
 
     // A buyer account can't open the merchant or admin interface, and vice versa
     if (!ROLE_AUDIENCE[aud].includes(user.role)) throw invalid();
-    if (user.status !== 'ACTIVE') throw new ForbiddenException('الحساب موقوف، تواصل مع إدارة المنصة');
+    if (user.status !== 'ACTIVE')
+      throw new ForbiddenException('الحساب موقوف، تواصل مع إدارة المنصة');
 
     let mfa = false;
     if (aud === 'admin' && user.totpEnabled) {
       if (!dto.totp) {
-        throw new UnauthorizedException({ statusCode: 401, message: 'أدخل رمز المصادقة الثنائية', code: 'TOTP_REQUIRED' });
+        throw new UnauthorizedException({
+          statusCode: 401,
+          message: 'أدخل رمز المصادقة الثنائية',
+          code: 'TOTP_REQUIRED',
+        });
       }
       if (!(await this.consumeTotp(user, dto.totp))) {
-        await this.audit.log({ actorId: user.id, action: 'auth.totp_failed', entityType: 'user', entityId: user.id, ip: meta.ip });
-        throw new UnauthorizedException({ statusCode: 401, message: 'رمز المصادقة غير صحيح', code: 'TOTP_INVALID' });
+        await this.audit.log({
+          actorId: user.id,
+          action: 'auth.totp_failed',
+          entityType: 'user',
+          entityId: user.id,
+          ip: meta.ip,
+        });
+        throw new UnauthorizedException({
+          statusCode: 401,
+          message: 'رمز المصادقة غير صحيح',
+          code: 'TOTP_INVALID',
+        });
       }
       mfa = true;
     }
@@ -195,41 +259,86 @@ export class AuthService {
       where: { id: user.id },
       data: { failedLogins: 0, lockedUntil: null, lastLoginAt: new Date() },
     });
-    await this.audit.log({ actorId: user.id, action: 'auth.login', entityType: 'user', entityId: user.id, meta: { aud, mfa }, ip: meta.ip });
+    await this.audit.log({
+      actorId: user.id,
+      action: 'auth.login',
+      entityType: 'user',
+      entityId: user.id,
+      meta: { aud, mfa },
+      ip: meta.ip,
+    });
     return this.startSession(user, aud, meta, mfa);
   }
 
   async resetPassword(dto: ResetPasswordDto, meta: RequestMeta) {
     const phone = this.phoneOrThrow(dto.phone);
     await this.otp.verify(phone, 'RESET_PASSWORD', dto.otpCode);
-    const user = await this.prisma.user.findUnique({ where: { phone }, select: { id: true } });
+    const user = await this.prisma.user.findUnique({
+      where: { phone },
+      select: { id: true },
+    });
     if (!user) throw new BadRequestException('رمز التحقق غير صحيح');
 
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { passwordHash: await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS), failedLogins: 0, lockedUntil: null },
+      data: {
+        passwordHash: await bcrypt.hash(dto.newPassword, BCRYPT_ROUNDS),
+        failedLogins: 0,
+        lockedUntil: null,
+      },
     });
     await this.sessions.revokeAllForUser(user.id);
-    await this.audit.log({ actorId: user.id, action: 'auth.password_reset', entityType: 'user', entityId: user.id, ip: meta.ip });
+    await this.audit.log({
+      actorId: user.id,
+      action: 'auth.password_reset',
+      entityType: 'user',
+      entityId: user.id,
+      ip: meta.ip,
+    });
   }
 
   /** Replaces the sign-in number after confirming the password and a code sent to the new number. */
-  async changePhone(userId: string, sessionId: string, aud: Audience, dto: ChangePhoneDto, meta: RequestMeta) {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId }, select: { id: true, phone: true, passwordHash: true, role: true } });
-    if (!(await bcrypt.compare(dto.password, user.passwordHash))) throw new BadRequestException('كلمة المرور غير صحيحة');
+  async changePhone(
+    userId: string,
+    sessionId: string,
+    aud: Audience,
+    dto: ChangePhoneDto,
+    meta: RequestMeta,
+  ) {
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+      select: { id: true, phone: true, passwordHash: true, role: true },
+    });
+    if (!(await bcrypt.compare(dto.password, user.passwordHash)))
+      throw new BadRequestException('كلمة المرور غير صحيحة');
     const phone = this.phoneOrThrow(dto.newPhone);
-    if (phone === user.phone) throw new BadRequestException('هذا هو رقمك الحالي');
-    if (await this.prisma.user.findUnique({ where: { phone }, select: { id: true } })) {
+    if (phone === user.phone)
+      throw new BadRequestException('هذا هو رقمك الحالي');
+    if (
+      await this.prisma.user.findUnique({
+        where: { phone },
+        select: { id: true },
+      })
+    ) {
       throw new ConflictException('هذا الرقم مستخدم في حساب آخر');
     }
     await this.otp.verify(phone, 'CHANGE_PHONE', dto.otpCode);
 
     const oldPhone = user.phone;
     await this.prisma.$transaction(async (tx) => {
-      await tx.user.update({ where: { id: userId }, data: { phone, phoneVerifiedAt: new Date() } });
+      await tx.user.update({
+        where: { id: userId },
+        data: { phone, phoneVerifiedAt: new Date() },
+      });
       if (user.role === 'MERCHANT' && dto.updateStoreContacts) {
-        await tx.store.updateMany({ where: { ownerId: userId, whatsapp: oldPhone }, data: { whatsapp: phone } });
-        await tx.store.updateMany({ where: { ownerId: userId, phone: oldPhone }, data: { phone } });
+        await tx.store.updateMany({
+          where: { ownerId: userId, whatsapp: oldPhone },
+          data: { whatsapp: phone },
+        });
+        await tx.store.updateMany({
+          where: { ownerId: userId, phone: oldPhone },
+          data: { phone },
+        });
       }
     });
     // Other devices must sign in again with the new number
@@ -244,7 +353,10 @@ export class AuthService {
     });
     // The old number learns about it, in case someone else made the change
     await this.sms
-      .send(oldPhone, `تم تغيير رقم حسابك في تُجّار ماركت إلى رقم ينتهي بـ ${phone.slice(-3)}. إذا لم تفعل ذلك تواصل معنا فوراً.`)
+      .send(
+        oldPhone,
+        `تم تغيير رقم حسابك في تُجّار ماركت إلى رقم ينتهي بـ ${phone.slice(-3)}. إذا لم تفعل ذلك تواصل معنا فوراً.`,
+      )
       .catch(() => undefined);
     return this.me(userId, aud, true);
   }
@@ -258,7 +370,13 @@ export class AuthService {
         phone: true,
         role: true,
         totpEnabled: true,
-        stores: aud === 'merchant' ? { select: { id: true, slug: true, name: true, status: true }, take: 1 } : false,
+        stores:
+          aud === 'merchant'
+            ? {
+                select: { id: true, slug: true, name: true, status: true },
+                take: 1,
+              }
+            : false,
       },
     });
     if (!user) throw new UnauthorizedException('سجّل الدخول للمتابعة');
@@ -274,38 +392,81 @@ export class AuthService {
   // ---------- admin two-factor ----------
 
   async totpSetup(userId: string) {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    if (user.totpEnabled) throw new BadRequestException('المصادقة الثنائية مفعّلة مسبقاً');
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
+    if (user.totpEnabled)
+      throw new BadRequestException('المصادقة الثنائية مفعّلة مسبقاً');
     const secret = base32Encode(randomBytes(20));
-    await this.prisma.user.update({ where: { id: userId }, data: { totpSecret: encrypt(env.totpKey, secret) } });
-    return { secret, otpauthUrl: otpauthUrl(secret, `0${user.phone.slice(3)}`) };
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { totpSecret: encrypt(env.totpKey, secret) },
+    });
+    return {
+      secret,
+      otpauthUrl: otpauthUrl(secret, `0${user.phone.slice(3)}`),
+    };
   }
 
   async totpEnable(userId: string, code: string, meta: RequestMeta) {
-    const user = await this.prisma.user.findUniqueOrThrow({ where: { id: userId } });
-    if (user.totpEnabled) throw new BadRequestException('المصادقة الثنائية مفعّلة مسبقاً');
-    if (!user.totpSecret) throw new BadRequestException('ابدأ إعداد المصادقة الثنائية أولاً');
-    if (!(await this.consumeTotp(user, code))) throw new BadRequestException('رمز المصادقة غير صحيح');
+    const user = await this.prisma.user.findUniqueOrThrow({
+      where: { id: userId },
+    });
+    if (user.totpEnabled)
+      throw new BadRequestException('المصادقة الثنائية مفعّلة مسبقاً');
+    if (!user.totpSecret)
+      throw new BadRequestException('ابدأ إعداد المصادقة الثنائية أولاً');
+    if (!(await this.consumeTotp(user, code)))
+      throw new BadRequestException('رمز المصادقة غير صحيح');
 
-    await this.prisma.user.update({ where: { id: userId }, data: { totpEnabled: true } });
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { totpEnabled: true },
+    });
     await this.sessions.revokeAllForUser(userId);
-    await this.audit.log({ actorId: userId, action: 'auth.totp_enabled', entityType: 'user', entityId: userId, ip: meta.ip });
-    return this.startSession({ ...user, totpEnabled: true }, 'admin', meta, true);
+    await this.audit.log({
+      actorId: userId,
+      action: 'auth.totp_enabled',
+      entityType: 'user',
+      entityId: userId,
+      ip: meta.ip,
+    });
+    return this.startSession(
+      { ...user, totpEnabled: true },
+      'admin',
+      meta,
+      true,
+    );
   }
 
   /** Verifies a TOTP code and records its time step so the same code can't be replayed. */
   private async consumeTotp(user: User, code: string): Promise<boolean> {
     if (!user.totpSecret) return false;
-    const step = matchTotp(base32Decode(decrypt(env.totpKey, user.totpSecret)), code);
-    if (step === null || (user.totpLastStep !== null && step <= user.totpLastStep)) return false;
+    const step = matchTotp(
+      base32Decode(decrypt(env.totpKey, user.totpSecret)),
+      code,
+    );
+    if (
+      step === null ||
+      (user.totpLastStep !== null && step <= user.totpLastStep)
+    )
+      return false;
     const { count } = await this.prisma.user.updateMany({
-      where: { id: user.id, OR: [{ totpLastStep: null }, { totpLastStep: { lt: step } }] },
+      where: {
+        id: user.id,
+        OR: [{ totpLastStep: null }, { totpLastStep: { lt: step } }],
+      },
       data: { totpLastStep: step },
     });
     return count === 1;
   }
 
-  private async startSession(user: User, aud: Audience, meta: RequestMeta, mfa: boolean) {
+  private async startSession(
+    user: User,
+    aud: Audience,
+    meta: RequestMeta,
+    mfa: boolean,
+  ) {
     const tokens = await this.sessions.issue(user, aud, meta, { mfa });
     return { tokens, user: await this.me(user.id, aud, mfa) };
   }

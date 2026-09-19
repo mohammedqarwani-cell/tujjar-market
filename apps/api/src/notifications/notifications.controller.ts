@@ -1,7 +1,24 @@
-import { Body, Controller, Get, HttpCode, Post, Put, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Put,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsObject, IsOptional, IsString, MaxLength, ValidateNested } from 'class-validator';
+import {
+  ArrayMaxSize,
+  IsArray,
+  IsObject,
+  IsOptional,
+  IsString,
+  MaxLength,
+  ValidateNested,
+} from 'class-validator';
 import { Throttle } from '../common/throttle';
 import { Auth } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
@@ -10,7 +27,11 @@ import { NotificationsService } from './notifications.service';
 import { PushService } from './push.service';
 
 class MarkReadDto {
-  @IsOptional() @IsArray() @ArrayMaxSize(100) @IsString({ each: true }) ids?: string[];
+  @IsOptional()
+  @IsArray()
+  @ArrayMaxSize(100)
+  @IsString({ each: true })
+  ids?: string[];
 }
 
 class PreferencesDto {
@@ -72,7 +93,10 @@ export class NotificationsController {
 
   @Put('preferences')
   @Auth()
-  updatePreferences(@CurrentUser() user: AuthUser, @Body() dto: PreferencesDto) {
+  updatePreferences(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: PreferencesDto,
+  ) {
     return this.notifications.updatePreferences(user.id, dto.prefs);
   }
 
@@ -80,8 +104,17 @@ export class NotificationsController {
   @Auth()
   @HttpCode(200)
   @Throttle({ default: { limit: 20, ttl: 3600_000 } })
-  subscribe(@CurrentUser() user: AuthUser, @Body() dto: SubscribeDto, @Req() req: Request) {
-    return this.notifications.subscribe(user.id, user.aud, dto, String(req.headers['user-agent'] ?? '').slice(0, 200));
+  subscribe(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: SubscribeDto,
+    @Req() req: Request,
+  ) {
+    return this.notifications.subscribe(
+      user.id,
+      user.aud,
+      dto,
+      String(req.headers['user-agent'] ?? '').slice(0, 200),
+    );
   }
 
   @Post('push/unsubscribe')

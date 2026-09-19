@@ -1,4 +1,9 @@
-import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { GovernorateStatus, Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.module';
@@ -67,7 +72,13 @@ export class MarketsService {
         slug: true,
         name: true,
         status: true,
-        _count: { select: { stores: true, markets: true, interests: { where: { contactedAt: null } } } },
+        _count: {
+          select: {
+            stores: true,
+            markets: true,
+            interests: { where: { contactedAt: null } },
+          },
+        },
       },
     });
     return rows.map(({ _count, ...g }) => ({
@@ -78,15 +89,30 @@ export class MarketsService {
     }));
   }
 
-  async setGovernorateStatus(actorId: string, id: string, status: GovernorateStatus, ip: string) {
-    const governorate = await this.prisma.governorate.findUnique({ where: { id }, select: { id: true } });
+  async setGovernorateStatus(
+    actorId: string,
+    id: string,
+    status: GovernorateStatus,
+    ip: string,
+  ) {
+    const governorate = await this.prisma.governorate.findUnique({
+      where: { id },
+      select: { id: true },
+    });
     if (!governorate) throw new NotFoundException('المحافظة غير موجودة');
     const updated = await this.prisma.governorate.update({
       where: { id },
       data: { status },
       select: { id: true, name: true, status: true },
     });
-    await this.audit.log({ actorId, action: 'governorate.status_changed', entityType: 'governorate', entityId: id, meta: { status }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'governorate.status_changed',
+      entityType: 'governorate',
+      entityId: id,
+      meta: { status },
+      ip,
+    });
     return updated;
   }
 
@@ -98,20 +124,31 @@ export class MarketsService {
       orderBy: [{ governorate: { sortOrder: 'asc' } }, { sortOrder: 'asc' }],
       select: marketAdminSelect,
     });
-    return rows.map(({ _count, ...m }) => ({ ...m, storesCount: _count.stores }));
+    return rows.map(({ _count, ...m }) => ({
+      ...m,
+      storesCount: _count.stores,
+    }));
   }
 
   private async marketOrThrow(id: string) {
     const market = await this.prisma.market.findUnique({
       where: { id },
-      select: { id: true, name: true, governorateId: true, _count: { select: { stores: true } } },
+      select: {
+        id: true,
+        name: true,
+        governorateId: true,
+        _count: { select: { stores: true } },
+      },
     });
     if (!market) throw new NotFoundException('السوق غير موجود');
     return market;
   }
 
   async createMarket(actorId: string, dto: CreateMarketDto, ip: string) {
-    const governorate = await this.prisma.governorate.findUnique({ where: { id: dto.governorateId }, select: { id: true } });
+    const governorate = await this.prisma.governorate.findUnique({
+      where: { id: dto.governorateId },
+      select: { id: true },
+    });
     if (!governorate) throw new BadRequestException('اختر المحافظة');
     const name = dto.name.trim();
     await this.assertMarketNameFree(governorate.id, name);
@@ -126,11 +163,23 @@ export class MarketsService {
       },
       select: marketAdminSelect,
     });
-    await this.audit.log({ actorId, action: 'market.created', entityType: 'market', entityId: market.id, meta: { name }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'market.created',
+      entityType: 'market',
+      entityId: market.id,
+      meta: { name },
+      ip,
+    });
     return market;
   }
 
-  async updateMarket(actorId: string, id: string, dto: UpdateMarketDto, ip: string) {
+  async updateMarket(
+    actorId: string,
+    id: string,
+    dto: UpdateMarketDto,
+    ip: string,
+  ) {
     const market = await this.marketOrThrow(id);
     const data: Prisma.MarketUpdateInput = {};
     const name = dto.name?.trim();
@@ -138,27 +187,56 @@ export class MarketsService {
       await this.assertMarketNameFree(market.governorateId, name, id);
       data.name = name;
     }
-    if (dto.slug !== undefined) data.slug = await this.uniqueSlug('market', dto.slug, '', id);
-    if (dto.description !== undefined) data.description = dto.description.trim() || null;
+    if (dto.slug !== undefined)
+      data.slug = await this.uniqueSlug('market', dto.slug, '', id);
+    if (dto.description !== undefined)
+      data.description = dto.description.trim() || null;
     if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
 
-    const updated = await this.prisma.market.update({ where: { id }, data, select: marketAdminSelect });
+    const updated = await this.prisma.market.update({
+      where: { id },
+      data,
+      select: marketAdminSelect,
+    });
     if (data.name) await this.reindex({ marketId: id });
-    await this.audit.log({ actorId, action: 'market.updated', entityType: 'market', entityId: id, meta: { ...dto }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'market.updated',
+      entityType: 'market',
+      entityId: id,
+      meta: { ...dto },
+      ip,
+    });
     return updated;
   }
 
   async deleteMarket(actorId: string, id: string, ip: string) {
     const market = await this.marketOrThrow(id);
-    if (market._count.stores) throw new ConflictException('في هذا السوق متاجر، عطّله بدلاً من حذفه');
+    if (market._count.stores)
+      throw new ConflictException('في هذا السوق متاجر، عطّله بدلاً من حذفه');
     await this.prisma.market.delete({ where: { id } });
-    await this.audit.log({ actorId, action: 'market.deleted', entityType: 'market', entityId: id, meta: { name: market.name }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'market.deleted',
+      entityType: 'market',
+      entityId: id,
+      meta: { name: market.name },
+      ip,
+    });
   }
 
-  private async assertMarketNameFree(governorateId: string, name: string, excludeId?: string) {
+  private async assertMarketNameFree(
+    governorateId: string,
+    name: string,
+    excludeId?: string,
+  ) {
     const clash = await this.prisma.market.findFirst({
-      where: { governorateId, name, ...(excludeId ? { id: { not: excludeId } } : {}) },
+      where: {
+        governorateId,
+        name,
+        ...(excludeId ? { id: { not: excludeId } } : {}),
+      },
       select: { id: true },
     });
     if (clash) throw new ConflictException('يوجد سوق بهذا الاسم في المحافظة');
@@ -166,7 +244,8 @@ export class MarketsService {
 
   async setGeofence(actorId: string, id: string, dto: GeofenceDto, ip: string) {
     await this.marketOrThrow(id);
-    if (!insideSyria(dto.latitude, dto.longitude)) throw new BadRequestException('الإحداثيات خارج سوريا');
+    if (!insideSyria(dto.latitude, dto.longitude))
+      throw new BadRequestException('الإحداثيات خارج سوريا');
     const updated = await this.prisma.market.update({
       where: { id },
       data: {
@@ -177,7 +256,14 @@ export class MarketsService {
       },
       select: marketAdminSelect,
     });
-    await this.audit.log({ actorId, action: 'market.geofence_set', entityType: 'market', entityId: id, meta: { ...dto }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'market.geofence_set',
+      entityType: 'market',
+      entityId: id,
+      meta: { ...dto },
+      ip,
+    });
     return updated;
   }
 
@@ -185,10 +271,21 @@ export class MarketsService {
     await this.marketOrThrow(id);
     const updated = await this.prisma.market.update({
       where: { id },
-      data: { latitude: null, longitude: null, radiusMeters: null, geofenceStatus: 'DRAFT' },
+      data: {
+        latitude: null,
+        longitude: null,
+        radiusMeters: null,
+        geofenceStatus: 'DRAFT',
+      },
       select: marketAdminSelect,
     });
-    await this.audit.log({ actorId, action: 'market.geofence_removed', entityType: 'market', entityId: id, ip });
+    await this.audit.log({
+      actorId,
+      action: 'market.geofence_removed',
+      entityType: 'market',
+      entityId: id,
+      ip,
+    });
     return updated;
   }
 
@@ -202,39 +299,72 @@ export class MarketsService {
       where: { marketId: id, earnedLevel: { in: ['LOCATION', 'PREMIUM'] } },
       select: {
         verificationRequests: {
-          where: { kind: 'LOCATION', status: 'APPROVED', latitude: { not: null }, longitude: { not: null } },
+          where: {
+            kind: 'LOCATION',
+            status: 'APPROVED',
+            latitude: { not: null },
+            longitude: { not: null },
+          },
           orderBy: { reviewedAt: 'desc' },
           take: 1,
           select: { latitude: true, longitude: true },
         },
       },
     });
-    const points = stores.flatMap((s) => s.verificationRequests).map((r) => ({ lat: r.latitude!, lng: r.longitude! }));
+    const points = stores
+      .flatMap((s) => s.verificationRequests)
+      .map((r) => ({ lat: r.latitude!, lng: r.longitude! }));
     if (points.length < MIN_SUGGESTION_SAMPLES) {
-      return { samples: points.length, required: MIN_SUGGESTION_SAMPLES, suggestion: null };
+      return {
+        samples: points.length,
+        required: MIN_SUGGESTION_SAMPLES,
+        suggestion: null,
+      };
     }
 
     const lat = median(points.map((p) => p.lat));
     const lng = median(points.map((p) => p.lng));
-    const distances = points.map((p) => distanceMeters(lat, lng, p.lat, p.lng)).sort((a, b) => a - b);
-    const p90 = distances[Math.min(distances.length - 1, Math.floor(distances.length * 0.9))];
-    const radiusMeters = Math.min(3000, Math.max(100, Math.ceil((p90 * 1.2 + 50) / 10) * 10));
+    const distances = points
+      .map((p) => distanceMeters(lat, lng, p.lat, p.lng))
+      .sort((a, b) => a - b);
+    const p90 =
+      distances[
+        Math.min(distances.length - 1, Math.floor(distances.length * 0.9))
+      ];
+    const radiusMeters = Math.min(
+      3000,
+      Math.max(100, Math.ceil((p90 * 1.2 + 50) / 10) * 10),
+    );
     return {
       samples: points.length,
       required: MIN_SUGGESTION_SAMPLES,
-      suggestion: { latitude: Number(lat.toFixed(6)), longitude: Number(lng.toFixed(6)), radiusMeters },
+      suggestion: {
+        latitude: Number(lat.toFixed(6)),
+        longitude: Number(lng.toFixed(6)),
+        radiusMeters,
+      },
     };
   }
 
   // ---------- categories ----------
 
   async categories() {
-    const rows = await this.prisma.category.findMany({ orderBy: { sortOrder: 'asc' }, select: categoryAdminSelect });
-    return rows.map(({ _count, ...c }) => ({ ...c, productsCount: _count.products, storesCount: _count.stores }));
+    const rows = await this.prisma.category.findMany({
+      orderBy: { sortOrder: 'asc' },
+      select: categoryAdminSelect,
+    });
+    return rows.map(({ _count, ...c }) => ({
+      ...c,
+      productsCount: _count.products,
+      storesCount: _count.stores,
+    }));
   }
 
   private async categoryOrThrow(id: string) {
-    const category = await this.prisma.category.findUnique({ where: { id }, select: categoryAdminSelect });
+    const category = await this.prisma.category.findUnique({
+      where: { id },
+      select: categoryAdminSelect,
+    });
     if (!category) throw new NotFoundException('القسم غير موجود');
     return category;
   }
@@ -259,11 +389,23 @@ export class MarketsService {
       },
       select: categoryAdminSelect,
     });
-    await this.audit.log({ actorId, action: 'category.created', entityType: 'category', entityId: category.id, meta: { name }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'category.created',
+      entityType: 'category',
+      entityId: category.id,
+      meta: { name },
+      ip,
+    });
     return category;
   }
 
-  async updateCategory(actorId: string, id: string, dto: UpdateCategoryDto, ip: string) {
+  async updateCategory(
+    actorId: string,
+    id: string,
+    dto: UpdateCategoryDto,
+    ip: string,
+  ) {
     const category = await this.categoryOrThrow(id);
     const data: Prisma.CategoryUpdateInput = {};
     const name = dto.name?.trim();
@@ -272,23 +414,44 @@ export class MarketsService {
       data.name = name;
     }
     if (dto.icon !== undefined) data.icon = dto.icon.trim();
-    if (dto.slug !== undefined) data.slug = await this.uniqueSlug('category', dto.slug, '', id);
+    if (dto.slug !== undefined)
+      data.slug = await this.uniqueSlug('category', dto.slug, '', id);
     if (dto.sortOrder !== undefined) data.sortOrder = dto.sortOrder;
     if (dto.isActive !== undefined) data.isActive = dto.isActive;
 
-    const updated = await this.prisma.category.update({ where: { id }, data, select: categoryAdminSelect });
+    const updated = await this.prisma.category.update({
+      where: { id },
+      data,
+      select: categoryAdminSelect,
+    });
     if (data.name) await this.reindex({ categoryId: id });
-    await this.audit.log({ actorId, action: 'category.updated', entityType: 'category', entityId: id, meta: { ...dto }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'category.updated',
+      entityType: 'category',
+      entityId: id,
+      meta: { ...dto },
+      ip,
+    });
     return updated;
   }
 
   async deleteCategory(actorId: string, id: string, ip: string) {
     const category = await this.categoryOrThrow(id);
     if (category._count.products || category._count.stores) {
-      throw new ConflictException('في هذا القسم منتجات أو متاجر، عطّله بدلاً من حذفه');
+      throw new ConflictException(
+        'في هذا القسم منتجات أو متاجر، عطّله بدلاً من حذفه',
+      );
     }
     await this.prisma.category.delete({ where: { id } });
-    await this.audit.log({ actorId, action: 'category.deleted', entityType: 'category', entityId: id, meta: { name: category.name }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'category.deleted',
+      entityType: 'category',
+      entityId: id,
+      meta: { name: category.name },
+      ip,
+    });
   }
 
   // ---------- merchant interest ----------
@@ -296,31 +459,50 @@ export class MarketsService {
   /** Public: a merchant from a governorate that hasn't opened asks to be contacted at launch. */
   async createInterest(dto: InterestDto, ip: string) {
     const phone = normalizeSyrianMobile(dto.phone);
-    if (!phone) throw new BadRequestException('رقم الموبايل غير صحيح، مثال: 0912345678');
+    if (!phone)
+      throw new BadRequestException('رقم الموبايل غير صحيح، مثال: 0912345678');
     const governorate = await this.prisma.governorate.findUnique({
       where: { id: dto.governorateId },
       select: { id: true, name: true, status: true },
     });
     if (!governorate) throw new BadRequestException('اختر المحافظة');
     if (governorate.status === 'ACTIVE') {
-      throw new BadRequestException(`التسجيل مفتوح في ${governorate.name}، افتح متجرك الآن`);
+      throw new BadRequestException(
+        `التسجيل مفتوح في ${governorate.name}، افتح متجرك الآن`,
+      );
     }
     const category = dto.categoryId
-      ? await this.prisma.category.findUnique({ where: { id: dto.categoryId }, select: { id: true } })
+      ? await this.prisma.category.findUnique({
+          where: { id: dto.categoryId },
+          select: { id: true },
+        })
       : null;
 
-    const details = { name: dto.name.trim(), storeName: dto.storeName?.trim() || null, categoryId: category?.id ?? null };
+    const details = {
+      name: dto.name.trim(),
+      storeName: dto.storeName?.trim() || null,
+      categoryId: category?.id ?? null,
+    };
     // Repeating the request only refreshes the details, and never reveals whether the number was listed
     await this.prisma.merchantInterest.upsert({
       where: { governorateId_phone: { governorateId: governorate.id, phone } },
       create: { governorateId: governorate.id, phone, ...details },
       update: details,
     });
-    await this.audit.log({ action: 'interest.created', entityType: 'governorate', entityId: governorate.id, ip });
+    await this.audit.log({
+      action: 'interest.created',
+      entityType: 'governorate',
+      entityId: governorate.id,
+      ip,
+    });
   }
 
   async interests(query: Record<string, string>) {
-    const { page, pageSize, skip, take } = paging(query.page, query.pageSize, 100);
+    const { page, pageSize, skip, take } = paging(
+      query.page,
+      query.pageSize,
+      100,
+    );
     const where: Prisma.MerchantInterestWhereInput = {};
     if (query.gov) where.governorate = { slug: query.gov };
     if (query.status === 'new') where.contactedAt = null;
@@ -342,31 +524,58 @@ export class MarketsService {
     return pageResult(items, total, page, pageSize);
   }
 
-  async setInterestContacted(actorId: string, id: string, contacted: boolean, ip: string) {
-    const interest = await this.prisma.merchantInterest.findUnique({ where: { id }, select: { id: true } });
+  async setInterestContacted(
+    actorId: string,
+    id: string,
+    contacted: boolean,
+    ip: string,
+  ) {
+    const interest = await this.prisma.merchantInterest.findUnique({
+      where: { id },
+      select: { id: true },
+    });
     if (!interest) throw new NotFoundException('الطلب غير موجود');
     const updated = await this.prisma.merchantInterest.update({
       where: { id },
       data: { contactedAt: contacted ? new Date() : null },
       select: { id: true, contactedAt: true },
     });
-    await this.audit.log({ actorId, action: 'interest.contacted', entityType: 'interest', entityId: id, meta: { contacted }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'interest.contacted',
+      entityType: 'interest',
+      entityId: id,
+      meta: { contacted },
+      ip,
+    });
     return updated;
   }
 
   // ---------- helpers ----------
 
   /** An explicit slug must be free; a generated one gets a random suffix when taken. */
-  private async uniqueSlug(kind: 'market' | 'category', requested: string | undefined, name: string, excludeId?: string) {
+  private async uniqueSlug(
+    kind: 'market' | 'category',
+    requested: string | undefined,
+    name: string,
+    excludeId?: string,
+  ) {
     const taken = async (slug: string) => {
       const row =
         kind === 'market'
-          ? await this.prisma.market.findUnique({ where: { slug }, select: { id: true } })
-          : await this.prisma.category.findUnique({ where: { slug }, select: { id: true } });
+          ? await this.prisma.market.findUnique({
+              where: { slug },
+              select: { id: true },
+            })
+          : await this.prisma.category.findUnique({
+              where: { slug },
+              select: { id: true },
+            });
       return !!row && row.id !== excludeId;
     };
     if (requested) {
-      if (await taken(requested)) throw new ConflictException('الرابط المختصر مستخدم، اختر غيره');
+      if (await taken(requested))
+        throw new ConflictException('الرابط المختصر مستخدم، اختر غيره');
       return requested;
     }
     const base = slugify(name);
@@ -377,7 +586,9 @@ export class MarketsService {
   private async reindex(scope: { marketId: string } | { categoryId: string }) {
     const byMarket = 'marketId' in scope;
     const stores = await this.prisma.store.findMany({
-      where: byMarket ? { marketId: scope.marketId } : { categoryId: scope.categoryId },
+      where: byMarket
+        ? { marketId: scope.marketId }
+        : { categoryId: scope.categoryId },
       select: {
         id: true,
         name: true,
@@ -391,25 +602,49 @@ export class MarketsService {
     for (const s of stores) {
       await this.prisma.store.update({
         where: { id: s.id },
-        data: { searchText: buildSearchText(s.name, s.tagline, s.description, s.market?.name, s.governorate.name, s.category?.name) },
+        data: {
+          searchText: buildSearchText(
+            s.name,
+            s.tagline,
+            s.description,
+            s.market?.name,
+            s.governorate.name,
+            s.category?.name,
+          ),
+        },
       });
     }
 
     const products = await this.prisma.product.findMany({
-      where: byMarket ? { store: { marketId: scope.marketId } } : { categoryId: scope.categoryId },
+      where: byMarket
+        ? { store: { marketId: scope.marketId } }
+        : { categoryId: scope.categoryId },
       select: {
         id: true,
         title: true,
         description: true,
         category: { select: { name: true } },
-        store: { select: { name: true, market: { select: { name: true } }, governorate: { select: { name: true } } } },
+        store: {
+          select: {
+            name: true,
+            market: { select: { name: true } },
+            governorate: { select: { name: true } },
+          },
+        },
       },
     });
     for (const p of products) {
       await this.prisma.product.update({
         where: { id: p.id },
         data: {
-          searchText: buildSearchText(p.title, p.description, p.category.name, p.store.name, p.store.market?.name, p.store.governorate.name),
+          searchText: buildSearchText(
+            p.title,
+            p.description,
+            p.category.name,
+            p.store.name,
+            p.store.market?.name,
+            p.store.governorate.name,
+          ),
         },
       });
     }

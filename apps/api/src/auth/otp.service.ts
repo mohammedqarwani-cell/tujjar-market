@@ -31,26 +31,43 @@ export class OtpService {
 
   async request(rawPhone: string, purpose: OtpPurpose, ip: string) {
     const phone = normalizeSyrianMobile(rawPhone);
-    if (!phone) throw new BadRequestException('رقم الموبايل غير صحيح، مثال: 0912345678');
+    if (!phone)
+      throw new BadRequestException('رقم الموبايل غير صحيح، مثال: 0912345678');
 
-    const exists = !!(await this.prisma.user.findUnique({ where: { phone }, select: { id: true } }));
+    const exists = !!(await this.prisma.user.findUnique({
+      where: { phone },
+      select: { id: true },
+    }));
     if (purpose === 'CHANGE_PHONE' && exists) {
       throw new ConflictException('هذا الرقم مستخدم في حساب آخر');
     }
     if (purpose === 'REGISTER' && exists) {
-      throw new ConflictException('هذا الرقم مسجّل مسبقاً، سجّل الدخول بدلاً من ذلك');
+      throw new ConflictException(
+        'هذا الرقم مسجّل مسبقاً، سجّل الدخول بدلاً من ذلك',
+      );
     }
 
     const now = Date.now();
     const [latest, lastHour] = await Promise.all([
-      this.prisma.otpCode.findFirst({ where: { phone, purpose }, orderBy: { createdAt: 'desc' } }),
-      this.prisma.otpCode.count({ where: { phone, createdAt: { gte: new Date(now - 3600_000) } } }),
+      this.prisma.otpCode.findFirst({
+        where: { phone, purpose },
+        orderBy: { createdAt: 'desc' },
+      }),
+      this.prisma.otpCode.count({
+        where: { phone, createdAt: { gte: new Date(now - 3600_000) } },
+      }),
     ]);
     if (latest && now - latest.createdAt.getTime() < RESEND_GAP_MS) {
-      throw new HttpException('انتظر دقيقة قبل طلب رمز جديد', HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(
+        'انتظر دقيقة قبل طلب رمز جديد',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
     if (lastHour >= MAX_PER_HOUR) {
-      throw new HttpException('طلبت رموزاً كثيرة، حاول بعد ساعة', HttpStatus.TOO_MANY_REQUESTS);
+      throw new HttpException(
+        'طلبت رموزاً كثيرة، حاول بعد ساعة',
+        HttpStatus.TOO_MANY_REQUESTS,
+      );
     }
 
     // Password reset for an unknown number answers the same way, so numbers can't be probed
@@ -63,30 +80,60 @@ export class OtpService {
         data: { consumedAt: new Date() },
       }),
       this.prisma.otpCode.create({
-        data: { phone, purpose, codeHash: this.hash(phone, purpose, code), expiresAt: new Date(now + TTL_MS), ip },
+        data: {
+          phone,
+          purpose,
+          codeHash: this.hash(phone, purpose, code),
+          expiresAt: new Date(now + TTL_MS),
+          ip,
+        },
       }),
     ]);
-    await this.sms.send(phone, `رمز التحقق في تُجّار ماركت: ${code}\nلا تشاركه مع أحد. صالح 5 دقائق.`);
+    await this.sms.send(
+      phone,
+      `رمز التحقق في تُجّار ماركت: ${code}\nلا تشاركه مع أحد. صالح 5 دقائق.`,
+    );
 
     return { sent: true, ...(env.otpDevEcho ? { devCode: code } : {}) };
   }
 
   /** Consumes the code on success; throws with an Arabic message otherwise. */
-  async verify(phone: string, purpose: OtpPurpose, code: string): Promise<void> {
+  async verify(
+    phone: string,
+    purpose: OtpPurpose,
+    code: string,
+  ): Promise<void> {
     const record = await this.prisma.otpCode.findFirst({
-      where: { phone, purpose, consumedAt: null, expiresAt: { gt: new Date() } },
+      where: {
+        phone,
+        purpose,
+        consumedAt: null,
+        expiresAt: { gt: new Date() },
+      },
       orderBy: { createdAt: 'desc' },
     });
-    if (!record) throw new BadRequestException('رمز التحقق غير صحيح أو انتهت صلاحيته، اطلب رمزاً جديداً');
+    if (!record)
+      throw new BadRequestException(
+        'رمز التحقق غير صحيح أو انتهت صلاحيته، اطلب رمزاً جديداً',
+      );
 
     if (record.attempts >= MAX_ATTEMPTS) {
-      await this.prisma.otpCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } });
+      await this.prisma.otpCode.update({
+        where: { id: record.id },
+        data: { consumedAt: new Date() },
+      });
       throw new BadRequestException('تجاوزت عدد المحاولات، اطلب رمزاً جديداً');
     }
     if (!safeEqual(record.codeHash, this.hash(phone, purpose, code))) {
-      await this.prisma.otpCode.update({ where: { id: record.id }, data: { attempts: { increment: 1 } } });
+      await this.prisma.otpCode.update({
+        where: { id: record.id },
+        data: { attempts: { increment: 1 } },
+      });
       throw new BadRequestException('رمز التحقق غير صحيح');
     }
-    await this.prisma.otpCode.update({ where: { id: record.id }, data: { consumedAt: new Date() } });
+    await this.prisma.otpCode.update({
+      where: { id: record.id },
+      data: { consumedAt: new Date() },
+    });
   }
 }

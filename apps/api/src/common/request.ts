@@ -16,7 +16,10 @@ export function clientIp(req: Request): string {
 }
 
 export function requestMeta(req: Request) {
-  return { ip: clientIp(req), userAgent: String(req.headers['user-agent'] ?? '').slice(0, 200) };
+  return {
+    ip: clientIp(req),
+    userAgent: String(req.headers['user-agent'] ?? '').slice(0, 200),
+  };
 }
 
 export type RequestMeta = ReturnType<typeof requestMeta>;

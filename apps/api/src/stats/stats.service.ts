@@ -17,7 +17,8 @@ export class StatsService {
     if (last && now - last < DEDUPE_MS) return false;
     this.seen.set(key, now);
     if (this.seen.size > 50_000) {
-      for (const [k, t] of this.seen) if (now - t >= DEDUPE_MS) this.seen.delete(k);
+      for (const [k, t] of this.seen)
+        if (now - t >= DEDUPE_MS) this.seen.delete(k);
     }
     return true;
   }
@@ -39,16 +40,25 @@ export class StatsService {
       });
       if (!product || !this.firstTime(`pv:${ip}:${product.id}`)) return;
       await this.prisma.$transaction([
-        this.prisma.product.update({ where: { id: product.id }, data: { viewsCount: { increment: 1 } } }),
+        this.prisma.product.update({
+          where: { id: product.id },
+          data: { viewsCount: { increment: 1 } },
+        }),
         this.bumpDay(product.storeId, 'views'),
       ]);
       return;
     }
     if (dto.storeSlug) {
-      const store = await this.prisma.store.findUnique({ where: { slug: dto.storeSlug }, select: { id: true } });
+      const store = await this.prisma.store.findUnique({
+        where: { slug: dto.storeSlug },
+        select: { id: true },
+      });
       if (!store || !this.firstTime(`sv:${ip}:${store.id}`)) return;
       await this.prisma.$transaction([
-        this.prisma.store.update({ where: { id: store.id }, data: { viewsCount: { increment: 1 } } }),
+        this.prisma.store.update({
+          where: { id: store.id },
+          data: { viewsCount: { increment: 1 } },
+        }),
         this.bumpDay(store.id, 'views'),
       ]);
     }
@@ -56,10 +66,17 @@ export class StatsService {
 
   async trackContact(
     ip: string,
-    dto: { storeSlug: string; productId?: string; channel: 'WHATSAPP' | 'CALL' },
+    dto: {
+      storeSlug: string;
+      productId?: string;
+      channel: 'WHATSAPP' | 'CALL';
+    },
     user?: { id: string; role: string } | null,
   ) {
-    const store = await this.prisma.store.findUnique({ where: { slug: dto.storeSlug }, select: { id: true } });
+    const store = await this.prisma.store.findUnique({
+      where: { slug: dto.storeSlug },
+      select: { id: true },
+    });
     if (!store) return;
     // Recorded on every contact, not deduplicated: it is what allows the buyer to review the store later
     if (user?.role === 'BUYER') {
@@ -69,7 +86,12 @@ export class StatsService {
         update: { lastContactAt: new Date(), contacts: { increment: 1 } },
       });
     }
-    if (!this.firstTime(`c:${ip}:${store.id}:${dto.productId ?? ''}:${dto.channel}`)) return;
+    if (
+      !this.firstTime(
+        `c:${ip}:${store.id}:${dto.productId ?? ''}:${dto.channel}`,
+      )
+    )
+      return;
 
     const productOps = dto.productId
       ? [
@@ -80,7 +102,10 @@ export class StatsService {
         ]
       : [];
     await this.prisma.$transaction([
-      this.prisma.store.update({ where: { id: store.id }, data: { contactsCount: { increment: 1 } } }),
+      this.prisma.store.update({
+        where: { id: store.id },
+        data: { contactsCount: { increment: 1 } },
+      }),
       this.bumpDay(store.id, dto.channel === 'WHATSAPP' ? 'whatsapp' : 'calls'),
       ...productOps,
     ]);
@@ -88,7 +113,10 @@ export class StatsService {
 
   async merchantOverview(userId: string, days: number) {
     const span = Math.min(90, Math.max(7, days));
-    const store = await this.prisma.store.findFirst({ where: { ownerId: userId }, select: { id: true } });
+    const store = await this.prisma.store.findFirst({
+      where: { ownerId: userId },
+      select: { id: true },
+    });
     if (!store) throw new NotFoundException('لا يوجد متجر مرتبط بحسابك');
 
     const from = damascusDay(-(span - 1));
@@ -97,26 +125,51 @@ export class StatsService {
         where: { storeId: store.id, day: { gte: from } },
         orderBy: { day: 'asc' },
       }),
-      this.prisma.product.groupBy({ by: ['status'], where: { storeId: store.id }, _count: true }),
+      this.prisma.product.groupBy({
+        by: ['status'],
+        where: { storeId: store.id },
+        _count: true,
+      }),
       this.prisma.product.findMany({
         where: { storeId: store.id },
-        select: { id: true, title: true, viewsCount: true, contactsCount: true, images: true },
+        select: {
+          id: true,
+          title: true,
+          viewsCount: true,
+          contactsCount: true,
+          images: true,
+        },
         orderBy: [{ contactsCount: 'desc' }, { viewsCount: 'desc' }],
         take: 5,
       }),
     ]);
 
-    const byDay = new Map(rows.map((r) => [r.day.toISOString().slice(0, 10), r]));
+    const byDay = new Map(
+      rows.map((r) => [r.day.toISOString().slice(0, 10), r]),
+    );
     const series = Array.from({ length: span }, (_, i) => {
-      const day = damascusDay(-(span - 1) + i).toISOString().slice(0, 10);
+      const day = damascusDay(-(span - 1) + i)
+        .toISOString()
+        .slice(0, 10);
       const r = byDay.get(day);
-      return { day, views: r?.views ?? 0, whatsapp: r?.whatsapp ?? 0, calls: r?.calls ?? 0 };
+      return {
+        day,
+        views: r?.views ?? 0,
+        whatsapp: r?.whatsapp ?? 0,
+        calls: r?.calls ?? 0,
+      };
     });
     const totals = series.reduce(
-      (t, d) => ({ views: t.views + d.views, whatsapp: t.whatsapp + d.whatsapp, calls: t.calls + d.calls }),
+      (t, d) => ({
+        views: t.views + d.views,
+        whatsapp: t.whatsapp + d.whatsapp,
+        calls: t.calls + d.calls,
+      }),
       { views: 0, whatsapp: 0, calls: 0 },
     );
-    const products = Object.fromEntries(productCounts.map((p) => [p.status, p._count]));
+    const products = Object.fromEntries(
+      productCounts.map((p) => [p.status, p._count]),
+    );
 
     return {
       days: span,

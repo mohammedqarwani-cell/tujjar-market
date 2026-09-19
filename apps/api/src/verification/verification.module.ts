@@ -1,5 +1,8 @@
 import { Module } from '@nestjs/common';
-import { AdminVerificationController, MerchantVerificationController } from './verification.controller';
+import {
+  AdminVerificationController,
+  MerchantVerificationController,
+} from './verification.controller';
 import { KycStorageService } from './kyc-storage.service';
 import { VerificationService } from './verification.service';
 

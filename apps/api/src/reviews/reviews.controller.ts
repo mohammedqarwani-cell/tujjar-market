@@ -1,11 +1,27 @@
-import { Body, Controller, Delete, Get, HttpCode, Param, Patch, Post, Query, Req } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Delete,
+  Get,
+  HttpCode,
+  Param,
+  Patch,
+  Post,
+  Query,
+  Req,
+} from '@nestjs/common';
 import type { Request } from 'express';
 import { Throttle } from '../common/throttle';
 import { Auth } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { clientIp } from '../common/request';
-import { FlagReviewDto, MerchantReplyDto, ModerateReviewDto, ReviewInputDto } from './reviews.dto';
+import {
+  FlagReviewDto,
+  MerchantReplyDto,
+  ModerateReviewDto,
+  ReviewInputDto,
+} from './reviews.dto';
 import { ReviewsService } from './reviews.service';
 
 @Controller('stores/:slug/reviews')
@@ -27,14 +43,23 @@ export class StoreReviewsController {
   @Post()
   @Auth('BUYER')
   @Throttle({ default: { limit: 10, ttl: 3600_000 } })
-  submit(@CurrentUser() user: AuthUser, @Param('slug') slug: string, @Body() dto: ReviewInputDto, @Req() req: Request) {
+  submit(
+    @CurrentUser() user: AuthUser,
+    @Param('slug') slug: string,
+    @Body() dto: ReviewInputDto,
+    @Req() req: Request,
+  ) {
     return this.reviews.submit(user.id, slug, dto, clientIp(req));
   }
 
   @Delete('mine')
   @Auth('BUYER')
   @HttpCode(204)
-  async remove(@CurrentUser() user: AuthUser, @Param('slug') slug: string, @Req() req: Request) {
+  async remove(
+    @CurrentUser() user: AuthUser,
+    @Param('slug') slug: string,
+    @Req() req: Request,
+  ) {
     await this.reviews.removeMine(user.id, slug, clientIp(req));
   }
 }
@@ -50,14 +75,24 @@ export class MerchantReviewsController {
   }
 
   @Patch(':id/reply')
-  reply(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: MerchantReplyDto, @Req() req: Request) {
+  reply(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: MerchantReplyDto,
+    @Req() req: Request,
+  ) {
     return this.reviews.reply(user.id, id, dto.reply, clientIp(req));
   }
 
   @Post(':id/flag')
   @HttpCode(200)
   @Throttle({ default: { limit: 20, ttl: 3600_000 } })
-  flag(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: FlagReviewDto, @Req() req: Request) {
+  flag(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: FlagReviewDto,
+    @Req() req: Request,
+  ) {
     return this.reviews.flag(user.id, id, dto.reason, clientIp(req));
   }
 }
@@ -73,7 +108,12 @@ export class AdminReviewsController {
   }
 
   @Patch(':id')
-  moderate(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: ModerateReviewDto, @Req() req: Request) {
+  moderate(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: ModerateReviewDto,
+    @Req() req: Request,
+  ) {
     return this.reviews.moderate(actor.id, id, dto, clientIp(req));
   }
 }

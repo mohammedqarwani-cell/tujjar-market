@@ -1,4 +1,9 @@
-import { Injectable, Logger, OnApplicationShutdown, OnModuleInit } from '@nestjs/common';
+import {
+  Injectable,
+  Logger,
+  OnApplicationShutdown,
+  OnModuleInit,
+} from '@nestjs/common';
 import type { Currency, PriceType, ProductStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { damascusDay } from '../common/pagination';
@@ -22,7 +27,8 @@ const JOB_EVERY_MS = 3600_000;
 
 const money = (value: number, currency: Currency) =>
   `${value.toLocaleString('en-US')} ${currency === 'USD' ? '$' : 'ل.س'}`;
-const trimTitle = (title: string) => (title.length > 60 ? `${title.slice(0, 57)}…` : title);
+const trimTitle = (title: string) =>
+  title.length > 60 ? `${title.slice(0, 57)}…` : title;
 
 /**
  * Turns catalogue activity into notifications for people who asked for it:
@@ -68,7 +74,10 @@ export class ActivityNotifier implements OnModuleInit, OnApplicationShutdown {
     void (async () => {
       const product = await this.publicProduct(productId);
       if (!product) return;
-      const followers = await this.prisma.storeFollow.findMany({ where: { storeId: product.storeId }, select: { userId: true } });
+      const followers = await this.prisma.storeFollow.findMany({
+        where: { storeId: product.storeId },
+        select: { userId: true },
+      });
       const store = product.store.name;
       this.notifications.notify(
         followers.map((f) => f.userId),
@@ -79,10 +88,15 @@ export class ActivityNotifier implements OnModuleInit, OnApplicationShutdown {
           body: trimTitle(product.title),
           url: `/products/${product.id}`,
           groupKey: `store-new:${product.storeId}:${damascusDay().toISOString().slice(0, 10)}`,
-          grouped: (count) => ({ title: `جديد من ${store}`, body: `أضاف ${store} ${count} منتجات جديدة اليوم` }),
+          grouped: (count) => ({
+            title: `جديد من ${store}`,
+            body: `أضاف ${store} ${count} منتجات جديدة اليوم`,
+          }),
         },
       );
-    })().catch((e) => this.log.error('productCreated failed', (e as Error).stack));
+    })().catch((e) =>
+      this.log.error('productCreated failed', (e as Error).stack),
+    );
   }
 
   /** Price drops, new discounts and restocks, compared with the product before the merchant's edit. */
@@ -92,18 +106,35 @@ export class ActivityNotifier implements OnModuleInit, OnApplicationShutdown {
       if (!product) return;
       const after = await this.prisma.product.findUniqueOrThrow({
         where: { id: productId },
-        select: { price: true, oldPrice: true, currency: true, priceType: true, inStock: true, status: true },
+        select: {
+          price: true,
+          oldPrice: true,
+          currency: true,
+          priceType: true,
+          inStock: true,
+          status: true,
+        },
       });
       const title = trimTitle(product.title);
       const url = `/products/${product.id}`;
-      const priced = (p: ProductSnapshot) => p.priceType !== 'ON_REQUEST' && p.price !== null;
+      const priced = (p: ProductSnapshot) =>
+        p.priceType !== 'ON_REQUEST' && p.price !== null;
       const priceDropped =
-        priced(before) && priced(after) && before.currency === after.currency && after.price! < before.price!;
-      const newDiscount = priced(after) && !!after.oldPrice && (!before.oldPrice || priceDropped);
+        priced(before) &&
+        priced(after) &&
+        before.currency === after.currency &&
+        after.price! < before.price!;
+      const newDiscount =
+        priced(after) && !!after.oldPrice && (!before.oldPrice || priceDropped);
       const restocked = !before.inStock && after.inStock;
       const wasHidden = before.status !== 'ACTIVE';
 
-      const favoriters = (await this.prisma.favorite.findMany({ where: { productId }, select: { userId: true } })).map((f) => f.userId);
+      const favoriters = (
+        await this.prisma.favorite.findMany({
+          where: { productId },
+          select: { userId: true },
+        })
+      ).map((f) => f.userId);
 
       if (priceDropped && !wasHidden) {
         this.notifications.notify(favoriters, {
@@ -128,7 +159,10 @@ export class ActivityNotifier implements OnModuleInit, OnApplicationShutdown {
       if (newDiscount && !wasHidden) {
         const followers = await this.prisma.storeFollow.findMany({
           // Buyers who saved the product already heard about the price
-          where: { storeId: product.storeId, ...(priceDropped ? { userId: { notIn: favoriters } } : {}) },
+          where: {
+            storeId: product.storeId,
+            ...(priceDropped ? { userId: { notIn: favoriters } } : {}),
+          },
           select: { userId: true },
         });
         const percent = Math.round((1 - after.price! / after.oldPrice!) * 100);
@@ -142,11 +176,16 @@ export class ActivityNotifier implements OnModuleInit, OnApplicationShutdown {
             body: `${title} بسعر ${money(after.price!, after.currency)}`,
             url,
             groupKey: `store-offers:${product.storeId}:${damascusDay().toISOString().slice(0, 10)}`,
-            grouped: (count) => ({ title: `عروض من ${store}`, body: `${count} عروض جديدة اليوم لدى ${store}` }),
+            grouped: (count) => ({
+              title: `عروض من ${store}`,
+              body: `${count} عروض جديدة اليوم لدى ${store}`,
+            }),
           },
         );
       }
-    })().catch((e) => this.log.error('productChanged failed', (e as Error).stack));
+    })().catch((e) =>
+      this.log.error('productChanged failed', (e as Error).stack),
+    );
   }
 
   // ---------- hourly reminders ----------
@@ -165,10 +204,17 @@ export class ActivityNotifier implements OnModuleInit, OnApplicationShutdown {
     const now = Date.now();
     const contacts = await this.prisma.storeContact.findMany({
       where: {
-        firstContactAt: { lte: new Date(now - REVIEW_INVITE_AFTER_MS), gte: new Date(now - REVIEW_INVITE_UNTIL_MS) },
+        firstContactAt: {
+          lte: new Date(now - REVIEW_INVITE_AFTER_MS),
+          gte: new Date(now - REVIEW_INVITE_UNTIL_MS),
+        },
         store: publicStoreWhere,
       },
-      select: { buyerId: true, storeId: true, store: { select: { name: true, slug: true } } },
+      select: {
+        buyerId: true,
+        storeId: true,
+        store: { select: { name: true, slug: true } },
+      },
       take: 500,
       orderBy: { firstContactAt: 'asc' },
     });
@@ -194,12 +240,20 @@ export class ActivityNotifier implements OnModuleInit, OnApplicationShutdown {
   private async verificationExpiryReminders() {
     const now = Date.now();
     const stores = await this.prisma.store.findMany({
-      where: { verificationExpiresAt: { gt: new Date(now), lte: new Date(now + EXPIRY_REMINDER_DAYS * DAY_MS) } },
+      where: {
+        verificationExpiresAt: {
+          gt: new Date(now),
+          lte: new Date(now + EXPIRY_REMINDER_DAYS * DAY_MS),
+        },
+      },
       select: { id: true, ownerId: true, verificationExpiresAt: true },
       take: 500,
     });
     for (const s of stores) {
-      const days = Math.max(1, Math.ceil((s.verificationExpiresAt!.getTime() - now) / DAY_MS));
+      const days = Math.max(
+        1,
+        Math.ceil((s.verificationExpiresAt!.getTime() - now) / DAY_MS),
+      );
       await this.notifications.deliver([s.ownerId], {
         category: 'ACCOUNT',
         type: 'verification.expiring',

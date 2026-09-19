@@ -7,7 +7,12 @@ import {
   OnApplicationShutdown,
   OnModuleInit,
 } from '@nestjs/common';
-import { GeoCheck, Prisma, VerificationKind, VerificationStatus } from '@prisma/client';
+import {
+  GeoCheck,
+  Prisma,
+  VerificationKind,
+  VerificationStatus,
+} from '@prisma/client';
 import sharp from 'sharp';
 import { randomUUID } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
@@ -17,7 +22,11 @@ import { pageResult, paging } from '../common/pagination';
 import { KycStorageService } from './kyc-storage.service';
 import { NotificationsService } from '../notifications/notifications.service';
 import { damascusDay } from '../common/pagination';
-import { DecisionDto, LocationEvidenceDto, StoreLevelDto } from './verification.dto';
+import {
+  DecisionDto,
+  LocationEvidenceDto,
+  StoreLevelDto,
+} from './verification.dto';
 import {
   BADGE_REPORT_THRESHOLD,
   BADGE_REPORT_WINDOW_DAYS,
@@ -32,7 +41,13 @@ import {
 } from './verification.levels';
 
 export type UploadedFile = { buffer: Buffer; size: number };
-export const FILE_SLOTS = ['idFront', 'idBack', 'selfie', 'video', 'document'] as const;
+export const FILE_SLOTS = [
+  'idFront',
+  'idBack',
+  'selfie',
+  'video',
+  'document',
+] as const;
 export type FileSlot = (typeof FILE_SLOTS)[number];
 type StoredFile = { key: string; type: string; size: number };
 type FileMap = Partial<Record<FileSlot, StoredFile>>;
@@ -56,10 +71,20 @@ const storeForVerification = {
   earnedLevel: true,
   verificationExpiresAt: true,
   badgeSuspendedAt: true,
-  market: { select: { name: true, latitude: true, longitude: true, radiusMeters: true, geofenceStatus: true } },
+  market: {
+    select: {
+      name: true,
+      latitude: true,
+      longitude: true,
+      radiusMeters: true,
+      geofenceStatus: true,
+    },
+  },
   _count: { select: { products: true } },
 } satisfies Prisma.StoreSelect;
-type VerificationStore = Prisma.StoreGetPayload<{ select: typeof storeForVerification }>;
+type VerificationStore = Prisma.StoreGetPayload<{
+  select: typeof storeForVerification;
+}>;
 
 const adminStoreLevelSelect = {
   id: true,
@@ -71,7 +96,13 @@ const adminStoreLevelSelect = {
 } satisfies Prisma.StoreSelect;
 
 function geofenceOf(market: VerificationStore['market']) {
-  if (!market || market.latitude === null || market.longitude === null || market.radiusMeters === null) return null;
+  if (
+    !market ||
+    market.latitude === null ||
+    market.longitude === null ||
+    market.radiusMeters === null
+  )
+    return null;
   return {
     lat: market.latitude,
     lng: market.longitude,
@@ -82,7 +113,9 @@ function geofenceOf(market: VerificationStore['market']) {
 }
 
 @Injectable()
-export class VerificationService implements OnModuleInit, OnApplicationShutdown {
+export class VerificationService
+  implements OnModuleInit, OnApplicationShutdown
+{
   private readonly log = new Logger(VerificationService.name);
   private readonly timers: NodeJS.Timeout[] = [];
 
@@ -94,15 +127,28 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
   ) {}
 
   /** Tells the store owner about a decision on their store. */
-  private notifyOwner(storeId: string, input: { type: string; title: string; body: string; url?: string }) {
+  private notifyOwner(
+    storeId: string,
+    input: { type: string; title: string; body: string; url?: string },
+  ) {
     void this.prisma.store
       .findUnique({ where: { id: storeId }, select: { ownerId: true } })
-      .then((s) => this.notifications.notify(s?.ownerId, { category: 'ACCOUNT', url: '/dashboard/verification', urgent: true, ...input }));
+      .then((s) =>
+        this.notifications.notify(s?.ownerId, {
+          category: 'ACCOUNT',
+          url: '/dashboard/verification',
+          urgent: true,
+          ...input,
+        }),
+      );
   }
 
   onModuleInit() {
     const run = () => void this.runMaintenance();
-    this.timers.push(setTimeout(run, 15_000), setInterval(run, MAINTENANCE_EVERY_MS));
+    this.timers.push(
+      setTimeout(run, 15_000),
+      setInterval(run, MAINTENANCE_EVERY_MS),
+    );
     this.timers.forEach((t) => t.unref());
   }
 
@@ -113,31 +159,54 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
   // ---------- merchant ----------
 
   private async storeOf(userId: string) {
-    const store = await this.prisma.store.findFirst({ where: { ownerId: userId }, select: storeForVerification });
+    const store = await this.prisma.store.findFirst({
+      where: { ownerId: userId },
+      select: storeForVerification,
+    });
     if (!store) throw new NotFoundException('لا يوجد متجر مرتبط بحسابك');
     return store;
   }
 
   /** Why the store can't submit this kind of evidence now, or null when it can. */
-  private blockedReason(store: VerificationStore, kind: VerificationKind): string | null {
-    if (store.badgeSuspendedAt) return 'شارة التوثيق موقوفة مؤقتاً بسبب بلاغات مؤكدة. تواصل مع إدارة المنصة';
-    if (kind === 'IDENTITY') return store.earnedLevel === 'REGISTERED' ? null : 'هويتك موثّقة مسبقاً';
-    if (store.earnedLevel === 'REGISTERED') return 'وثّق هويتك أولاً، ثم وثّق المحل';
-    if (store.earnedLevel === 'IDENTITY' || !store.verificationExpiresAt) return null;
-    const renewFrom = store.verificationExpiresAt.getTime() - RENEWAL_WINDOW_DAYS * DAY_MS;
-    return Date.now() >= renewFrom ? null : `توثيق المحل ساري، ويمكن تجديده قبل انتهائه بـ${RENEWAL_WINDOW_DAYS} يوماً`;
+  private blockedReason(
+    store: VerificationStore,
+    kind: VerificationKind,
+  ): string | null {
+    if (store.badgeSuspendedAt)
+      return 'شارة التوثيق موقوفة مؤقتاً بسبب بلاغات مؤكدة. تواصل مع إدارة المنصة';
+    if (kind === 'IDENTITY')
+      return store.earnedLevel === 'REGISTERED' ? null : 'هويتك موثّقة مسبقاً';
+    if (store.earnedLevel === 'REGISTERED')
+      return 'وثّق هويتك أولاً، ثم وثّق المحل';
+    if (store.earnedLevel === 'IDENTITY' || !store.verificationExpiresAt)
+      return null;
+    const renewFrom =
+      store.verificationExpiresAt.getTime() - RENEWAL_WINDOW_DAYS * DAY_MS;
+    return Date.now() >= renewFrom
+      ? null
+      : `توثيق المحل ساري، ويمكن تجديده قبل انتهائه بـ${RENEWAL_WINDOW_DAYS} يوماً`;
   }
 
   async status(userId: string) {
     const store = await this.storeOf(userId);
     const requests = await this.prisma.verificationRequest.findMany({
       where: { storeId: store.id },
-      select: { id: true, kind: true, status: true, rejectReason: true, geoCheck: true, createdAt: true, reviewedAt: true },
+      select: {
+        id: true,
+        kind: true,
+        status: true,
+        rejectReason: true,
+        geoCheck: true,
+        createdAt: true,
+        reviewedAt: true,
+      },
       orderBy: { createdAt: 'desc' },
       take: 10,
     });
     const step = (kind: VerificationKind) => {
-      const pending = requests.some((r) => r.kind === kind && r.status === 'PENDING');
+      const pending = requests.some(
+        (r) => r.kind === kind && r.status === 'PENDING',
+      );
       const reason = pending ? 'قيد المراجعة' : this.blockedReason(store, kind);
       return { canSubmit: reason === null, pending, reason };
     };
@@ -148,19 +217,30 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       expiresAt: store.verificationExpiresAt,
       productLimit: PRODUCT_LIMITS[store.verificationLevel],
       productCount: store._count.products,
-      market: store.market ? { name: store.market.name, hasGeofence: !!geofenceOf(store.market)?.confirmed } : null,
+      market: store.market
+        ? {
+            name: store.market.name,
+            hasGeofence: !!geofenceOf(store.market)?.confirmed,
+          }
+        : null,
       identity: step('IDENTITY'),
       location: step('LOCATION'),
       requests,
     };
   }
 
-  async submitIdentity(userId: string, files: Partial<Record<FileSlot, UploadedFile>>, ip: string) {
+  async submitIdentity(
+    userId: string,
+    files: Partial<Record<FileSlot, UploadedFile>>,
+    ip: string,
+  ) {
     const store = await this.storeOf(userId);
     await this.assertCanSubmit(store, 'IDENTITY');
     const { idFront, idBack, selfie } = files;
     if (!idFront || !idBack || !selfie) {
-      throw new BadRequestException('أرفق صورة وجه الهوية وظهرها، وصورة شخصية وأنت تحمل الهوية');
+      throw new BadRequestException(
+        'أرفق صورة وجه الهوية وظهرها، وصورة شخصية وأنت تحمل الهوية',
+      );
     }
     const prepared = {
       idFront: await this.documentImage(idFront),
@@ -178,25 +258,43 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
   ) {
     const store = await this.storeOf(userId);
     await this.assertCanSubmit(store, 'LOCATION');
-    if (!files.video) throw new BadRequestException('صوّر فيديو المحل من داخل التطبيق');
+    if (!files.video)
+      throw new BadRequestException('صوّر فيديو المحل من داخل التطبيق');
 
     const captured = new Date(evidence.capturedAt).getTime();
     const age = Date.now() - captured;
-    if (!Number.isFinite(captured) || age > MAX_CAPTURE_AGE_MS || age < -CLOCK_SKEW_MS) {
-      throw new BadRequestException('صوّر الفيديو الآن من داخل التطبيق، ثم أرسله مباشرة');
+    if (
+      !Number.isFinite(captured) ||
+      age > MAX_CAPTURE_AGE_MS ||
+      age < -CLOCK_SKEW_MS
+    ) {
+      throw new BadRequestException(
+        'صوّر الفيديو الآن من داخل التطبيق، ثم أرسله مباشرة',
+      );
     }
     if (evidence.accuracy > MAX_GPS_ACCURACY_M) {
-      throw new BadRequestException('دقة تحديد الموقع ضعيفة. فعّل الموقع الدقيق في الموبايل واقترب من باب المحل، ثم أعد التصوير');
+      throw new BadRequestException(
+        'دقة تحديد الموقع ضعيفة. فعّل الموقع الدقيق في الموبايل واقترب من باب المحل، ثم أعد التصوير',
+      );
     }
     if (!insideSyria(evidence.latitude, evidence.longitude)) {
-      throw new BadRequestException('موقع التصوير خارج سوريا. صوّر الفيديو من داخل محلك');
+      throw new BadRequestException(
+        'موقع التصوير خارج سوريا. صوّر الفيديو من داخل محلك',
+      );
     }
 
     let geoCheck: GeoCheck = 'NO_GEOFENCE';
     let distance: number | null = null;
     const fence = geofenceOf(store.market);
     if (fence) {
-      distance = Math.round(distanceMeters(evidence.latitude, evidence.longitude, fence.lat, fence.lng));
+      distance = Math.round(
+        distanceMeters(
+          evidence.latitude,
+          evidence.longitude,
+          fence.lat,
+          fence.lng,
+        ),
+      );
       // GPS error is tolerated up to 100 m on top of the market radius
       const allowed = fence.radius + Math.min(evidence.accuracy, 100);
       const inside = distance <= allowed;
@@ -217,8 +315,11 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       geoCheck = inside ? 'INSIDE' : 'OUTSIDE';
     }
 
-    const prepared: Partial<Record<FileSlot, PreparedFile>> = { video: this.videoFile(files.video) };
-    if (files.document) prepared.document = await this.documentImage(files.document);
+    const prepared: Partial<Record<FileSlot, PreparedFile>> = {
+      video: this.videoFile(files.video),
+    };
+    if (files.document)
+      prepared.document = await this.documentImage(files.document);
     return this.createRequest(
       store.id,
       'LOCATION',
@@ -236,7 +337,10 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
     );
   }
 
-  private async assertCanSubmit(store: VerificationStore, kind: VerificationKind) {
+  private async assertCanSubmit(
+    store: VerificationStore,
+    kind: VerificationKind,
+  ) {
     const reason = this.blockedReason(store, kind);
     if (reason) throw new BadRequestException(reason);
     const pending = await this.prisma.verificationRequest.findFirst({
@@ -248,19 +352,30 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
 
   /** Re-encodes identity photos: refuses non-images and strips metadata, keeping the ID readable. */
   private async documentImage(file: UploadedFile): Promise<PreparedFile> {
-    if (file.size > IMAGE_MAX_BYTES) throw new BadRequestException('حجم الصورة أكبر من 8 ميغابايت');
+    if (file.size > IMAGE_MAX_BYTES)
+      throw new BadRequestException('حجم الصورة أكبر من 8 ميغابايت');
     try {
-      const input = sharp(file.buffer, { limitInputPixels: 40_000_000, failOn: 'error' });
+      const input = sharp(file.buffer, {
+        limitInputPixels: 40_000_000,
+        failOn: 'error',
+      });
       const { format } = await input.metadata();
       if (!format || !IMAGE_FORMATS.has(format)) throw new Error('unsupported');
       const buffer = await input
         .rotate()
-        .resize({ width: 2000, height: 2000, fit: 'inside', withoutEnlargement: true })
+        .resize({
+          width: 2000,
+          height: 2000,
+          fit: 'inside',
+          withoutEnlargement: true,
+        })
         .jpeg({ quality: 88, mozjpeg: true })
         .toBuffer();
       return { buffer, type: 'image/jpeg' };
     } catch {
-      throw new BadRequestException('أحد الملفات ليس صورة صالحة. الصيغ المسموحة: JPG أو PNG أو WEBP أو HEIC');
+      throw new BadRequestException(
+        'أحد الملفات ليس صورة صالحة. الصيغ المسموحة: JPG أو PNG أو WEBP أو HEIC',
+      );
     }
   }
 
@@ -273,8 +388,12 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
         : b.length > 4 && b.readUInt32BE(0) === 0x1a45dfa3
           ? 'video/webm'
           : null;
-    if (!type) throw new BadRequestException('ملف الفيديو غير صالح. صوّره من داخل التطبيق');
-    if (file.size > VIDEO_MAX_BYTES) throw new BadRequestException('الفيديو أطول من اللازم، يكفي 30 ثانية');
+    if (!type)
+      throw new BadRequestException(
+        'ملف الفيديو غير صالح. صوّره من داخل التطبيق',
+      );
+    if (file.size > VIDEO_MAX_BYTES)
+      throw new BadRequestException('الفيديو أطول من اللازم، يكفي 30 ثانية');
     return { buffer: b, type };
   }
 
@@ -282,13 +401,19 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
     storeId: string,
     kind: VerificationKind,
     prepared: Partial<Record<FileSlot, PreparedFile>>,
-    extra: Omit<Prisma.VerificationRequestUncheckedCreateInput, 'storeId' | 'kind' | 'files'>,
+    extra: Omit<
+      Prisma.VerificationRequestUncheckedCreateInput,
+      'storeId' | 'kind' | 'files'
+    >,
     actorId: string,
     ip: string,
   ) {
     const files: FileMap = {};
     try {
-      for (const [slot, file] of Object.entries(prepared) as [FileSlot, PreparedFile][]) {
+      for (const [slot, file] of Object.entries(prepared) as [
+        FileSlot,
+        PreparedFile,
+      ][]) {
         const key = `stores/${storeId}/${randomUUID()}`;
         await this.storage.put(key, file.buffer);
         files[slot] = { key, type: file.type, size: file.buffer.length };
@@ -326,16 +451,23 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       this.notifications.notifyStaff({
         category: 'MODERATION',
         type: 'verification.submitted',
-        title: kind === 'IDENTITY' ? 'طلب توثيق هوية جديد' : 'طلب توثيق محل جديد',
+        title:
+          kind === 'IDENTITY' ? 'طلب توثيق هوية جديد' : 'طلب توثيق محل جديد',
         body: 'طلب جديد في طابور التوثيق',
         url: '/admin?tab=verifications',
         groupKey: `queue-verification:${damascusDay().toISOString().slice(0, 10)}`,
-        grouped: (count) => ({ title: 'طلبات توثيق جديدة', body: `${count} طلبات توثيق تنتظر المراجعة اليوم` }),
+        grouped: (count) => ({
+          title: 'طلبات توثيق جديدة',
+          body: `${count} طلبات توثيق تنتظر المراجعة اليوم`,
+        }),
       });
       return request;
     } catch (e) {
       await this.removeFilesQuietly(files);
-      if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === 'P2034') {
+      if (
+        e instanceof Prisma.PrismaClientKnownRequestError &&
+        e.code === 'P2034'
+      ) {
         throw new ConflictException(PENDING_MESSAGE);
       }
       throw e;
@@ -346,17 +478,28 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
     try {
       await this.storage.remove(Object.values(files).map((f) => f.key));
     } catch (e) {
-      this.log.warn(`Could not delete verification files: ${(e as Error).message}`);
+      this.log.warn(
+        `Could not delete verification files: ${(e as Error).message}`,
+      );
     }
   }
 
   // ---------- admin ----------
 
   async list(query: Record<string, string>) {
-    const { page, pageSize, skip, take } = paging(query.page, query.pageSize, 50);
-    const status = (['PENDING', 'APPROVED', 'REJECTED'].includes(query.status) ? query.status : 'PENDING') as VerificationStatus;
+    const { page, pageSize, skip, take } = paging(
+      query.page,
+      query.pageSize,
+      50,
+    );
+    const status = (
+      ['PENDING', 'APPROVED', 'REJECTED'].includes(query.status)
+        ? query.status
+        : 'PENDING'
+    ) as VerificationStatus;
     const where: Prisma.VerificationRequestWhereInput = { status };
-    if (query.kind === 'IDENTITY' || query.kind === 'LOCATION') where.kind = query.kind;
+    if (query.kind === 'IDENTITY' || query.kind === 'LOCATION')
+      where.kind = query.kind;
 
     const [items, total] = await this.prisma.$transaction([
       this.prisma.verificationRequest.findMany({
@@ -388,12 +531,17 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
               governorate: { select: { name: true } },
               market: { select: { name: true, geofenceStatus: true } },
               owner: { select: { name: true, phone: true } },
-              _count: { select: { verificationRequests: { where: { status: 'REJECTED' } } } },
+              _count: {
+                select: {
+                  verificationRequests: { where: { status: 'REJECTED' } },
+                },
+              },
             },
           },
         },
         // Oldest first while waiting, so merchants are reviewed in turn
-        orderBy: status === 'PENDING' ? { createdAt: 'asc' } : { reviewedAt: 'desc' },
+        orderBy:
+          status === 'PENDING' ? { createdAt: 'asc' } : { reviewedAt: 'desc' },
         skip,
         take,
       }),
@@ -403,19 +551,27 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
     // Storage keys stay on the server; reviewers only see which files are attached
     const safe = items.map(({ files, ...request }) => ({
       ...request,
-      files: Object.entries(files as FileMap).map(([slot, f]) => ({ slot, type: f!.type, size: f!.size })),
+      files: Object.entries(files as FileMap).map(([slot, f]) => ({
+        slot,
+        type: f.type,
+        size: f.size,
+      })),
     }));
     return pageResult(safe, total, page, pageSize);
   }
 
   async readFile(actorId: string, id: string, slot: string, ip: string) {
-    if (!(FILE_SLOTS as readonly string[]).includes(slot)) throw new NotFoundException('الملف غير موجود');
+    if (!(FILE_SLOTS as readonly string[]).includes(slot))
+      throw new NotFoundException('الملف غير موجود');
     const request = await this.prisma.verificationRequest.findUnique({
       where: { id },
       select: { storeId: true, files: true, purgedAt: true },
     });
     if (!request) throw new NotFoundException('طلب التوثيق غير موجود');
-    if (request.purgedAt) throw new NotFoundException('حُذفت ملفات هذا الطلب بعد انتهاء مدة الاحتفاظ');
+    if (request.purgedAt)
+      throw new NotFoundException(
+        'حُذفت ملفات هذا الطلب بعد انتهاء مدة الاحتفاظ',
+      );
     const file = (request.files as FileMap)[slot as FileSlot];
     if (!file) throw new NotFoundException('الملف غير موجود');
 
@@ -439,18 +595,33 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
         status: true,
         latitude: true,
         longitude: true,
-        store: { select: { id: true, earnedLevel: true, badgeSuspendedAt: true, latitude: true } },
+        store: {
+          select: {
+            id: true,
+            earnedLevel: true,
+            badgeSuspendedAt: true,
+            latitude: true,
+          },
+        },
       },
     });
     if (!request) throw new NotFoundException('طلب التوثيق غير موجود');
-    if (request.status !== 'PENDING') throw new ConflictException('تمت مراجعة هذا الطلب مسبقاً');
+    if (request.status !== 'PENDING')
+      throw new ConflictException('تمت مراجعة هذا الطلب مسبقاً');
     const { store, kind } = request;
     const reviewed = { reviewerId: actorId, reviewedAt: new Date() };
 
     if (dto.decision === 'REJECT') {
       const reason = dto.reason?.trim() ?? '';
-      if (reason.length < 5) throw new BadRequestException('اكتب سبب الرفض ليعرف التاجر ما يجب تصحيحه');
-      await this.closeRequest(id, { status: 'REJECTED', rejectReason: reason, ...reviewed });
+      if (reason.length < 5)
+        throw new BadRequestException(
+          'اكتب سبب الرفض ليعرف التاجر ما يجب تصحيحه',
+        );
+      await this.closeRequest(id, {
+        status: 'REJECTED',
+        rejectReason: reason,
+        ...reviewed,
+      });
       await this.audit.log({
         actorId,
         action: 'verification.rejected',
@@ -461,7 +632,10 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       });
       this.notifyOwner(store.id, {
         type: 'verification.rejected',
-        title: kind === 'IDENTITY' ? 'لم يُقبل توثيق الهوية' : 'لم يُقبل توثيق المحل',
+        title:
+          kind === 'IDENTITY'
+            ? 'لم يُقبل توثيق الهوية'
+            : 'لم يُقبل توثيق المحل',
         body: `السبب: ${reason}. صحّح المطلوب وأعد التقديم`,
       });
       return { id, status: 'REJECTED' as const, level: null };
@@ -470,7 +644,10 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
     if (kind === 'LOCATION' && !atLeast(store.earnedLevel, 'IDENTITY')) {
       throw new BadRequestException('يجب توثيق هوية التاجر قبل توثيق المحل');
     }
-    const earnedLevel = maxLevel(store.earnedLevel, kind === 'IDENTITY' ? 'IDENTITY' : 'LOCATION');
+    const earnedLevel = maxLevel(
+      store.earnedLevel,
+      kind === 'IDENTITY' ? 'IDENTITY' : 'LOCATION',
+    );
     await this.prisma.$transaction(async (tx) => {
       await this.closeRequest(id, { status: 'APPROVED', ...reviewed }, tx);
       await tx.store.update({
@@ -479,8 +656,17 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
           earnedLevel,
           // A suspended badge stays hidden until an admin restores it
           ...(store.badgeSuspendedAt ? {} : { verificationLevel: earnedLevel }),
-          ...(kind === 'LOCATION' ? { verificationExpiresAt: new Date(Date.now() + VERIFICATION_VALID_DAYS * DAY_MS) } : {}),
-          ...(kind === 'LOCATION' && store.latitude === null && request.latitude !== null && request.longitude !== null
+          ...(kind === 'LOCATION'
+            ? {
+                verificationExpiresAt: new Date(
+                  Date.now() + VERIFICATION_VALID_DAYS * DAY_MS,
+                ),
+              }
+            : {}),
+          ...(kind === 'LOCATION' &&
+          store.latitude === null &&
+          request.latitude !== null &&
+          request.longitude !== null
             ? { latitude: request.latitude, longitude: request.longitude }
             : {}),
         },
@@ -511,7 +697,10 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
     data: Prisma.VerificationRequestUncheckedUpdateManyInput,
     tx: Prisma.TransactionClient = this.prisma,
   ) {
-    const { count } = await tx.verificationRequest.updateMany({ where: { id, status: 'PENDING' }, data });
+    const { count } = await tx.verificationRequest.updateMany({
+      where: { id, status: 'PENDING' },
+      data,
+    });
     if (!count) throw new ConflictException('تمت مراجعة هذا الطلب مسبقاً');
   }
 
@@ -519,7 +708,12 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
    * Admin override. PREMIUM is granted after a field visit; lower levels can be revoked. Raising a
    * store to IDENTITY or LOCATION always goes through the merchant's evidence and its review.
    */
-  async setStoreLevel(actorId: string, storeId: string, dto: StoreLevelDto, ip: string) {
+  async setStoreLevel(
+    actorId: string,
+    storeId: string,
+    dto: StoreLevelDto,
+    ip: string,
+  ) {
     const store = await this.prisma.store.findUnique({
       where: { id: storeId },
       select: { earnedLevel: true, badgeSuspendedAt: true },
@@ -527,10 +721,17 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
     if (!store) throw new NotFoundException('المتجر غير موجود');
     const { level } = dto;
     if (level === 'PREMIUM' && !atLeast(store.earnedLevel, 'LOCATION')) {
-      throw new BadRequestException('التاجر المميز يحتاج توثيق المحل أولاً، ثم زيارة ميدانية');
+      throw new BadRequestException(
+        'التاجر المميز يحتاج توثيق المحل أولاً، ثم زيارة ميدانية',
+      );
     }
-    if (level !== 'PREMIUM' && levelRank(level) > levelRank(store.earnedLevel)) {
-      throw new BadRequestException('رفع مستوى التوثيق يتم بطلب من التاجر ومراجعة وثائقه');
+    if (
+      level !== 'PREMIUM' &&
+      levelRank(level) > levelRank(store.earnedLevel)
+    ) {
+      throw new BadRequestException(
+        'رفع مستوى التوثيق يتم بطلب من التاجر ومراجعة وثائقه',
+      );
     }
 
     const updated = await this.prisma.store.update({
@@ -551,27 +752,45 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
       ip,
     });
     if (level !== store.earnedLevel) {
-      const names: Record<string, string> = { IDENTITY: 'هوية موثّقة', LOCATION: 'محل موثّق', PREMIUM: 'تاجر مميز', REGISTERED: 'مسجّل' };
+      const names: Record<string, string> = {
+        IDENTITY: 'هوية موثّقة',
+        LOCATION: 'محل موثّق',
+        PREMIUM: 'تاجر مميز',
+        REGISTERED: 'مسجّل',
+      };
       this.notifyOwner(storeId, {
         type: 'store.level_changed',
-        title: level === 'PREMIUM' ? 'أصبح متجرك «تاجر مميز» ✓' : 'تغيّر مستوى توثيق متجرك',
+        title:
+          level === 'PREMIUM'
+            ? 'أصبح متجرك «تاجر مميز» ✓'
+            : 'تغيّر مستوى توثيق متجرك',
         body: `المستوى الحالي: ${names[level]}`,
       });
     }
     return updated;
   }
 
-  async restoreBadge(actorId: string, storeId: string, note: string, ip: string) {
+  async restoreBadge(
+    actorId: string,
+    storeId: string,
+    note: string,
+    ip: string,
+  ) {
     const store = await this.prisma.store.findUnique({
       where: { id: storeId },
       select: { earnedLevel: true, badgeSuspendedAt: true },
     });
     if (!store) throw new NotFoundException('المتجر غير موجود');
-    if (!store.badgeSuspendedAt) throw new BadRequestException('شارة هذا المتجر ليست موقوفة');
+    if (!store.badgeSuspendedAt)
+      throw new BadRequestException('شارة هذا المتجر ليست موقوفة');
 
     const updated = await this.prisma.store.update({
       where: { id: storeId },
-      data: { verificationLevel: store.earnedLevel, badgeSuspendedAt: null, badgeRestoredAt: new Date() },
+      data: {
+        verificationLevel: store.earnedLevel,
+        badgeSuspendedAt: null,
+        badgeRestoredAt: new Date(),
+      },
       select: adminStoreLevelSelect,
     });
     await this.audit.log({
@@ -594,13 +813,20 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
   async applyReportThreshold(storeId: string) {
     const store = await this.prisma.store.findUnique({
       where: { id: storeId },
-      select: { earnedLevel: true, badgeSuspendedAt: true, badgeRestoredAt: true },
+      select: {
+        earnedLevel: true,
+        badgeSuspendedAt: true,
+        badgeRestoredAt: true,
+      },
     });
-    if (!store || store.badgeSuspendedAt || store.earnedLevel === 'REGISTERED') return;
+    if (!store || store.badgeSuspendedAt || store.earnedLevel === 'REGISTERED')
+      return;
 
     // Reports already weighed before an admin restored the badge don't count again
     const windowStart = Date.now() - BADGE_REPORT_WINDOW_DAYS * DAY_MS;
-    const since = new Date(Math.max(windowStart, store.badgeRestoredAt?.getTime() ?? 0));
+    const since = new Date(
+      Math.max(windowStart, store.badgeRestoredAt?.getTime() ?? 0),
+    );
     const confirmed = await this.prisma.report.count({
       where: { storeId, status: 'RESOLVED', createdAt: { gte: since } },
     });
@@ -640,11 +866,17 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
           where: { id: store.id },
           data: {
             earnedLevel: 'IDENTITY',
-            verificationLevel: store.badgeSuspendedAt ? 'REGISTERED' : 'IDENTITY',
+            verificationLevel: store.badgeSuspendedAt
+              ? 'REGISTERED'
+              : 'IDENTITY',
             verificationExpiresAt: null,
           },
         });
-        await this.audit.log({ action: 'store.verification_expired', entityType: 'store', entityId: store.id });
+        await this.audit.log({
+          action: 'store.verification_expired',
+          entityType: 'store',
+          entityId: store.id,
+        });
         this.notifyOwner(store.id, {
           type: 'verification.expired',
           title: 'انتهى توثيق محلك',
@@ -652,23 +884,39 @@ export class VerificationService implements OnModuleInit, OnApplicationShutdown 
         });
       }
 
-      const cutoff = new Date(now.getTime() - REJECTED_FILES_RETENTION_DAYS * DAY_MS);
+      const cutoff = new Date(
+        now.getTime() - REJECTED_FILES_RETENTION_DAYS * DAY_MS,
+      );
       const stale = await this.prisma.verificationRequest.findMany({
-        where: { status: 'REJECTED', reviewedAt: { lt: cutoff }, purgedAt: null },
+        where: {
+          status: 'REJECTED',
+          reviewedAt: { lt: cutoff },
+          purgedAt: null,
+        },
         select: { id: true, files: true },
         take: 200,
       });
       let purged = 0;
       for (const request of stale) {
         try {
-          await this.storage.remove(Object.values(request.files as FileMap).map((f) => f!.key));
-          await this.prisma.verificationRequest.update({ where: { id: request.id }, data: { files: {}, purgedAt: now } });
+          await this.storage.remove(
+            Object.values(request.files as FileMap).map((f) => f.key),
+          );
+          await this.prisma.verificationRequest.update({
+            where: { id: request.id },
+            data: { files: {}, purgedAt: now },
+          });
           purged++;
         } catch (e) {
-          this.log.warn(`Could not purge verification ${request.id}: ${(e as Error).message}`);
+          this.log.warn(
+            `Could not purge verification ${request.id}: ${(e as Error).message}`,
+          );
         }
       }
-      if (expired.length || purged) this.log.log(`Verification upkeep: ${expired.length} expired, ${purged} purged`);
+      if (expired.length || purged)
+        this.log.log(
+          `Verification upkeep: ${expired.length} expired, ${purged} purged`,
+        );
     } catch (e) {
       this.log.error(`Verification upkeep failed: ${(e as Error).message}`);
     }

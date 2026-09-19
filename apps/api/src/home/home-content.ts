@@ -17,7 +17,19 @@ import {
 import type { Request } from 'express';
 import { Prisma } from '@prisma/client';
 import { Type } from 'class-transformer';
-import { IsBoolean, IsDate, IsIn, IsInt, IsOptional, IsString, Matches, Max, MaxLength, Min, MinLength } from 'class-validator';
+import {
+  IsBoolean,
+  IsDate,
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Matches,
+  Max,
+  MaxLength,
+  Min,
+  MinLength,
+} from 'class-validator';
 import { PrismaService } from '../prisma/prisma.service';
 import { AuditService } from '../audit/audit.module';
 import { Throttle } from '../common/throttle';
@@ -62,38 +74,65 @@ export const DEFAULT_LAYOUT: HomeLayout = {
   sections: SECTION_IDS.map((id) => ({ id, enabled: true, title: '' })),
   autoBanners: true,
   offers: { countdown: 'midnight', until: null },
-  quickSearches: ['طاقة شمسية', 'موبايلات', 'بروكار', 'صابون غار', 'حلويات', 'لابتوب'],
+  quickSearches: [
+    'طاقة شمسية',
+    'موبايلات',
+    'بروكار',
+    'صابون غار',
+    'حلويات',
+    'لابتوب',
+  ],
   greeting: true,
 };
 
-const str = (v: unknown, max: number) => (typeof v === 'string' ? v.trim().slice(0, max) : '');
+const str = (v: unknown, max: number) =>
+  typeof v === 'string' ? v.trim().slice(0, max) : '';
 
 /**
  * Accepts only the known shape: unknown sections are dropped, missing ones are appended
  * (so a section added in a later release shows up), strings are trimmed and capped.
  */
 export function sanitizeLayout(raw: unknown): HomeLayout {
-  const input = (raw && typeof raw === 'object' ? raw : {}) as Record<string, unknown>;
+  const input = (raw && typeof raw === 'object' ? raw : {}) as Record<
+    string,
+    unknown
+  >;
   const seen = new Set<SectionId>();
   const sections: HomeLayout['sections'] = [];
   for (const s of Array.isArray(input.sections) ? input.sections : []) {
     const id = (s as { id?: unknown })?.id as SectionId;
     if (!SECTION_IDS.includes(id) || seen.has(id)) continue;
     seen.add(id);
-    sections.push({ id, enabled: (s as { enabled?: unknown }).enabled !== false, title: str((s as { title?: unknown }).title, 60) });
+    sections.push({
+      id,
+      enabled: (s as { enabled?: unknown }).enabled !== false,
+      title: str((s as { title?: unknown }).title, 60),
+    });
   }
-  for (const id of SECTION_IDS) if (!seen.has(id)) sections.push({ id, enabled: true, title: '' });
+  for (const id of SECTION_IDS)
+    if (!seen.has(id)) sections.push({ id, enabled: true, title: '' });
 
   const offers = (input.offers ?? {}) as Record<string, unknown>;
-  const countdown = ['midnight', 'until', 'none'].includes(offers.countdown as string)
+  const countdown = ['midnight', 'until', 'none'].includes(
+    offers.countdown as string,
+  )
     ? (offers.countdown as HomeLayout['offers']['countdown'])
     : 'midnight';
-  const untilDate = typeof offers.until === 'string' ? new Date(offers.until) : null;
-  const until = untilDate && !Number.isNaN(untilDate.getTime()) ? untilDate.toISOString() : null;
-  if (countdown === 'until' && !until) throw new BadRequestException('حدّد موعد انتهاء العروض');
+  const untilDate =
+    typeof offers.until === 'string' ? new Date(offers.until) : null;
+  const until =
+    untilDate && !Number.isNaN(untilDate.getTime())
+      ? untilDate.toISOString()
+      : null;
+  if (countdown === 'until' && !until)
+    throw new BadRequestException('حدّد موعد انتهاء العروض');
 
   const quickSearches = [
-    ...new Set((Array.isArray(input.quickSearches) ? input.quickSearches : []).map((q) => str(q, 30)).filter(Boolean)),
+    ...new Set(
+      (Array.isArray(input.quickSearches) ? input.quickSearches : [])
+        .map((q) => str(q, 30))
+        .filter(Boolean),
+    ),
   ].slice(0, 10);
 
   return {
@@ -110,27 +149,52 @@ export function sanitizeLayout(raw: unknown): HomeLayout {
 export const TONES = ['brand', 'olive', 'ink', 'rose'] as const;
 
 class BannerDto {
-  @IsString() @MinLength(2, { message: 'العنوان قصير جداً' }) @MaxLength(70, { message: 'العنوان أطول من 70 حرفاً' }) title!: string;
-  @IsString() @MaxLength(40, { message: 'السطر العلوي أطول من 40 حرفاً' }) eyebrow!: string;
-  @IsString() @MinLength(2, { message: 'اكتب نص الزر' }) @MaxLength(24, { message: 'نص الزر أطول من 24 حرفاً' }) cta!: string;
+  @IsString()
+  @MinLength(2, { message: 'العنوان قصير جداً' })
+  @MaxLength(70, { message: 'العنوان أطول من 70 حرفاً' })
+  title!: string;
+  @IsString()
+  @MaxLength(40, { message: 'السطر العلوي أطول من 40 حرفاً' })
+  eyebrow!: string;
+  @IsString()
+  @MinLength(2, { message: 'اكتب نص الزر' })
+  @MaxLength(24, { message: 'نص الزر أطول من 24 حرفاً' })
+  cta!: string;
   /** A page inside the buyer site only, banners never send people to other websites */
   @IsString()
   @MaxLength(300)
-  @Matches(/^\/(?!\/)[^\s\\]*$/, { message: 'الرابط يجب أن يكون صفحة داخل الموقع ويبدأ بـ /' })
+  @Matches(/^\/(?!\/)[^\s\\]*$/, {
+    message: 'الرابط يجب أن يكون صفحة داخل الموقع ويبدأ بـ /',
+  })
   href!: string;
   @IsOptional() @IsString() @MaxLength(500) imageUrl?: string | null;
   @IsIn(TONES, { message: 'اختر لون البنر' }) tone!: (typeof TONES)[number];
   @IsOptional() @IsString() @MaxLength(40) governorateId?: string | null;
-  @IsOptional() @Type(() => Date) @IsDate({ message: 'تاريخ البداية غير صالح' }) startsAt?: Date | null;
-  @IsOptional() @Type(() => Date) @IsDate({ message: 'تاريخ النهاية غير صالح' }) endsAt?: Date | null;
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate({ message: 'تاريخ البداية غير صالح' })
+  startsAt?: Date | null;
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate({ message: 'تاريخ النهاية غير صالح' })
+  endsAt?: Date | null;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
 class PromotionDto {
   @IsString() @MaxLength(40) storeId!: string;
-  @IsString() @MinLength(2, { message: 'اكتب اسم الباقة' }) @MaxLength(40, { message: 'اسم الباقة أطول من 40 حرفاً' }) plan!: string;
-  @IsOptional() @Type(() => Date) @IsDate({ message: 'تاريخ البداية غير صالح' }) startsAt?: Date | null;
-  @IsOptional() @Type(() => Date) @IsDate({ message: 'تاريخ النهاية غير صالح' }) endsAt?: Date | null;
+  @IsString()
+  @MinLength(2, { message: 'اكتب اسم الباقة' })
+  @MaxLength(40, { message: 'اسم الباقة أطول من 40 حرفاً' })
+  plan!: string;
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate({ message: 'تاريخ البداية غير صالح' })
+  startsAt?: Date | null;
+  @IsOptional()
+  @Type(() => Date)
+  @IsDate({ message: 'تاريخ النهاية غير صالح' })
+  endsAt?: Date | null;
   @IsOptional() @IsBoolean() isActive?: boolean;
 }
 
@@ -165,7 +229,9 @@ export class HomeContentService {
   ) {}
 
   async layout(): Promise<HomeLayout> {
-    const row = await this.prisma.appSetting.findUnique({ where: { key: LAYOUT_KEY } });
+    const row = await this.prisma.appSetting.findUnique({
+      where: { key: LAYOUT_KEY },
+    });
     if (!row) return DEFAULT_LAYOUT;
     try {
       return sanitizeLayout(JSON.parse(row.value));
@@ -185,7 +251,12 @@ export class HomeContentService {
           AND: [
             { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
             { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
-            { OR: [{ governorateId: null }, ...(govSlug ? [{ governorate: { slug: govSlug } }] : [])] },
+            {
+              OR: [
+                { governorateId: null },
+                ...(govSlug ? [{ governorate: { slug: govSlug } }] : []),
+              ],
+            },
           ],
         },
         select: bannerSelect,
@@ -195,8 +266,16 @@ export class HomeContentService {
       this.prisma.storePromotion.findMany({
         where: {
           isActive: true,
-          AND: [{ OR: [{ startsAt: null }, { startsAt: { lte: now } }] }, { OR: [{ endsAt: null }, { endsAt: { gt: now } }] }],
-          store: { ...publicStoreWhere, ...(govSlug ? { governorate: { status: 'ACTIVE' as const, slug: govSlug } } : {}) },
+          AND: [
+            { OR: [{ startsAt: null }, { startsAt: { lte: now } }] },
+            { OR: [{ endsAt: null }, { endsAt: { gt: now } }] },
+          ],
+          store: {
+            ...publicStoreWhere,
+            ...(govSlug
+              ? { governorate: { status: 'ACTIVE' as const, slug: govSlug } }
+              : {}),
+          },
         },
         select: { id: true, store: { select: storeCardSelect } },
         orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
@@ -213,7 +292,13 @@ export class HomeContentService {
       create: { key: LAYOUT_KEY, value: JSON.stringify(layout) },
       update: { value: JSON.stringify(layout) },
     });
-    await this.audit.log({ actorId, action: 'home.layout.updated', entityType: 'setting', entityId: LAYOUT_KEY, ip });
+    await this.audit.log({
+      actorId,
+      action: 'home.layout.updated',
+      entityType: 'setting',
+      entityId: LAYOUT_KEY,
+      ip,
+    });
     return layout;
   }
 
@@ -231,14 +316,22 @@ export class HomeContentService {
   private async clean(dto: BannerDto) {
     const imageUrl = dto.imageUrl?.trim() || null;
     // Only pictures uploaded to our own storage (the site's CSP blocks anything else anyway)
-    if (imageUrl && !imageUrl.startsWith(`${env.minio.publicUrl}/`)) throw new BadRequestException('ارفع صورة البنر من هذه الصفحة');
+    if (imageUrl && !imageUrl.startsWith(`${env.minio.publicUrl}/`))
+      throw new BadRequestException('ارفع صورة البنر من هذه الصفحة');
     const governorateId = dto.governorateId || null;
-    if (governorateId && !(await this.prisma.governorate.findUnique({ where: { id: governorateId }, select: { id: true } }))) {
+    if (
+      governorateId &&
+      !(await this.prisma.governorate.findUnique({
+        where: { id: governorateId },
+        select: { id: true },
+      }))
+    ) {
       throw new BadRequestException('المحافظة غير موجودة');
     }
     const startsAt = dto.startsAt ?? null;
     const endsAt = dto.endsAt ?? null;
-    if (startsAt && endsAt && endsAt <= startsAt) throw new BadRequestException('موعد النهاية يجب أن يكون بعد البداية');
+    if (startsAt && endsAt && endsAt <= startsAt)
+      throw new BadRequestException('موعد النهاية يجب أن يكون بعد البداية');
     return {
       title: dto.title.trim(),
       eyebrow: dto.eyebrow.trim(),
@@ -254,96 +347,220 @@ export class HomeContentService {
   }
 
   async createBanner(actorId: string, dto: BannerDto, ip: string) {
-    const last = await this.prisma.homeBanner.aggregate({ _max: { sortOrder: true } });
-    const banner = await this.prisma.homeBanner.create({
-      data: { ...(await this.clean(dto)), sortOrder: (last._max.sortOrder ?? 0) + 1 },
+    const last = await this.prisma.homeBanner.aggregate({
+      _max: { sortOrder: true },
     });
-    await this.audit.log({ actorId, action: 'home.banner.created', entityType: 'banner', entityId: banner.id, meta: { title: banner.title }, ip });
+    const banner = await this.prisma.homeBanner.create({
+      data: {
+        ...(await this.clean(dto)),
+        sortOrder: (last._max.sortOrder ?? 0) + 1,
+      },
+    });
+    await this.audit.log({
+      actorId,
+      action: 'home.banner.created',
+      entityType: 'banner',
+      entityId: banner.id,
+      meta: { title: banner.title },
+      ip,
+    });
     return banner;
   }
 
   async updateBanner(actorId: string, id: string, dto: BannerDto, ip: string) {
     await this.findBanner(id);
-    const banner = await this.prisma.homeBanner.update({ where: { id }, data: await this.clean(dto) });
-    await this.audit.log({ actorId, action: 'home.banner.updated', entityType: 'banner', entityId: id, meta: { title: banner.title, isActive: banner.isActive }, ip });
+    const banner = await this.prisma.homeBanner.update({
+      where: { id },
+      data: await this.clean(dto),
+    });
+    await this.audit.log({
+      actorId,
+      action: 'home.banner.updated',
+      entityType: 'banner',
+      entityId: id,
+      meta: { title: banner.title, isActive: banner.isActive },
+      ip,
+    });
     return banner;
   }
 
   async moveBanner(id: string, direction: number) {
-    const list = await this.prisma.homeBanner.findMany({ orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }], select: { id: true } });
+    const list = await this.prisma.homeBanner.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'desc' }],
+      select: { id: true },
+    });
     const from = list.findIndex((b) => b.id === id);
     if (from < 0) throw new NotFoundException('البنر غير موجود');
     const to = from + direction;
     if (to < 0 || to >= list.length) return { ok: true };
     [list[from], list[to]] = [list[to], list[from]];
-    await this.prisma.$transaction(list.map((b, i) => this.prisma.homeBanner.update({ where: { id: b.id }, data: { sortOrder: i + 1 } })));
+    await this.prisma.$transaction(
+      list.map((b, i) =>
+        this.prisma.homeBanner.update({
+          where: { id: b.id },
+          data: { sortOrder: i + 1 },
+        }),
+      ),
+    );
     return { ok: true };
   }
 
   async deleteBanner(actorId: string, id: string, ip: string) {
     const banner = await this.findBanner(id);
     await this.prisma.homeBanner.delete({ where: { id } });
-    await this.audit.log({ actorId, action: 'home.banner.deleted', entityType: 'banner', entityId: id, meta: { title: banner.title }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'home.banner.deleted',
+      entityType: 'banner',
+      entityId: id,
+      meta: { title: banner.title },
+      ip,
+    });
     return { ok: true };
   }
 
   listPromotions() {
     return this.prisma.storePromotion.findMany({
       orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
-      include: { store: { select: { id: true, name: true, slug: true, logoUrl: true, status: true, governorate: { select: { name: true, status: true } } } } },
+      include: {
+        store: {
+          select: {
+            id: true,
+            name: true,
+            slug: true,
+            logoUrl: true,
+            status: true,
+            governorate: { select: { name: true, status: true } },
+          },
+        },
+      },
     });
   }
 
   private async cleanPromotion(dto: PromotionDto) {
-    const store = await this.prisma.store.findUnique({ where: { id: dto.storeId }, select: { id: true, name: true } });
+    const store = await this.prisma.store.findUnique({
+      where: { id: dto.storeId },
+      select: { id: true, name: true },
+    });
     if (!store) throw new BadRequestException('المتجر غير موجود');
     const startsAt = dto.startsAt ?? null;
     const endsAt = dto.endsAt ?? null;
-    if (startsAt && endsAt && endsAt <= startsAt) throw new BadRequestException('موعد النهاية يجب أن يكون بعد البداية');
-    return { store, data: { storeId: store.id, plan: dto.plan.trim(), startsAt, endsAt, ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}) } };
+    if (startsAt && endsAt && endsAt <= startsAt)
+      throw new BadRequestException('موعد النهاية يجب أن يكون بعد البداية');
+    return {
+      store,
+      data: {
+        storeId: store.id,
+        plan: dto.plan.trim(),
+        startsAt,
+        endsAt,
+        ...(dto.isActive !== undefined ? { isActive: dto.isActive } : {}),
+      },
+    };
   }
 
   async createPromotion(actorId: string, dto: PromotionDto, ip: string) {
     const { store, data } = await this.cleanPromotion(dto);
-    const last = await this.prisma.storePromotion.aggregate({ _max: { sortOrder: true } });
-    const promo = await this.prisma.storePromotion.create({ data: { ...data, sortOrder: (last._max.sortOrder ?? 0) + 1 } });
-    await this.audit.log({ actorId, action: 'home.promotion.created', entityType: 'store', entityId: store.id, meta: { plan: promo.plan, endsAt: promo.endsAt }, ip });
+    const last = await this.prisma.storePromotion.aggregate({
+      _max: { sortOrder: true },
+    });
+    const promo = await this.prisma.storePromotion.create({
+      data: { ...data, sortOrder: (last._max.sortOrder ?? 0) + 1 },
+    });
+    await this.audit.log({
+      actorId,
+      action: 'home.promotion.created',
+      entityType: 'store',
+      entityId: store.id,
+      meta: { plan: promo.plan, endsAt: promo.endsAt },
+      ip,
+    });
     return promo;
   }
 
-  async updatePromotion(actorId: string, id: string, dto: PromotionDto, ip: string) {
-    if (!(await this.prisma.storePromotion.findUnique({ where: { id }, select: { id: true } }))) throw new NotFoundException('الاشتراك غير موجود');
+  async updatePromotion(
+    actorId: string,
+    id: string,
+    dto: PromotionDto,
+    ip: string,
+  ) {
+    if (
+      !(await this.prisma.storePromotion.findUnique({
+        where: { id },
+        select: { id: true },
+      }))
+    )
+      throw new NotFoundException('الاشتراك غير موجود');
     const { store, data } = await this.cleanPromotion(dto);
-    const promo = await this.prisma.storePromotion.update({ where: { id }, data });
-    await this.audit.log({ actorId, action: 'home.promotion.updated', entityType: 'store', entityId: store.id, meta: { plan: promo.plan, isActive: promo.isActive, endsAt: promo.endsAt }, ip });
+    const promo = await this.prisma.storePromotion.update({
+      where: { id },
+      data,
+    });
+    await this.audit.log({
+      actorId,
+      action: 'home.promotion.updated',
+      entityType: 'store',
+      entityId: store.id,
+      meta: {
+        plan: promo.plan,
+        isActive: promo.isActive,
+        endsAt: promo.endsAt,
+      },
+      ip,
+    });
     return promo;
   }
 
   async movePromotion(id: string, direction: number) {
-    const list = await this.prisma.storePromotion.findMany({ orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }], select: { id: true } });
+    const list = await this.prisma.storePromotion.findMany({
+      orderBy: [{ sortOrder: 'asc' }, { createdAt: 'asc' }],
+      select: { id: true },
+    });
     const from = list.findIndex((b) => b.id === id);
     if (from < 0) throw new NotFoundException('الاشتراك غير موجود');
     const to = from + direction;
     if (to < 0 || to >= list.length) return { ok: true };
     [list[from], list[to]] = [list[to], list[from]];
-    await this.prisma.$transaction(list.map((b, i) => this.prisma.storePromotion.update({ where: { id: b.id }, data: { sortOrder: i + 1 } })));
+    await this.prisma.$transaction(
+      list.map((b, i) =>
+        this.prisma.storePromotion.update({
+          where: { id: b.id },
+          data: { sortOrder: i + 1 },
+        }),
+      ),
+    );
     return { ok: true };
   }
 
   async deletePromotion(actorId: string, id: string, ip: string) {
-    const promo = await this.prisma.storePromotion.findUnique({ where: { id } });
+    const promo = await this.prisma.storePromotion.findUnique({
+      where: { id },
+    });
     if (!promo) throw new NotFoundException('الاشتراك غير موجود');
     await this.prisma.storePromotion.delete({ where: { id } });
-    await this.audit.log({ actorId, action: 'home.promotion.deleted', entityType: 'store', entityId: promo.storeId, meta: { plan: promo.plan }, ip });
+    await this.audit.log({
+      actorId,
+      action: 'home.promotion.deleted',
+      entityType: 'store',
+      entityId: promo.storeId,
+      meta: { plan: promo.plan },
+      ip,
+    });
     return { ok: true };
   }
 
   async clickPromotion(id: string) {
-    await this.prisma.storePromotion.updateMany({ where: { id, isActive: true }, data: { clicks: { increment: 1 } } });
+    await this.prisma.storePromotion.updateMany({
+      where: { id, isActive: true },
+      data: { clicks: { increment: 1 } },
+    });
   }
 
   async click(id: string) {
-    await this.prisma.homeBanner.updateMany({ where: { id, isActive: true }, data: { clicks: { increment: 1 } } });
+    await this.prisma.homeBanner.updateMany({
+      where: { id, isActive: true },
+      data: { clicks: { increment: 1 } },
+    });
   }
 
   private async findBanner(id: string) {
@@ -365,7 +582,11 @@ export class AdminHomeController {
   }
 
   @Put('layout')
-  saveLayout(@CurrentUser() user: AuthUser, @Body() body: LayoutDto, @Req() req: Request) {
+  saveLayout(
+    @CurrentUser() user: AuthUser,
+    @Body() body: LayoutDto,
+    @Req() req: Request,
+  ) {
     return this.home.saveLayout(user.id, body, clientIp(req));
   }
 
@@ -375,12 +596,21 @@ export class AdminHomeController {
   }
 
   @Post('banners')
-  create(@CurrentUser() user: AuthUser, @Body() dto: BannerDto, @Req() req: Request) {
+  create(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: BannerDto,
+    @Req() req: Request,
+  ) {
     return this.home.createBanner(user.id, dto, clientIp(req));
   }
 
   @Patch('banners/:id')
-  update(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: BannerDto, @Req() req: Request) {
+  update(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: BannerDto,
+    @Req() req: Request,
+  ) {
     return this.home.updateBanner(user.id, id, dto, clientIp(req));
   }
 
@@ -395,12 +625,21 @@ export class AdminHomeController {
   }
 
   @Post('promotions')
-  createPromotion(@CurrentUser() user: AuthUser, @Body() dto: PromotionDto, @Req() req: Request) {
+  createPromotion(
+    @CurrentUser() user: AuthUser,
+    @Body() dto: PromotionDto,
+    @Req() req: Request,
+  ) {
     return this.home.createPromotion(user.id, dto, clientIp(req));
   }
 
   @Patch('promotions/:id')
-  updatePromotion(@CurrentUser() user: AuthUser, @Param('id') id: string, @Body() dto: PromotionDto, @Req() req: Request) {
+  updatePromotion(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: PromotionDto,
+    @Req() req: Request,
+  ) {
     return this.home.updatePromotion(user.id, id, dto, clientIp(req));
   }
 
@@ -410,12 +649,20 @@ export class AdminHomeController {
   }
 
   @Delete('promotions/:id')
-  removePromotion(@CurrentUser() user: AuthUser, @Param('id') id: string, @Req() req: Request) {
+  removePromotion(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
     return this.home.deletePromotion(user.id, id, clientIp(req));
   }
 
   @Delete('banners/:id')
-  remove(@CurrentUser() user: AuthUser, @Param('id') id: string, @Req() req: Request) {
+  remove(
+    @CurrentUser() user: AuthUser,
+    @Param('id') id: string,
+    @Req() req: Request,
+  ) {
     return this.home.deleteBanner(user.id, id, clientIp(req));
   }
 }

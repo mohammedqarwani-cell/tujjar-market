@@ -19,13 +19,21 @@ import { Auth, OptionalJwtAuthGuard } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { Throttle } from '../common/throttle';
-import { productCardSelect, publicProductWhere, publicStoreWhere, storeCardSelect } from '../common/selects';
+import {
+  productCardSelect,
+  publicProductWhere,
+  publicStoreWhere,
+  storeCardSelect,
+} from '../common/selects';
 
 const MAX_FAVORITES = 200;
 const MAX_FOLLOWS = 500;
 
 class SyncFavoritesDto {
-  @IsArray() @ArrayMaxSize(MAX_FAVORITES) @IsString({ each: true }) ids!: string[];
+  @IsArray()
+  @ArrayMaxSize(MAX_FAVORITES)
+  @IsString({ each: true })
+  ids!: string[];
 }
 
 @Injectable()
@@ -33,7 +41,10 @@ export class EngagementService {
   constructor(private prisma: PrismaService) {}
 
   private async publicStoreId(slug: string) {
-    const store = await this.prisma.store.findFirst({ where: { slug, ...publicStoreWhere }, select: { id: true } });
+    const store = await this.prisma.store.findFirst({
+      where: { slug, ...publicStoreWhere },
+      select: { id: true },
+    });
     if (!store) throw new NotFoundException('المتجر غير موجود');
     return store.id;
   }
@@ -44,7 +55,12 @@ export class EngagementService {
     const storeId = await this.publicStoreId(slug);
     const [followers, mine] = await Promise.all([
       this.prisma.storeFollow.count({ where: { storeId } }),
-      userId ? this.prisma.storeFollow.findUnique({ where: { userId_storeId: { userId, storeId } }, select: { userId: true } }) : null,
+      userId
+        ? this.prisma.storeFollow.findUnique({
+            where: { userId_storeId: { userId, storeId } },
+            select: { userId: true },
+          })
+        : null,
     ]);
     return { following: !!mine, followers };
   }
@@ -52,7 +68,8 @@ export class EngagementService {
   async follow(userId: string, slug: string) {
     const storeId = await this.publicStoreId(slug);
     const count = await this.prisma.storeFollow.count({ where: { userId } });
-    if (count >= MAX_FOLLOWS) throw new BadRequestException('وصلت للحد الأقصى من المتاجر المتابَعة');
+    if (count >= MAX_FOLLOWS)
+      throw new BadRequestException('وصلت للحد الأقصى من المتاجر المتابَعة');
     await this.prisma.storeFollow.upsert({
       where: { userId_storeId: { userId, storeId } },
       create: { userId, storeId },
@@ -88,12 +105,23 @@ export class EngagementService {
   }
 
   async addFavorite(userId: string, productId: string) {
-    const product = await this.prisma.product.findFirst({ where: { id: productId, ...publicProductWhere }, select: { id: true } });
+    const product = await this.prisma.product.findFirst({
+      where: { id: productId, ...publicProductWhere },
+      select: { id: true },
+    });
     if (!product) throw new NotFoundException('المنتج غير موجود');
     const count = await this.prisma.favorite.count({ where: { userId } });
-    const exists = await this.prisma.favorite.findUnique({ where: { userId_productId: { userId, productId } }, select: { userId: true } });
-    if (!exists && count >= MAX_FAVORITES) throw new BadRequestException('وصلت للحد الأقصى من المفضلة');
-    await this.prisma.favorite.upsert({ where: { userId_productId: { userId, productId } }, create: { userId, productId }, update: {} });
+    const exists = await this.prisma.favorite.findUnique({
+      where: { userId_productId: { userId, productId } },
+      select: { userId: true },
+    });
+    if (!exists && count >= MAX_FAVORITES)
+      throw new BadRequestException('وصلت للحد الأقصى من المفضلة');
+    await this.prisma.favorite.upsert({
+      where: { userId_productId: { userId, productId } },
+      create: { userId, productId },
+      update: {},
+    });
     return { favorite: true };
   }
 
@@ -113,7 +141,10 @@ export class EngagementService {
         take: room,
       });
       if (valid.length) {
-        await this.prisma.favorite.createMany({ data: valid.map((p) => ({ userId, productId: p.id })), skipDuplicates: true });
+        await this.prisma.favorite.createMany({
+          data: valid.map((p) => ({ userId, productId: p.id })),
+          skipDuplicates: true,
+        });
       }
     }
     return this.favorites(userId);
@@ -126,8 +157,14 @@ export class EngagementController {
 
   @Get('stores/:slug/follow')
   @UseGuards(OptionalJwtAuthGuard)
-  followState(@CurrentUser() user: AuthUser | null, @Param('slug') slug: string) {
-    return this.engagement.followState(slug, user?.role === 'BUYER' ? user.id : undefined);
+  followState(
+    @CurrentUser() user: AuthUser | null,
+    @Param('slug') slug: string,
+  ) {
+    return this.engagement.followState(
+      slug,
+      user?.role === 'BUYER' ? user.id : undefined,
+    );
   }
 
   @Post('stores/:slug/follow')
@@ -158,13 +195,19 @@ export class EngagementController {
 
   @Put('me/favorites/:productId')
   @Auth('BUYER')
-  addFavorite(@CurrentUser() user: AuthUser, @Param('productId') productId: string) {
+  addFavorite(
+    @CurrentUser() user: AuthUser,
+    @Param('productId') productId: string,
+  ) {
     return this.engagement.addFavorite(user.id, productId);
   }
 
   @Delete('me/favorites/:productId')
   @Auth('BUYER')
-  removeFavorite(@CurrentUser() user: AuthUser, @Param('productId') productId: string) {
+  removeFavorite(
+    @CurrentUser() user: AuthUser,
+    @Param('productId') productId: string,
+  ) {
     return this.engagement.removeFavorite(user.id, productId);
   }
 

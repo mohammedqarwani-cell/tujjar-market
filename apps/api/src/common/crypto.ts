@@ -1,8 +1,17 @@
-import { createCipheriv, createDecipheriv, createHash, createHmac, randomBytes, timingSafeEqual } from 'crypto';
+import {
+  createCipheriv,
+  createDecipheriv,
+  createHash,
+  createHmac,
+  randomBytes,
+  timingSafeEqual,
+} from 'crypto';
 
-export const sha256 = (value: string) => createHash('sha256').update(value).digest('hex');
+export const sha256 = (value: string) =>
+  createHash('sha256').update(value).digest('hex');
 
-export const hmacSha256 = (key: string, value: string) => createHmac('sha256', key).update(value).digest('hex');
+export const hmacSha256 = (key: string, value: string) =>
+  createHmac('sha256', key).update(value).digest('hex');
 
 export function safeEqual(a: string, b: string): boolean {
   const x = Buffer.from(a);
@@ -22,5 +31,8 @@ export function decrypt(key: Buffer, payload: string): string {
   const buf = Buffer.from(payload, 'base64');
   const decipher = createDecipheriv('aes-256-gcm', key, buf.subarray(0, 12));
   decipher.setAuthTag(buf.subarray(12, 28));
-  return Buffer.concat([decipher.update(buf.subarray(28)), decipher.final()]).toString('utf8');
+  return Buffer.concat([
+    decipher.update(buf.subarray(28)),
+    decipher.final(),
+  ]).toString('utf8');
 }

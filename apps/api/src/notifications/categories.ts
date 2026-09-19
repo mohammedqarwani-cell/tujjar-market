@@ -79,7 +79,14 @@ export const CATEGORY_INFO: Record<NotificationCategory, CategoryInfo> = {
 };
 
 export const ROLE_CATEGORIES: Record<Role, NotificationCategory[]> = {
-  BUYER: ['ACCOUNT', 'ORDERS', 'FAVORITES', 'FOLLOWING', 'PROMOTIONS', 'INVITES'],
+  BUYER: [
+    'ACCOUNT',
+    'ORDERS',
+    'FAVORITES',
+    'FOLLOWING',
+    'PROMOTIONS',
+    'INVITES',
+  ],
   MERCHANT: ['ACCOUNT', 'ORDERS', 'REVIEWS', 'PROMOTIONS', 'INVITES'],
   ADMIN: ['ACCOUNT', 'MODERATION'],
   MODERATOR: ['ACCOUNT', 'MODERATION'],
@@ -96,10 +103,18 @@ export function describeCategory(category: NotificationCategory, role: Role) {
   return typeof d === 'string' ? d : (d[role] ?? Object.values(d)[0] ?? '');
 }
 
-export function effectivePrefs(role: Role, stored: unknown, category: NotificationCategory): ChannelPrefs {
-  if (!ROLE_CATEGORIES[role].includes(category)) return { inApp: false, push: false };
+export function effectivePrefs(
+  role: Role,
+  stored: unknown,
+  category: NotificationCategory,
+): ChannelPrefs {
+  if (!ROLE_CATEGORIES[role].includes(category))
+    return { inApp: false, push: false };
   const info = CATEGORY_INFO[category];
-  const saved = (stored && typeof stored === 'object' ? (stored as PrefsMap)[category] : undefined) ?? info.defaults;
+  const saved =
+    (stored && typeof stored === 'object'
+      ? (stored as PrefsMap)[category]
+      : undefined) ?? info.defaults;
   return {
     inApp: info.inAppLocked ? true : saved.inApp !== false,
     push: saved.push !== false,

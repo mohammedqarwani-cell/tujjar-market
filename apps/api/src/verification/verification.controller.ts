@@ -19,7 +19,12 @@ import { Auth } from '../auth/guards';
 import { CurrentUser } from '../auth/current-user.decorator';
 import type { AuthUser } from '../auth/current-user.decorator';
 import { clientIp } from '../common/request';
-import { DecisionDto, LocationEvidenceDto, RestoreBadgeDto, StoreLevelDto } from './verification.dto';
+import {
+  DecisionDto,
+  LocationEvidenceDto,
+  RestoreBadgeDto,
+  StoreLevelDto,
+} from './verification.dto';
 import {
   IMAGE_MAX_BYTES,
   VIDEO_MAX_BYTES,
@@ -30,9 +35,9 @@ import {
 
 type Uploads = Partial<Record<FileSlot, UploadedFile[]>>;
 const firstOfEach = (uploads?: Uploads) =>
-  Object.fromEntries(Object.entries(uploads ?? {}).map(([slot, list]) => [slot, list?.[0]])) as Partial<
-    Record<FileSlot, UploadedFile>
-  >;
+  Object.fromEntries(
+    Object.entries(uploads ?? {}).map(([slot, list]) => [slot, list?.[0]]),
+  ) as Partial<Record<FileSlot, UploadedFile>>;
 
 // Evidence uploads are the largest bodies the API accepts, so every other multipart limit stays tight
 const multipartLimits = { fieldNameSize: 20, fieldSize: 64, headerPairs: 50 };
@@ -56,11 +61,27 @@ export class MerchantVerificationController {
         { name: 'idBack', maxCount: 1 },
         { name: 'selfie', maxCount: 1 },
       ],
-      { limits: { ...multipartLimits, fileSize: IMAGE_MAX_BYTES, files: 3, fields: 0, parts: 3 } },
+      {
+        limits: {
+          ...multipartLimits,
+          fileSize: IMAGE_MAX_BYTES,
+          files: 3,
+          fields: 0,
+          parts: 3,
+        },
+      },
     ),
   )
-  identity(@CurrentUser() user: AuthUser, @UploadedFiles() uploads: Uploads, @Req() req: Request) {
-    return this.verification.submitIdentity(user.id, firstOfEach(uploads), clientIp(req));
+  identity(
+    @CurrentUser() user: AuthUser,
+    @UploadedFiles() uploads: Uploads,
+    @Req() req: Request,
+  ) {
+    return this.verification.submitIdentity(
+      user.id,
+      firstOfEach(uploads),
+      clientIp(req),
+    );
   }
 
   @Post('location')
@@ -71,7 +92,15 @@ export class MerchantVerificationController {
         { name: 'video', maxCount: 1 },
         { name: 'document', maxCount: 1 },
       ],
-      { limits: { ...multipartLimits, fileSize: VIDEO_MAX_BYTES, files: 2, fields: 4, parts: 6 } },
+      {
+        limits: {
+          ...multipartLimits,
+          fileSize: VIDEO_MAX_BYTES,
+          files: 2,
+          fields: 4,
+          parts: 6,
+        },
+      },
     ),
   )
   location(
@@ -80,7 +109,12 @@ export class MerchantVerificationController {
     @Body() evidence: LocationEvidenceDto,
     @Req() req: Request,
   ) {
-    return this.verification.submitLocation(user.id, firstOfEach(uploads), evidence, clientIp(req));
+    return this.verification.submitLocation(
+      user.id,
+      firstOfEach(uploads),
+      evidence,
+      clientIp(req),
+    );
   }
 }
 
@@ -103,26 +137,54 @@ export class AdminVerificationController {
     @Req() req: Request,
     @Res({ passthrough: true }) res: Response,
   ) {
-    const { buffer, type } = await this.verification.readFile(actor.id, id, slot, clientIp(req));
+    const { buffer, type } = await this.verification.readFile(
+      actor.id,
+      id,
+      slot,
+      clientIp(req),
+    );
     // Identity documents must never be cached by the browser or any proxy
-    res.set({ 'Cache-Control': 'no-store, private', 'Content-Disposition': 'inline' });
+    res.set({
+      'Cache-Control': 'no-store, private',
+      'Content-Disposition': 'inline',
+    });
     return new StreamableFile(buffer, { type, length: buffer.length });
   }
 
   @Patch('verifications/:id')
-  decide(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: DecisionDto, @Req() req: Request) {
+  decide(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: DecisionDto,
+    @Req() req: Request,
+  ) {
     return this.verification.decide(actor.id, id, dto, clientIp(req));
   }
 
   @Patch('stores/:id/level')
   @Auth('ADMIN')
-  setLevel(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: StoreLevelDto, @Req() req: Request) {
+  setLevel(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: StoreLevelDto,
+    @Req() req: Request,
+  ) {
     return this.verification.setStoreLevel(actor.id, id, dto, clientIp(req));
   }
 
   @Patch('stores/:id/badge')
   @Auth('ADMIN')
-  restoreBadge(@CurrentUser() actor: AuthUser, @Param('id') id: string, @Body() dto: RestoreBadgeDto, @Req() req: Request) {
-    return this.verification.restoreBadge(actor.id, id, dto.note, clientIp(req));
+  restoreBadge(
+    @CurrentUser() actor: AuthUser,
+    @Param('id') id: string,
+    @Body() dto: RestoreBadgeDto,
+    @Req() req: Request,
+  ) {
+    return this.verification.restoreBadge(
+      actor.id,
+      id,
+      dto.note,
+      clientIp(req),
+    );
   }
 }

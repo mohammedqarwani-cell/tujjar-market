@@ -1,4 +1,10 @@
-import { CanActivate, ExecutionContext, ForbiddenException, Injectable, SetMetadata } from '@nestjs/common';
+import {
+  CanActivate,
+  ExecutionContext,
+  ForbiddenException,
+  Injectable,
+  SetMetadata,
+} from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import type { Request } from 'express';
 import { env } from '../env';
@@ -20,7 +26,13 @@ export class CsrfGuard implements CanActivate {
   canActivate(ctx: ExecutionContext): boolean {
     const req = ctx.switchToHttp().getRequest<Request>();
     if (['GET', 'HEAD', 'OPTIONS'].includes(req.method)) return true;
-    if (this.reflector.getAllAndOverride<boolean>(SKIP_CSRF, [ctx.getHandler(), ctx.getClass()])) return true;
+    if (
+      this.reflector.getAllAndOverride<boolean>(SKIP_CSRF, [
+        ctx.getHandler(),
+        ctx.getClass(),
+      ])
+    )
+      return true;
 
     const audience = readAudience(req);
     if (!audience) throw new ForbiddenException('طلب غير مسموح');

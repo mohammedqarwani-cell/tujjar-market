@@ -1,4 +1,13 @@
-import { Body, Controller, Get, HttpCode, Post, Query, Req, UseGuards } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  HttpCode,
+  Post,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
 import { Throttle } from '../common/throttle';
 import type { Request } from 'express';
 import { IsIn, IsOptional, IsString } from 'class-validator';
@@ -35,7 +44,11 @@ export class TrackController {
   @HttpCode(204)
   @Throttle({ default: { limit: 30, ttl: 60_000 } })
   @UseGuards(OptionalJwtAuthGuard)
-  async contact(@Body() dto: TrackContactDto, @CurrentUser() user: AuthUser | null, @Req() req: Request) {
+  async contact(
+    @Body() dto: TrackContactDto,
+    @CurrentUser() user: AuthUser | null,
+    @Req() req: Request,
+  ) {
     await this.stats.trackContact(clientIp(req), dto, user);
   }
 }

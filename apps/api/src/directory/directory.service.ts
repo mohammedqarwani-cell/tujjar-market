@@ -2,7 +2,12 @@ import { Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { HomeContentService } from '../home/home-content';
-import { productCardSelect, publicProductWhere, publicStoreWhere, storeCardSelect } from '../common/selects';
+import {
+  productCardSelect,
+  publicProductWhere,
+  publicStoreWhere,
+  storeCardSelect,
+} from '../common/selects';
 
 const publicStores = { where: publicStoreWhere };
 
@@ -28,14 +33,24 @@ export class DirectoryService {
         markets: {
           where: { isActive: true },
           orderBy: { sortOrder: 'asc' },
-          select: { id: true, slug: true, name: true, latitude: true, longitude: true, _count: { select: { stores: publicStores } } },
+          select: {
+            id: true,
+            slug: true,
+            name: true,
+            latitude: true,
+            longitude: true,
+            _count: { select: { stores: publicStores } },
+          },
         },
       },
     });
     return rows.map(({ _count, markets, ...g }) => ({
       ...g,
       storesCount: _count.stores,
-      markets: markets.map(({ _count: c, ...m }) => ({ ...m, storesCount: c.stores })),
+      markets: markets.map(({ _count: c, ...m }) => ({
+        ...m,
+        storesCount: c.stores,
+      })),
     }));
   }
 
@@ -51,7 +66,10 @@ export class DirectoryService {
         _count: { select: { products: { where: publicProductWhere } } },
       },
     });
-    return rows.map(({ _count, ...c }) => ({ ...c, productsCount: _count.products }));
+    return rows.map(({ _count, ...c }) => ({
+      ...c,
+      productsCount: _count.products,
+    }));
   }
 
   async market(slug: string) {
@@ -76,11 +94,26 @@ export class DirectoryService {
 
   async home(govSlug?: string) {
     const storeScope: Prisma.StoreWhereInput = govSlug
-      ? { ...publicStoreWhere, governorate: { status: 'ACTIVE', slug: govSlug } }
+      ? {
+          ...publicStoreWhere,
+          governorate: { status: 'ACTIVE', slug: govSlug },
+        }
       : publicStoreWhere;
-    const productScope: Prisma.ProductWhereInput = { ...publicProductWhere, store: storeScope };
+    const productScope: Prisma.ProductWhereInput = {
+      ...publicProductWhere,
+      store: storeScope,
+    };
 
-    const [categories, governorates, featured, popular, latest, stores, totals, content] = await Promise.all([
+    const [
+      categories,
+      governorates,
+      featured,
+      popular,
+      latest,
+      stores,
+      totals,
+      content,
+    ] = await Promise.all([
       this.categories(),
       this.governorates(),
       this.prisma.product.findMany({
@@ -111,7 +144,9 @@ export class DirectoryService {
       Promise.all([
         this.prisma.store.count({ where: publicStoreWhere }),
         this.prisma.product.count({ where: publicProductWhere }),
-        this.prisma.market.count({ where: { isActive: true, governorate: { status: 'ACTIVE' } } }),
+        this.prisma.market.count({
+          where: { isActive: true, governorate: { status: 'ACTIVE' } },
+        }),
       ]),
       this.homeContent.publicContent(govSlug),
     ]);
@@ -130,15 +165,25 @@ export class DirectoryService {
 
   async sitemap() {
     const [stores, products, markets, categories] = await Promise.all([
-      this.prisma.store.findMany({ where: publicStoreWhere, select: { slug: true, updatedAt: true }, take: 20_000 }),
+      this.prisma.store.findMany({
+        where: publicStoreWhere,
+        select: { slug: true, updatedAt: true },
+        take: 20_000,
+      }),
       this.prisma.product.findMany({
         where: { status: 'ACTIVE', store: publicStoreWhere },
         select: { id: true, updatedAt: true },
         orderBy: { updatedAt: 'desc' },
         take: 40_000,
       }),
-      this.prisma.market.findMany({ where: { isActive: true, governorate: { status: 'ACTIVE' } }, select: { slug: true } }),
-      this.prisma.category.findMany({ where: { isActive: true }, select: { slug: true } }),
+      this.prisma.market.findMany({
+        where: { isActive: true, governorate: { status: 'ACTIVE' } },
+        select: { slug: true },
+      }),
+      this.prisma.category.findMany({
+        where: { isActive: true },
+        select: { slug: true },
+      }),
     ]);
     return { stores, products, markets, categories };
   }

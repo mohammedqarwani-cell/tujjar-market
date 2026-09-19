@@ -1,9 +1,16 @@
 import type { VerificationLevel } from '@prisma/client';
 
-export const LEVELS: VerificationLevel[] = ['REGISTERED', 'IDENTITY', 'LOCATION', 'PREMIUM'];
+export const LEVELS: VerificationLevel[] = [
+  'REGISTERED',
+  'IDENTITY',
+  'LOCATION',
+  'PREMIUM',
+];
 export const levelRank = (level: VerificationLevel) => LEVELS.indexOf(level);
-export const atLeast = (level: VerificationLevel, min: VerificationLevel) => levelRank(level) >= levelRank(min);
-export const maxLevel = (a: VerificationLevel, b: VerificationLevel) => (levelRank(a) >= levelRank(b) ? a : b);
+export const atLeast = (level: VerificationLevel, min: VerificationLevel) =>
+  levelRank(level) >= levelRank(min);
+export const maxLevel = (a: VerificationLevel, b: VerificationLevel) =>
+  levelRank(a) >= levelRank(b) ? a : b;
 
 /** How many products a store may list at each public level (null: no limit) */
 export const PRODUCT_LIMITS: Record<VerificationLevel, number | null> = {

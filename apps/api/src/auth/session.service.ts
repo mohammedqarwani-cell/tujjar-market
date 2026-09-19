@@ -39,8 +39,19 @@ export class SessionService {
         userAgent: meta.userAgent,
       },
     });
-    const accessToken = await this.jwt.signAsync({ sub: user.id, role: user.role, aud, sid: session.id, mfa: opts.mfa });
-    return { accessToken, refreshToken, refreshExpiresAt, sessionId: session.id };
+    const accessToken = await this.jwt.signAsync({
+      sub: user.id,
+      role: user.role,
+      aud,
+      sid: session.id,
+      mfa: opts.mfa,
+    });
+    return {
+      accessToken,
+      refreshToken,
+      refreshExpiresAt,
+      sessionId: session.id,
+    };
   }
 
   async rotate(rawToken: string, aud: Audience, meta: RequestMeta) {
@@ -48,10 +59,13 @@ export class SessionService {
       where: { tokenHash: sha256(rawToken) },
       include: { user: { select: { id: true, role: true, status: true } } },
     });
-    if (!session || session.audience !== aud) throw new UnauthorizedException('انتهت الجلسة، سجّل الدخول مجدداً');
+    if (!session || session.audience !== aud)
+      throw new UnauthorizedException('انتهت الجلسة، سجّل الدخول مجدداً');
 
     if (session.revokedAt) {
-      const withinGrace = session.replacedById && Date.now() - session.revokedAt.getTime() < ROTATION_GRACE_MS;
+      const withinGrace =
+        session.replacedById &&
+        Date.now() - session.revokedAt.getTime() < ROTATION_GRACE_MS;
       if (!withinGrace) {
         // A revoked refresh token was replayed: assume theft and end every session in the family
         await this.prisma.session.updateMany({
@@ -70,11 +84,17 @@ export class SessionService {
     }
 
     if (session.expiresAt < new Date() || session.user.status !== 'ACTIVE') {
-      await this.prisma.session.updateMany({ where: { id: session.id, revokedAt: null }, data: { revokedAt: new Date() } });
+      await this.prisma.session.updateMany({
+        where: { id: session.id, revokedAt: null },
+        data: { revokedAt: new Date() },
+      });
       throw new UnauthorizedException('انتهت الجلسة، سجّل الدخول مجدداً');
     }
 
-    const next = await this.issue(session.user, aud, meta, { mfa: session.mfa, familyId: session.familyId });
+    const next = await this.issue(session.user, aud, meta, {
+      mfa: session.mfa,
+      familyId: session.familyId,
+    });
     if (!session.revokedAt) {
       await this.prisma.session.update({
         where: { id: session.id },
@@ -93,7 +113,11 @@ export class SessionService {
 
   async revokeAllForUser(userId: string, exceptSessionId?: string) {
     await this.prisma.session.updateMany({
-      where: { userId, revokedAt: null, ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}) },
+      where: {
+        userId,
+        revokedAt: null,
+        ...(exceptSessionId ? { id: { not: exceptSessionId } } : {}),
+      },
       data: { revokedAt: new Date() },
     });
   }
