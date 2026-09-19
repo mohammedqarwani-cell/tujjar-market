@@ -127,6 +127,16 @@ body {
   animation: slide-up 0.28s cubic-bezier(0.2, 0.9, 0.3, 1.1) both;
 }
 
+/* The progress bar over a status while it plays */
+@keyframes story {
+  from {
+    width: 0;
+  }
+  to {
+    width: 100%;
+  }
+}
+
 @keyframes showcase-in {
   from {
     opacity: 0;

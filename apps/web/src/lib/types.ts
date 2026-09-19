@@ -97,7 +97,7 @@ export type HomeData = {
 };
 
 /** Homepage sections the platform team can reorder, rename or hide. */
-export type HomeSectionId = "banners" | "showcase" | "categories" | "offers" | "openNow" | "featured" | "markets" | "popular" | "howItWorks" | "recent" | "latest";
+export type HomeSectionId = "banners" | "stories" | "posts" | "showcase" | "categories" | "offers" | "openNow" | "featured" | "markets" | "popular" | "howItWorks" | "recent" | "latest";
 export type BannerTone = "brand" | "olive" | "ink" | "rose";
 
 export type HomeLayout = {

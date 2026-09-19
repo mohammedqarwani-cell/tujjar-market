@@ -24,7 +24,7 @@ const contentSecurityPolicy = [
   // OpenStreetMap tiles for market and store maps
   `img-src 'self' data: blob: ${mediaOrigin} https://tile.openstreetmap.org`,
   // Recorded shop videos are previewed, and reviewed by moderators, from in-memory blob URLs
-  "media-src 'self' blob:",
+  `media-src 'self' blob: ${mediaOrigin}`,
   "font-src 'self'",
   // The push service worker (public/sw.js) is served from the same origin
   "worker-src 'self'",

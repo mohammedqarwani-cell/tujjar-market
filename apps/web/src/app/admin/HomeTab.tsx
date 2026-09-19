@@ -39,6 +39,8 @@ type Gov = { id: string; name: string; status: string };
 
 const SECTIONS: Record<HomeSectionId, { label: string; hint: string; fallback: string }> = {
   banners: { label: "البنرات", hint: "شريط العروض المتحرك", fallback: "بلا عنوان" },
+  stories: { label: "حالات المحلات", hint: "دوائر الحالات التي ينشرها التجار وتختفي بعد يوم", fallback: "بلا عنوان" },
+  posts: { label: "الجديد من المحلات", hint: "آخر منشورات وريلز التجار", fallback: "الجديد من المحلات" },
   showcase: { label: "بطاقات المتاجر", hint: "ثلاث بطاقات تتبدّل: المتاجر المميزة أولاً ثم بقية المتاجر (على الكمبيوتر تظهر دائماً بجانب العنوان)", fallback: "متاجر من أسواقك" },
   categories: { label: "الأقسام", hint: "أيقونات الأقسام", fallback: "تسوّق حسب القسم" },
   offers: { label: "عروض اليوم", hint: "منتجات عليها خصم مع عدّاد", fallback: "🔥 عروض اليوم" },

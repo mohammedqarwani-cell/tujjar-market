@@ -28,6 +28,7 @@ export async function SiteHeader() {
           <Link href="/markets" className="rounded-full px-3 py-2 hover:bg-sand">الأسواق</Link>
           <Link href="/search?type=stores" className="rounded-full px-3 py-2 hover:bg-sand">المتاجر</Link>
           <Link href="/search?offers=1" className="rounded-full px-3 py-2 hover:bg-sand">العروض</Link>
+          <Link href="/feed" className="rounded-full px-3 py-2 hover:bg-sand">الجديد</Link>
         </nav>
 
         <SearchBox variant="header" />

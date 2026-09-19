@@ -100,6 +100,19 @@ enum ItemCondition {
   USED
 }
 
+/// What a shop published: a post, a short video, or a status that fades after a day
+enum PostKind {
+  POST
+  REEL
+  STORY
+}
+
+enum PostStatus {
+  ACTIVE
+  HIDDEN
+  UNDER_REVIEW
+}
+
 enum ReportStatus {
   OPEN
   RESOLVED
@@ -383,6 +396,7 @@ model Store {
   updatedAt             DateTime              @updatedAt
   orders                Order[]
   promotions            StorePromotion[]
+  posts                 StorePost[]
   products              Product[]
   dailyStats            StoreDailyStat[]
   reports               Report[]
@@ -548,6 +562,7 @@ model Product {
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
   orderItems    OrderItem[]
+  posts         StorePost[]
   reports       Report[]
   favoritedBy   Favorite[]
 
@@ -577,6 +592,8 @@ model Report {
   store      Store?       @relation(fields: [storeId], references: [id], onDelete: Cascade)
   productId  String?
   product    Product?     @relation(fields: [productId], references: [id], onDelete: Cascade)
+  postId     String?
+  post       StorePost?   @relation(fields: [postId], references: [id], onDelete: Cascade)
   reason     String
   details    String?
   status     ReportStatus @default(OPEN)
@@ -584,6 +601,33 @@ model Report {
 
   @@index([status, createdAt])
   @@index([reporterId, createdAt])
+}
+
+/// A shop's own publishing: offers and news as a post, a short video (reel) or a one-day status
+model StorePost {
+  id        String     @id @default(cuid())
+  storeId   String
+  store     Store      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  kind      PostKind   @default(POST)
+  text      String?
+  /// Pictures for a post or a status; a reel keeps its cover here
+  images    String[]   @default([])
+  videoUrl  String?
+  /// An offer usually points at the listing it is about
+  productId String?
+  product   Product?   @relation(fields: [productId], references: [id], onDelete: SetNull)
+  status    PostStatus @default(ACTIVE)
+  /// A status disappears on its own; posts and reels stay
+  expiresAt DateTime?
+  views     Int        @default(0)
+  clicks    Int        @default(0)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+  reports   Report[]
+
+  @@index([status, createdAt])
+  @@index([storeId, kind, createdAt])
+  @@index([kind, expiresAt])
 }
 
 /// A buyer's saved product, kept on the server so price drops and restocks can be announced

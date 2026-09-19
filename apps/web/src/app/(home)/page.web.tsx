@@ -11,11 +11,15 @@ import { SearchIcon, ShieldIcon, WhatsAppIcon, PinIcon } from "@components/ui/ic
 import { SearchBox } from "@components/search/SearchBox";
 import { PromoCarousel, type Promo } from "@components/home/PromoCarousel";
 import { StoreShowcase } from "@components/home/StoreShowcase";
+import { Stories, type StoryGroup } from "@components/feed/Stories";
+import { PostCard, type FeedPost } from "@components/feed/PostCard";
 import { Countdown, Greeting, OpenNowRail, RecentlyViewed } from "@components/home/LiveBits";
 import type { Page } from "@lib/types";
 
 const DEFAULT_TITLES: Record<HomeSectionId, string> = {
   banners: "",
+  stories: "",
+  posts: "الجديد من المحلات",
   showcase: "متاجر من أسواقك",
   categories: "تسوّق حسب القسم",
   offers: "🔥 عروض اليوم",
@@ -39,9 +43,11 @@ const FALLBACK_LAYOUT: HomeLayout = {
 
 export default async function HomePage() {
   const gov = (await cookies()).get(GOV_COOKIE)?.value ?? "";
-  const [data, offers] = await Promise.all([
+  const [data, offers, stories, posts] = await Promise.all([
     apiGet<HomeData>(`/home${toQuery({ gov })}`, 60),
     apiGet<Page<ProductCardData>>(`/products${toQuery({ gov, offers: "1", sort: "popular", pageSize: 12 })}`, 60).catch(() => null),
+    apiGet<StoryGroup[]>(`/stories${toQuery({ gov })}`, 30).catch(() => [] as StoryGroup[]),
+    apiGet<Page<FeedPost>>(`/feed${toQuery({ gov, pageSize: 3 })}`, 30).catch(() => null),
   ]);
   const layout = data.layout ?? FALLBACK_LAYOUT;
   const current = data.governorates.find((g) => g.slug === gov);
@@ -91,6 +97,27 @@ export default async function HomePage() {
               <h2 className="mb-3 text-xl font-bold">{name}</h2>
               <StoreShowcase items={showcase} />
             </section>
+          )
+        );
+      case "stories":
+        return (
+          stories.length > 0 && (
+            <section className="mx-auto max-w-6xl px-4">
+              <Stories groups={stories} />
+            </section>
+          )
+        );
+      case "posts":
+        return (
+          posts &&
+          posts.items.length > 0 && (
+            <Section title={name} subtitle="عروض وبضاعة جديدة ينشرها أصحاب المحلات" href="/feed" linkLabel="كل الجديد" className="reveal">
+              <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3 [&>*]:min-w-0">
+                {posts.items.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </div>
+            </Section>
           )
         );
       case "categories":

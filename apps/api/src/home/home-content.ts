@@ -32,6 +32,8 @@ import type { AuthUser } from '../auth/current-user.decorator';
 
 export const SECTION_IDS = [
   'banners',
+  'stories',
+  'posts',
   'showcase',
   'categories',
   'offers',

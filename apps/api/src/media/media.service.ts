@@ -6,6 +6,15 @@ import { env } from '../env';
 import { createS3Client } from '../common/s3';
 
 export const MAX_UPLOAD_BYTES = 8 * 1024 * 1024;
+/** A reel is a short clip, kept small so it plays on a weak connection */
+export const MAX_VIDEO_BYTES = 25 * 1024 * 1024;
+
+/** The first bytes of a file say what it really is, whatever the browser claims */
+const VIDEO_SIGNATURES: { type: string; ext: string; test: (b: Buffer) => boolean }[] = [
+  { type: 'video/mp4', ext: 'mp4', test: (b) => b.length > 12 && b.subarray(4, 8).toString('latin1') === 'ftyp' },
+  { type: 'video/webm', ext: 'webm', test: (b) => b.length > 4 && b[0] === 0x1a && b[1] === 0x45 && b[2] === 0xdf && b[3] === 0xa3 },
+];
+
 const MAX_INPUT_PIXELS = 40_000_000;
 const MAX_SIDE = 1600;
 const ACCEPTED_FORMATS = new Set(['jpeg', 'png', 'webp', 'heif', 'avif']);
@@ -38,6 +47,32 @@ export class MediaService implements OnModuleInit {
         this.log.warn(`Media storage unavailable: ${(e as Error).message}`);
       }
     }
+  }
+
+  /**
+   * A short video for a reel or a status. It is stored as it arrives (no re-encoding, the
+   * server is small), so only real MP4 or WebM files within the size limit are accepted.
+   */
+  async uploadVideo(userId: string, file: { buffer: Buffer; size: number }) {
+    if (file.size > MAX_VIDEO_BYTES) throw new BadRequestException('حجم الفيديو أكبر من 25 ميغابايت، قصّره أو صوّره بجودة أقل');
+    const kind = VIDEO_SIGNATURES.find((v) => v.test(file.buffer));
+    if (!kind) throw new BadRequestException('الملف ليس فيديو صالحاً. الصيغ المسموحة: MP4 أو WEBM');
+
+    const key = `videos/${userId}/${randomUUID()}.${kind.ext}`;
+    try {
+      await this.s3.send(
+        new PutObjectCommand({
+          Bucket: env.minio.bucket,
+          Key: key,
+          Body: file.buffer,
+          ContentType: kind.type,
+          CacheControl: 'public, max-age=31536000, immutable',
+        }),
+      );
+    } catch {
+      throw new BadRequestException('تعذّر رفع الفيديو، حاول مرة أخرى');
+    }
+    return { url: `${env.minio.publicUrl}/${key}` };
   }
 
   /**

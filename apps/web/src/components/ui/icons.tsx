@@ -137,6 +137,14 @@ export const StarIcon = ({ size = 16, ...p }: IconProps) => (
     <path fill="currentColor" d="m12 2.5 2.9 6.1 6.6.8-4.9 4.6 1.3 6.6L12 17.3l-5.9 3.3 1.3-6.6-4.9-4.6 6.6-.8z" />
   </svg>
 );
+export const MegaphoneIcon = ({ size = 16, ...p }: IconProps) => (
+  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...p}>
+    <path d="M3 11v2a1 1 0 0 0 1 1h3l6 4V6L7 10H4a1 1 0 0 0-1 1Z" />
+    <path d="M17 9a3 3 0 0 1 0 6" />
+    <path d="M8 14v4a1.5 1.5 0 0 0 3 0v-3" />
+  </svg>
+);
+
 export const CartIcon = ({ size = 16, ...p }: IconProps) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round" aria-hidden {...p}>
     <path d="M3 4h2l2.4 10.4a2 2 0 0 0 2 1.6h6.9a2 2 0 0 0 2-1.5L20 8H6" />
