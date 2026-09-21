@@ -128,6 +128,24 @@ const orderSelect = {
 } satisfies Prisma.OrderSelect;
 
 const buyerFields = { buyerName: true, buyerPhone: true } as const;
+
+/**
+ * Totals are stored as BigInt (they can pass Int32) but JSON can't carry a BigInt, so every order
+ * that leaves this service goes through here. Values stay far below Number.MAX_SAFE_INTEGER
+ * (at most 2e9 × 9999 × 40 lines ≈ 8e14).
+ */
+function toOrderView<
+  T extends { total: bigint | null; items: { lineTotal: bigint | null }[] },
+>(order: T) {
+  return {
+    ...order,
+    total: order.total === null ? null : Number(order.total),
+    items: order.items.map((item) => ({
+      ...item,
+      lineTotal: item.lineTotal === null ? null : Number(item.lineTotal),
+    })),
+  };
+}
 const storeFields = {
   store: { select: { slug: true, name: true, whatsapp: true, phone: true } },
 } as const;
@@ -250,13 +268,18 @@ export class OrdersService {
         buyerName: buyer.name,
         buyerPhone: buyer.phone,
         currency,
-        total,
+        total: total === null ? null : BigInt(total),
         fulfillment: dto.fulfillment,
         governorateId,
         address: dto.fulfillment === 'DELIVERY' ? dto.address!.trim() : null,
         payment: dto.payment,
         note: dto.note?.trim() || null,
-        items: { create: lines },
+        items: {
+          create: lines.map((line) => ({
+            ...line,
+            lineTotal: line.lineTotal === null ? null : BigInt(line.lineTotal),
+          })),
+        },
       },
       select: { id: true, ref: true },
     });
@@ -305,7 +328,7 @@ export class OrdersService {
       }),
       this.prisma.order.count({ where }),
     ]);
-    return pageResult(items, total, page, pageSize);
+    return pageResult(items.map(toOrderView), total, page, pageSize);
   }
 
   async cancelByBuyer(userId: string, id: string, dto: CancelDto) {
@@ -339,7 +362,7 @@ export class OrdersService {
       url: '/dashboard/orders',
       groupKey: `order:${order.id}`,
     });
-    return updated;
+    return toOrderView(updated);
   }
 
   async listForStore(userId: string, query: Record<string, string>) {
@@ -370,7 +393,7 @@ export class OrdersService {
       }),
     ]);
     return {
-      ...pageResult(items, total, page, pageSize),
+      ...pageResult(items.map(toOrderView), total, page, pageSize),
       counts: Object.fromEntries(
         counts.map((c) => [c.status, c._count]),
       ) as Partial<Record<OrderStatus, number>>,
@@ -448,7 +471,7 @@ export class OrdersService {
       groupKey: `order:${order.id}`,
       urgent: dto.status !== 'DONE',
     });
-    return updated;
+    return toOrderView(updated);
   }
 
   async pending(userId: string) {

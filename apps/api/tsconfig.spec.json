@@ -1,0 +1,12 @@
+{
+  // Tests are compiled as ESM: Jest cannot require() the ESM-only @nestjs packages the way
+  // Node 22 does for the compiled CommonJS app. Everything else matches tsconfig.json.
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolvePackageJsonExports": true,
+    "verbatimModuleSyntax": false,
+    "isolatedModules": false
+  }
+}

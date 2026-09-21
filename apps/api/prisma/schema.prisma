@@ -439,8 +439,9 @@ model Order {
   buyerName     String
   buyerPhone    String
   currency      Currency      @default(SYP)
-  /// Sum of the lines, before any delivery fee; null when a line is priced on request
-  total         Int?
+  /// Sum of the lines, before any delivery fee; null when a line is priced on request.
+  /// BigInt: a line can reach 2e9 × 9999, beyond Int32
+  total         BigInt?
   fulfillment   Fulfillment   @default(DELIVERY)
   governorateId String?
   governorate   Governorate?  @relation(fields: [governorateId], references: [id])
@@ -472,8 +473,8 @@ model OrderItem {
   image     String?
   unitPrice Int?
   quantity  Int      @default(1)
-  /// unitPrice × quantity
-  lineTotal Int?
+  /// unitPrice × quantity (BigInt: beyond Int32 for large quantities of expensive items)
+  lineTotal BigInt?
 
   @@index([orderId])
 }
