@@ -13,8 +13,6 @@ const demoMode = process.env.NEXT_PUBLIC_DEMO_MODE === "true";
 const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
 const apiOrigin = apiBase.startsWith("/") ? "" : new URL(apiBase).origin;
 const mediaOrigin = new URL(process.env.NEXT_PUBLIC_MEDIA_URL ?? "http://localhost:9000").origin;
-/** When set, /api/* is proxied to this API so sessions stay first-party cookies on each interface's domain */
-const apiProxyTarget = process.env.API_PROXY_TARGET?.replace(/\/+$/, "");
 
 const contentSecurityPolicy = [
   "default-src 'self'",
@@ -64,9 +62,6 @@ const nextConfig: NextConfig = {
   env: { NEXT_PUBLIC_APP_INTERFACE: appInterface },
   async headers() {
     return [{ source: "/:path*", headers: securityHeaders }];
-  },
-  async rewrites() {
-    return apiProxyTarget ? [{ source: "/api/:path*", destination: `${apiProxyTarget}/:path*` }] : [];
   },
 };
 

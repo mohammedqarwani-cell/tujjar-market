@@ -52,6 +52,9 @@
 |---|---|---|
 | حماية CSRF: ترويسة `X-Client` إلزامية + فحص Origin + كوكيز SameSite | ✅ | `common/csrf.guard.ts` |
 | CORS مقيّد بنطاقات الواجهات فقط | ✅ | `main.ts` |
+| الـ API لا يُخدَم إلا عبر وسيط الواجهة: كل طلب يحمل سرّاً مشتركاً (`PROXY_SECRET`) يُقارَن بزمن ثابت، وما عداه يُرفض 403 | ✅ مختبر | `common/proxy-secret.middleware.ts`، `apps/web/src/proxy.shared.ts` |
+| عنوان الزائر يُؤخذ من ترويسة الوسيط فقط بعد التحقق من السر، وإلا فمن الاتصال نفسه (منع تزوير الحد لكل عنوان) | ✅ مختبر | `common/request.ts` |
+| فحص السلامة `GET /healthz` وحده معفى من السر، بلا أي بيانات | ✅ | `health/health.controller.ts`، `render.yaml` |
 | تحديد معدل الطلبات عاماً (120/دقيقة) ومشدداً على الدخول والتسجيل والرموز والبلاغات، مع ترويسات `RateLimit-*` و`Retry-After` | ✅ | `common/throttle.ts` + `@Throttle` |
 | العدادات في ذاكرة الخادم؛ التشغيل على أكثر من نسخة يحتاج مخزناً مشتركاً (Redis) | 🟡 عند التوسع | `common/throttle.ts` |
 | تحقق صارم من كل المدخلات، ورفض الحقول غير المعروفة | ✅ | `ValidationPipe` في `main.ts` |

@@ -70,6 +70,7 @@
 |---|---|
 | `API_BASE_URL` | رابط Render، مثل `https://tujjar-api.onrender.com` |
 | `API_PROXY_TARGET` | رابط Render نفسه |
+| `API_PROXY_SECRET` | سر عشوائي طويل، **نفسه** في المشاريع الثلاثة وفي `PROXY_SECRET` على Render |
 | `NEXT_PUBLIC_API_BASE_URL` | `/api` |
 | `NEXT_PUBLIC_SITE_URL` | رابط مشروع الزبائن، مثل `https://tujjar-market.vercel.app` |
 | `NEXT_PUBLIC_MERCHANT_URL` | رابط مشروع التجار |
@@ -78,6 +79,8 @@
 | `NEXT_PUBLIC_DEMO_MODE` | `true` |
 
 الروابط النهائية تظهر بعد إنشاء كل مشروع. إن اختلفت عن المتوقع، صحّح المتغيرات ثم **Redeploy** للمشاريع الثلاثة.
+
+**ترتيب تفعيل سر الوسيط مهم:** ضع `API_PROXY_SECRET` على Vercel في المشاريع الثلاثة وأعد النشر أولاً، ثم ضع `PROXY_SECRET` بنفس القيمة على Render. العكس يقطع كل الطلبات حتى يكتمل نشر الواجهات. لتدوير السر لاحقاً: غيّره على Vercel وانشر، ثم غيّره على Render.
 
 ## 4) ربط الـ API بالواجهات
 

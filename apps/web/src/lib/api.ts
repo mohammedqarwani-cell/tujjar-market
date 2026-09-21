@@ -23,10 +23,33 @@ export async function readError(res: Response): Promise<string> {
   return (await readErrorBody(res)).message;
 }
 
+/**
+ * Rendering on the server calls the API directly, not through this site's /api proxy, so it adds
+ * the same two headers the proxy would: the shared secret, and the visitor's address so per-IP
+ * limits count the visitor instead of this server. Read on the server only — never NEXT_PUBLIC.
+ */
+async function serverHeaders(): Promise<Record<string, string>> {
+  const secret = process.env.API_PROXY_SECRET;
+  if (!secret) return {};
+  const headers: Record<string, string> = { "X-Proxy-Secret": secret };
+  try {
+    const { headers: requestHeaders } = await import("next/headers");
+    const visitor = (await requestHeaders()).get("x-forwarded-for")?.split(",")[0]?.trim();
+    if (visitor) headers["X-Tujjar-Client-IP"] = visitor;
+  } catch {
+    // Outside a request (build time, or a background job): the secret alone is enough
+  }
+  return headers;
+}
+
 /** Public GET used by server components; responses are cached briefly. */
 export async function apiGet<T>(path: string, revalidate = 30): Promise<T> {
-  const base = typeof window === "undefined" ? SERVER_API : PUBLIC_API;
-  const res = await fetch(`${base}${path}`, { next: { revalidate } });
+  const onServer = typeof window === "undefined";
+  const base = onServer ? SERVER_API : PUBLIC_API;
+  const res = await fetch(`${base}${path}`, {
+    next: { revalidate },
+    headers: onServer ? await serverHeaders() : undefined,
+  });
   if (!res.ok) throw new ApiError(res.status, await readError(res));
   return res.json() as Promise<T>;
 }

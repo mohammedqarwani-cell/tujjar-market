@@ -58,6 +58,14 @@ export const env = {
   port: Number(process.env.PORT ?? 4000),
   /** Number of reverse proxies in front of the API (for correct client IPs) */
   trustProxy: Number(process.env.TRUST_PROXY ?? (isProd ? 1 : 0)),
+  /**
+   * Shared with each interface's /api proxy. When set, only requests carrying it are served,
+   * and only they may name the visitor's IP. Unset in development: everything passes.
+   * Read on every check (not frozen at import) so a test can build an app with and without it.
+   */
+  get proxySecret(): string | null {
+    return process.env.PROXY_SECRET || null;
+  },
   origins: {
     web: list(process.env.WEB_ORIGIN, 'http://localhost:3000'),
     merchant: list(process.env.MERCHANT_ORIGIN, 'http://localhost:3000'),

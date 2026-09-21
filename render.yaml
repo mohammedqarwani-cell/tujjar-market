@@ -10,7 +10,8 @@ services:
     buildCommand: npm ci --include=dev && npx prisma generate && npm run build
     # Migrations run on every start; demo data is loaded only into an empty database
     startCommand: npx prisma migrate deploy && npm run db:seed-demo && node dist/src/main
-    healthCheckPath: /categories
+    # The one route served without the proxy secret
+    healthCheckPath: /healthz
     autoDeploy: true
     envVars:
       - key: NODE_VERSION
@@ -33,6 +34,10 @@ services:
       - key: TERMS_VERSION
         value: 2026-09
       # Bucket names: Supabase reserves "public", so the demo uses tujjar-public and tujjar-kyc
+      # Shared with the three Vercel projects (API_PROXY_SECRET there): the API serves only
+      # requests that come through an interface proxy. Set it on Vercel FIRST, then here.
+      - key: PROXY_SECRET
+        sync: false
       - key: MINIO_BUCKET
         sync: false
       - key: MINIO_PRIVATE_BUCKET

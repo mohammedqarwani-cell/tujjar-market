@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { PrismaModule } from './prisma/prisma.module';
 import { AuditModule } from './audit/audit.module';
@@ -19,12 +19,15 @@ import { SearchModule } from './search/search.module';
 import { EngagementModule } from './engagement/engagement';
 import { OrdersModule } from './orders/orders';
 import { PostsModule } from './posts/posts';
+import { HealthModule } from './health/health.controller';
 import { CsrfGuard } from './common/csrf.guard';
+import { ProxySecretMiddleware } from './common/proxy-secret.middleware';
 import { ThrottleGuard } from './common/throttle';
 
 @Module({
   imports: [
     PrismaModule,
+    HealthModule,
     AuditModule,
     NotificationsModule,
     SearchModule,
@@ -49,4 +52,9 @@ import { ThrottleGuard } from './common/throttle';
     { provide: APP_GUARD, useClass: CsrfGuard },
   ],
 })
-export class AppModule {}
+export class AppModule implements NestModule {
+  configure(consumer: MiddlewareConsumer) {
+    // Before every guard and controller: only our own proxy may reach the API
+    consumer.apply(ProxySecretMiddleware).forRoutes('{*path}');
+  }
+}
