@@ -913,6 +913,11 @@ export class VerificationService
           );
         }
       }
+      // Failed sign-ins only matter for an hour (the owner alert); a day is plenty to keep
+      await this.prisma.loginFailure.deleteMany({
+        where: { createdAt: { lt: new Date(now.getTime() - DAY_MS) } },
+      });
+
       if (expired.length || purged)
         this.log.log(
           `Verification upkeep: ${expired.length} expired, ${purged} purged`,

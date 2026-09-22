@@ -191,7 +191,9 @@ model User {
   role                  Role                  @default(BUYER)
   status                UserStatus            @default(ACTIVE)
   phoneVerifiedAt       DateTime?
+  /// No longer used for login decisions (see LoginFailure); kept until a later migration drops it
   failedLogins          Int                   @default(0)
+  /// No longer used for login decisions (see LoginFailure); kept until a later migration drops it
   lockedUntil           DateTime?
   lastLoginAt           DateTime?
   /// AES-256-GCM encrypted base32 TOTP secret
@@ -477,6 +479,22 @@ model OrderItem {
   lineTotal BigInt?
 
   @@index([orderId])
+}
+
+/// One failed sign-in: the phone typed and the address it came from. Five from one (phone, address)
+/// block that pair for 15 minutes; many across all addresses alert the owner instead of locking
+/// them out. Rows older than a day are deleted by the verification upkeep job.
+model LoginFailure {
+  id        String   @id @default(cuid())
+  /// The normalized phone, or the raw input (at most 32 characters) when it is not a phone number,
+  /// so unregistered and invalid numbers are tracked exactly like registered ones
+  phone     String
+  ip        String
+  createdAt DateTime @default(now())
+
+  @@index([phone, ip, createdAt])
+  @@index([phone, createdAt])
+  @@index([createdAt])
 }
 
 /// One review per buyer per store; only published reviews count towards the store rating

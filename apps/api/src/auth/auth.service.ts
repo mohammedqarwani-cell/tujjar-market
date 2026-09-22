@@ -32,8 +32,14 @@ import { SessionService } from './session.service';
 import { base32Decode, base32Encode, matchTotp, otpauthUrl } from './totp';
 import { NotificationsService } from '../notifications/notifications.service';
 
-const MAX_FAILED_LOGINS = 5;
-const LOCK_MS = 15 * 60_000;
+/** Failed sign-ins from one (phone, address) before that pair is blocked */
+const PAIR_LIMIT = 5;
+const PAIR_WINDOW_MS = 15 * 60_000;
+/** Failures on one phone from all addresses that alert the owner (they never lock the account) */
+const ACCOUNT_ALERT_AFTER = 30;
+const ACCOUNT_WINDOW_MS = 60 * 60_000;
+/** Older failures of the same phone are removed as new ones arrive */
+const FAILURE_RETENTION_MS = 24 * 60 * 60_000;
 const BCRYPT_ROUNDS = 12;
 // Compared against when the phone doesn't exist, so response time doesn't reveal it
 const DUMMY_HASH = bcrypt.hashSync('not-a-real-password', BCRYPT_ROUNDS);
@@ -184,43 +190,53 @@ export class AuthService {
     return this.startSession(user, 'merchant', meta, false);
   }
 
+  /**
+   * Merchant phones are public (they are the shop's WhatsApp), so a failed sign-in must never lock
+   * the account itself: anyone could keep a merchant locked out. Failures are counted per
+   * (phone, address) instead, and phones with no account are tracked exactly the same way, so the
+   * answers never reveal whether a number is registered.
+   */
   async login(dto: LoginDto, aud: Audience, meta: RequestMeta) {
     const invalid = () =>
       new UnauthorizedException('رقم الموبايل أو كلمة المرور غير صحيحة');
     const phone = normalizeSyrianMobile(dto.phone);
-    const user = phone
-      ? await this.prisma.user.findUnique({ where: { phone } })
-      : null;
-    if (!user) {
-      await bcrypt.compare(dto.password, DUMMY_HASH);
-      throw invalid();
-    }
+    const key = phone ?? dto.phone.trim().slice(0, 32);
 
-    if (user.lockedUntil && user.lockedUntil > new Date()) {
+    const recent = await this.prisma.loginFailure.count({
+      where: {
+        phone: key,
+        ip: meta.ip,
+        createdAt: { gt: new Date(Date.now() - PAIR_WINDOW_MS) },
+      },
+    });
+    if (recent >= PAIR_LIMIT) {
       throw new HttpException(
-        'الحساب مقفل مؤقتاً بسبب محاولات فاشلة متكررة، حاول بعد 15 دقيقة',
+        'محاولات كثيرة من هذا الجهاز، حاول بعد 15 دقيقة',
         HttpStatus.TOO_MANY_REQUESTS,
       );
     }
 
+    const user = phone
+      ? await this.prisma.user.findUnique({ where: { phone } })
+      : null;
+    if (!user) {
+      // Same work as a real check, so the response time doesn't reveal the number is unknown
+      await bcrypt.compare(dto.password, DUMMY_HASH);
+      await this.recordLoginFailure(key, meta.ip);
+      throw invalid();
+    }
+
     if (!(await bcrypt.compare(dto.password, user.passwordHash))) {
-      const failed = user.failedLogins + 1;
-      const lock = failed >= MAX_FAILED_LOGINS;
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: {
-          failedLogins: lock ? 0 : failed,
-          ...(lock ? { lockedUntil: new Date(Date.now() + LOCK_MS) } : {}),
-        },
-      });
+      await this.recordLoginFailure(key, meta.ip);
       await this.audit.log({
         actorId: user.id,
-        action: lock ? 'auth.account_locked' : 'auth.login_failed',
+        action: 'auth.login_failed',
         entityType: 'user',
         entityId: user.id,
         meta: { aud },
         ip: meta.ip,
       });
+      await this.alertOnSustainedAttempts(user, key, meta.ip);
       throw invalid();
     }
 
@@ -255,9 +271,13 @@ export class AuthService {
       mfa = true;
     }
 
+    // A successful sign-in from this address clears its own count, not other addresses'
+    await this.prisma.loginFailure.deleteMany({
+      where: { phone: key, ip: meta.ip },
+    });
     await this.prisma.user.update({
       where: { id: user.id },
-      data: { failedLogins: 0, lockedUntil: null, lastLoginAt: new Date() },
+      data: { lastLoginAt: new Date() },
     });
     await this.audit.log({
       actorId: user.id,
@@ -268,6 +288,58 @@ export class AuthService {
       ip: meta.ip,
     });
     return this.startSession(user, aud, meta, mfa);
+  }
+
+  private async recordLoginFailure(phone: string, ip: string) {
+    await this.prisma.loginFailure.create({ data: { phone, ip } });
+    await this.prisma.loginFailure.deleteMany({
+      where: {
+        phone,
+        createdAt: { lt: new Date(Date.now() - FAILURE_RETENTION_MS) },
+      },
+    });
+  }
+
+  /**
+   * Many failures on one account from many addresses look like someone trying to get in. The
+   * account stays open for its owner; we record it and tell them, at most once an hour.
+   */
+  private async alertOnSustainedAttempts(
+    user: User,
+    phone: string,
+    ip: string,
+  ) {
+    const since = new Date(Date.now() - ACCOUNT_WINDOW_MS);
+    const failures = await this.prisma.loginFailure.count({
+      where: { phone, createdAt: { gt: since } },
+    });
+    if (failures <= ACCOUNT_ALERT_AFTER) return;
+
+    const alreadyAlerted = await this.prisma.auditLog.findFirst({
+      where: {
+        action: 'auth.login_attack',
+        entityId: user.id,
+        createdAt: { gt: since },
+      },
+      select: { id: true },
+    });
+    if (alreadyAlerted) return;
+
+    await this.audit.log({
+      action: 'auth.login_attack',
+      entityType: 'user',
+      entityId: user.id,
+      meta: { failures, windowMinutes: ACCOUNT_WINDOW_MS / 60_000 },
+      ip,
+    });
+    this.notifications.notify(user.id, {
+      category: 'ACCOUNT',
+      type: 'security.login_attempts',
+      title: 'أحد يحاول الدخول إلى حسابك',
+      body: `حصلت أكثر من ${ACCOUNT_ALERT_AFTER} محاولة دخول بكلمة مرور خاطئة خلال ساعة. حسابك لم يُقفل؛ إن لم تكن أنت، غيّر كلمة المرور.`,
+      url: user.role === 'MERCHANT' ? '/dashboard/account' : '/account',
+      urgent: true,
+    });
   }
 
   async resetPassword(dto: ResetPasswordDto, meta: RequestMeta) {
