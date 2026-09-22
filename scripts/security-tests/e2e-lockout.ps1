@@ -42,10 +42,12 @@ Check "The account itself is never locked" ($locked.Trim() -eq "t") "lockedUntil
 $correct = Login "0900000200" "Buyer@2026"
 Check "This address is blocked, even with the right password" ($correct.Code -eq 429) "got $($correct.Code)"
 
-# An unknown number gets exactly the same answers
-$unknown = @()
-for ($i = 1; $i -le 6; $i++) { $unknown += (Login "0999000555" "wrong-password-$i").Code }
-Check "An unregistered number is answered the same way" (($unknown -join ",") -eq "401,401,401,401,401,429") ($unknown -join ",")
+# An unknown number gets exactly the same answers. The login route allows 10 calls per 15 minutes per
+# address, so four earlier failures are written directly and only the boundary is exercised here
+# (src/auth/login-throttle.spec.ts compares the whole sequence).
+Sql 'INSERT INTO "LoginFailure" (id, phone, ip) SELECT md5(random()::text), ''963999000555'', ip FROM (SELECT DISTINCT ip FROM "LoginFailure" WHERE phone = ''963900000200'') a, generate_series(1, 4);' | Out-Null
+$unknown = @((Login "0999000555" "wrong-password-5").Code, (Login "0999000555" "wrong-password-6").Code)
+Check "An unregistered number is answered the same way" (($unknown -join ",") -eq "401,429") ($unknown -join ",")
 
 # Clean up and confirm normal login works
 Sql $Reset | Out-Null
